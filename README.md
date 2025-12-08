@@ -1,10 +1,10 @@
 # SRC-D2_WEYU
 SRC-D2 WEYU: Cyber-Conspectus Matrix v2.0. Client-side, locally persistent incident and project management dashboard. Utilizing pure HTML, TailwindCSS, and JavaScript for zero-latency, high-performance data visualization.
 
-# 💾 SRC-D2_WEYU_v11: Cyber-Conspectus Matrix
+# 💾 SRC-D2_WEYU: Cyber-Conspectus Matrix
 
 ## 🚀 Overview
-The SRC-D2\_WEYU\_v11 Cyber-Conspectus Matrix is a hyper-persistent, single-page application (SPA) designed for streamlined incident response tracking, project management, and rapid context capture. It operates entirely client-side, using browser technologies (LocalStorage, IndexedDB, SessionStorage) for data persistence, offering robust data integrity and operational security without reliance on external servers.
+The SRC-D2\_WEYU\ Cyber-Conspectus Matrix is a hyper-persistent, single-page application (SPA) designed for streamlined incident response tracking, project management, and rapid context capture. It operates entirely client-side, using browser technologies (LocalStorage, IndexedDB, SessionStorage) for data persistence, offering robust data integrity and operational security without reliance on external servers.
 
 This version implements advanced data export protocols, mobile-optimized views, and a multi-tab scratchpad with granular saving options.
 
@@ -48,4 +48,4 @@ If you find this tool helpful, consider supporting the continued development and
 
 ---
 
-*SRC-D2\_WEYU\_v11 is provided "as-is" for personal and operational use. Always back up critical data using the export function.*
+*SRC-D2\_WEYU\ is provided "as-is" for personal and operational use. Always back up critical data using the export function.*
