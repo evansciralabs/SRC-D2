@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRC-D2 | Cyber-Conspectus Matrix [STABLE]</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- Cyber-Console / Matrix Aesthetic --- */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Michroma&display=swap');
+        
+        :root {
+            /* Standard Scheme */
+            --primary: #00FFFF; /* Electric Cyan */
+            --secondary: #00FF00; /* Neon Green */
+            --silver: #E0FFFF; /* Near White */
+            --dark-bg: #050A19; /* Deep Navy/Black */
+            --mid-bg: #1A2238; /* Dark Blue-Gray */
+            --critical: #FF3333; /* Red for alerts */
+            --warning: #FFD700; /* Gold/Yellow */
+            
+            /* Glows */
+            --text-glow-primary: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.4);
+            --border-glow-primary: 0 0 8px rgba(0, 255, 255, 1), inset 0 0 8px rgba(0, 255, 255, 0.6);
+            --text-glow-secondary: 0 0 8px rgba(0, 255, 0, 0.8);
+            
+            /* Custom Colored Glows for Buttons */
+            --border-glow-yellow: 0 0 8px rgba(255, 215, 0, 0.8), inset 0 0 5px rgba(255, 215, 0, 0.4);
+            --border-glow-red: 0 0 8px rgba(255, 51, 51, 0.8), inset 0 0 5px rgba(255, 51, 51, 0.4);
+            --border-glow-green: 0 0 8px rgba(0, 255, 0, 0.8), inset 0 0 5px rgba(0, 255, 0, 0.4);
+            
+            /* Midnight Purple Aesthetic */
+            --midnight-purp-bg: #0f0518;
+            --neon-pink: #FF00FF;
+            --border-glow-pink: 0 0 8px rgba(255, 0, 255, 0.8), inset 0 0 5px rgba(255, 0, 255, 0.4);
+            --text-glow-pink: 0 0 5px rgba(255, 0, 255, 0.8);
+            
+            /* Rune / Close Button Glow */
+            --text-glow-red: 0 0 10px rgba(255, 51, 51, 0.8), 0 0 20px rgba(255, 51, 51, 0.5);
+        }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            background-color: var(--dark-bg);
+            color: var(--silver);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Utility Classes */
+        .neon-cyan { color: var(--primary); text-shadow: var(--text-glow-primary); }
+        .neon-green { color: var(--secondary); text-shadow: var(--text-glow-secondary); }
+        .bg-dark-navy { background-color: var(--dark-bg); }
+        .bg-mid-blue { background-color: var(--mid-bg); }
+        
+        .glow-border-cyan { border: 1px solid var(--primary); box-shadow: var(--border-glow-primary); }
+        
+        /* Specialized Button Glows */
+        .glow-btn-yellow { border: 1px solid var(--warning); box-shadow: var(--border-glow-yellow); color: #fff; }
+        .glow-btn-red { border: 1px solid var(--critical); box-shadow: var(--border-glow-red); color: #fff; }
+        .glow-btn-green { border: 1px solid var(--secondary); box-shadow: var(--border-glow-green); color: #fff; }
+
+        /* Panel Grid Background for Empty States */
+        .panel-grid-bg {
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Glyph Buttons */
+        .glyph-btn {
+            font-family: 'Michroma', sans-serif;
+            font-size: 0.9rem;
+            line-height: 1;
+            padding: 4px 6px;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .glyph-btn:hover {
+            transform: scale(1.1);
+            background-color: rgba(255,255,255,0.1);
+            text-shadow: 0 0 8px currentColor;
+        }
+
+        .rune-close {
+            text-shadow: var(--text-glow-red);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            z-index: 100;
+        }
+        .rune-close:hover {
+            transform: scale(1.2);
+            color: #ff9999;
+        }
+
+        /* MIDNIGHT PURPLE BUTTON STYLE */
+        .btn-midnight-purple {
+            background-color: var(--midnight-purp-bg);
+            color: var(--neon-pink);
+            border: 1px solid var(--neon-pink);
+            box-shadow: 0 0 5px rgba(255, 0, 255, 0.2);
+            transition: all 0.2s ease;
+            font-family: 'Michroma', sans-serif;
+            letter-spacing: 0.5px;
+            text-shadow: var(--text-glow-pink);
+        }
+        .btn-midnight-purple:hover {
+            box-shadow: var(--border-glow-pink);
+            background-color: #1a0b2e;
+            transform: translateY(-1px);
+        }
+
+        /* Scanline Overlay */
+        .scanline-overlay::before {
+            content: "";
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.3) 50%);
+            background-size: 100% 4px; pointer-events: none; z-index: 40;
+        }
+        
+        /* Layout & Scrollbars */
+        .dashboard-container { height: 100vh; display: flex; transition: all 0.3s ease; }
+        .left-pane, .right-pane { height: 100%; overflow-y: auto; flex-shrink: 0; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background-color: var(--secondary); border-radius: 3px; box-shadow: 0 0 5px var(--secondary); }
+        ::-webkit-scrollbar-track { background-color: var(--mid-bg); }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .left-pane, .right-pane { position: absolute; width: 100%; z-index: 10; }
+            .dashboard-container.mobile-list-view .left-pane { transform: translateX(0); z-index: 20; }
+            .dashboard-container.mobile-list-view .right-pane { transform: translateX(100%); z-index: 10; }
+            .dashboard-container.mobile-detail-view .left-pane { transform: translateX(-100%); z-index: 10; }
+            .dashboard-container.mobile-detail-view .right-pane { transform: translateX(0); z-index: 20; }
+        }
+
+        /* Inputs */
+        input:focus, textarea:focus, button:focus { outline: none; box-shadow: 0 0 5px var(--primary); }
+        
+        /* Scratchpad Textareas */
+        .scratchpad-textarea {
+            font-family: 'Space Mono', monospace;
+            line-height: 1.4;
+            tab-size: 4;
+            color: var(--secondary);
+            background-color: rgba(26, 34, 56, 0.8);
+        }
+
+        /* Active Input Fields (Green) */
+        .input-active {
+            color: var(--secondary);
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
+
+        /* Read-Only Viewer (Electric Blue) */
+        .text-viewer {
+            color: var(--primary);
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+            background-color: #050A19;
+        }
+
+        /* ADR Toast System */
+        #adr-toast-container {
+            position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+            pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+        }
+        .adr-toast {
+            background-color: rgba(26, 34, 56, 0.95);
+            border-left: 4px solid var(--secondary);
+            color: var(--silver); padding: 12px 16px; border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); font-size: 0.85rem;
+            min-width: 250px; transition: opacity 0.5s ease-in-out; opacity: 0;
+        }
+    </style>
+</head>
+<body class="scanline-overlay">
+
+    <div id="dashboard-container" class="dashboard-container bg-dark-navy">
+        <!-- LEFT PANE -->
+        <div id="left-pane" class="left-pane w-full md:w-1/3 p-4 border-r-2 border-r-cyan-500 glow-border-cyan">
+            <header class="mb-4">
+                <h1 class="text-2xl font-['Michroma'] glow-text-cyan">SRC-D2 > STATUS</h1>
+            </header>
+
+            <!-- METRICS SUMMARY -->
+            <div id="summary" class="mb-6 p-3 bg-mid-blue rounded-lg glow-border-cyan text-xs">
+                <p class="neon-cyan text-sm mb-2">METRICS_SUMMARY.LOG</p>
+                <div class="flex justify-between items-center gap-1">
+                    <span class="whitespace-nowrap">PRJ: <span id="project-count" class="neon-green">0</span></span>
+                    <span class="whitespace-nowrap">INC: <span id="incident-count" class="neon-green">0</span></span>
+                    <div class="flex items-center min-w-0">
+                        <span class="whitespace-nowrap mr-1">STATUS:</span>
+                        <span id="sync-status" class="neon-green text-[10px] truncate" title="OFFLINE/CLIENT">OFFLINE/CLIENT</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-between gap-2 mb-6">
+                <button id="add-project-btn" class="flex-grow p-2 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600 glow-border-cyan">[ + ] NEW PROJECT</button>
+                <button id="add-incident-btn" class="flex-grow p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">[ + ] NEW INCIDENT</button>
+                <button id="scratchpad-toggle-btn" class="flex-grow p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600 glow-border-cyan" title="Ctrl+~">[ * ] SCRATCHPAD</button>
+            </div>
+            
+            <!-- SYMMETRICAL IO BUTTONS -->
+            <div class="flex gap-2 mb-6 w-full">
+                <button id="export-data-btn" class="flex-1 w-0 truncate p-2 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 glow-border-cyan">[ < ] EXPORT (.srcd)</button>
+                <button id="import-data-btn" class="flex-1 w-0 truncate p-2 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 glow-border-cyan">[ > ] IMPORT</button>
+                <input type="file" id="import-file-input" class="hidden" accept=".srcd, *">
+            </div>
+
+            <h2 class="text-xl neon-cyan mt-6 mb-3 font-['Michroma']">PROJECTS [P]</h2>
+            <div id="project-list" class="space-y-2 mb-8"></div>
+
+            <h2 class="text-xl neon-green mt-6 mb-3 font-['Michroma']">INCIDENTS [I]</h2>
+            <div id="incident-list" class="space-y-2"></div>
+        </div>
+
+        <!-- RIGHT PANE -->
+        <div id="right-pane" class="right-pane w-full md:w-2/3 p-4">
+            <div id="detail-view" class="h-full">
+                <div id="detail-empty" class="h-full flex flex-col justify-center items-center text-center p-8">
+                    <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V1.0</span>
+                    <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
+                    <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SCRATCHPAD -->
+    <div id="scratchpad-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity">
+        <div class="modal-content bg-dark-navy p-6 w-11/12 md:w-3/4 h-[90vh] rounded-lg glow-border-cyan flex flex-col overflow-hidden">
+            <h2 class="text-2xl font-['Michroma'] neon-cyan mb-4 flex-shrink-0">SCRATCHPAD > EPHEMERAL CONTEXT ENGINE</h2>
+            
+            <div id="scratchpad-tabs" class="flex border-b border-cyan-500 mb-0 flex-shrink-0">
+                <button data-tab="main" class="scratchpad-tab-btn p-2 text-sm font-bold border-r border-cyan-500 active-tab">MAIN</button>
+                <button data-tab="code" class="scratchpad-tab-btn p-2 text-sm font-bold border-r border-cyan-500 opacity-70 hover:opacity-100">CODE</button>
+                <button data-tab="vip" class="scratchpad-tab-btn p-2 text-sm font-bold border-r border-cyan-500 opacity-70 hover:opacity-100">VIP_CONTEXT</button>
+                <span class="flex-grow"></span>
+            </div>
+
+            <div id="scratchpad-content-container" class="flex-grow relative w-full h-full min-h-0 bg-transparent">
+                <textarea id="scratchpad-main" data-tab="main" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-cyan-500/50 focus:border-cyan-500" placeholder="Type large-scale thoughts, drafts, or inline HTML code here..."></textarea>
+                <textarea id="scratchpad-code" data-tab="code" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-green-500/50 absolute top-0 left-0 hidden focus:border-green-500" placeholder="Paste and sort code snippets, AI outputs, or technical documentation here."></textarea>
+                <textarea id="scratchpad-vip" data-tab="vip" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-yellow-500/50 absolute top-0 left-0 hidden focus:border-yellow-500" placeholder="Reserved space for mission-critical context or polished responses."></textarea>
+                <span class="absolute top-2 right-4 text-xs opacity-50 neon-green pointer-events-none">Autosaved</span>
+            </div>
+            
+            <!-- METRICS & ANALYZER BAR -->
+            <div class="flex justify-between items-center px-3 py-1 bg-black/40 border-x-2 border-b-2 border-dashed border-gray-700/50 rounded-b-lg mb-3 flex-shrink-0 h-10 w-full">
+                <div class="text-[10px] font-['Space_Mono'] text-gray-500 flex space-x-3 items-center">
+                    <span>LINES: <span id="sp-lines" class="text-cyan-400">0</span></span>
+                    <span class="text-gray-700">|</span>
+                    <span>CHARS: <span id="sp-chars" class="text-cyan-400">0</span></span>
+                </div>
+                <button id="scratchpad-analyze-btn" class="btn-midnight-purple py-0.5 px-3 text-[10px] rounded uppercase flex items-center gap-2" title="Compare MAIN vs CODE HTML IDs">
+                    <span>[ ? ] ANALYZE IDs</span>
+                </button>
+            </div>
+
+            <div class="flex justify-end space-x-2 flex-shrink-0">
+                <button id="scratchpad-preview-btn" class="py-1 px-3 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600 glow-border-cyan">[ </> ] PREVIEW HTML</button>
+                <button id="scratchpad-export-btn" class="py-1 px-3 text-xs rounded-lg bg-slate-700 hover:bg-slate-600 glow-border-cyan">[ < ] SAVE AS .srcd</button>
+                <button id="scratchpad-clear-btn" class="py-1 px-3 text-xs rounded-lg bg-red-700 hover:bg-red-600 glow-border-cyan">[ X ] CLEAR CONTEXT</button>
+                <button id="scratchpad-close-btn" class="py-1 px-3 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 glow-border-cyan">[ > ] CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ANALYZER (Overlay Rune Close) -->
+    <div id="analyzer-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md transition-opacity">
+        <div class="modal-content relative bg-dark-navy p-6 w-11/12 md:w-2/3 h-3/4 rounded-lg glow-border-cyan flex flex-col shadow-[0_0_30px_rgba(0,255,255,0.2)]">
+            <div class="flex items-center mb-4 border-b border-cyan-500 pb-2 pr-10">
+                <h2 class="text-2xl font-['Michroma'] neon-cyan glow-text-cyan">ID ANALYZER > REGRESSION CHECK</h2>
+            </div>
+            <button id="analyzer-close-btn" class="absolute top-5 right-5 text-red-500 rune-close text-2xl font-bold cursor-pointer bg-transparent border-none outline-none z-50" title="Close Overlay">✖</button>
+            <div id="analyzer-result-container" class="flex-grow flex flex-col overflow-hidden gap-2">
+                <div id="analyzer-status" class="text-lg font-bold font-['Michroma']"></div>
+                <textarea id="analyzer-output" class="flex-grow w-full p-4 bg-black/40 border border-cyan-500/30 rounded text-cyan-200 font-['Space_Mono'] text-xs resize-none focus:outline-none focus:border-cyan-500" readonly></textarea>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button id="analyzer-copy-btn" class="py-2 px-4 text-xs font-bold rounded-lg bg-slate-800 border border-cyan-500 text-cyan-300 hover:bg-cyan-700 hover:text-white transition-all">
+                    [ COPY REPORT TO CLIPBOARD ]
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DATA INPUT -->
+    <div id="data-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity">
+        <form id="data-form" class="modal-content bg-dark-navy p-6 w-11/12 md:w-1/2 rounded-lg glow-border-cyan flex flex-col">
+            <h2 id="data-modal-title" class="text-2xl font-['Michroma'] neon-cyan mb-4">NEW ENTRY > PROJECT</h2>
+            <input type="hidden" id="data-id" name="id">
+            <input type="hidden" id="data-type" name="type">
+
+            <label for="data-title" class="neon-cyan text-xs mb-1">TITLE (REQUIRED):</label>
+            <input type="text" id="data-title" name="title" required class="input-active w-full mb-3 p-2 bg-mid-blue border border-cyan-500 rounded-lg text-sm">
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="data-status" class="neon-green text-xs mb-1">STATUS:</label>
+                    <select id="data-status" name="status" class="input-active w-full mb-3 p-2 bg-mid-blue border border-green-500 rounded-lg text-sm">
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Archived">Archived</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="data-due-date" class="neon-cyan text-xs mb-1">DUE DATE (YYYY-MM-DD):</label>
+                    <input type="date" id="data-due-date" name="dueDate" class="input-active w-full mb-3 p-2 bg-mid-blue border border-cyan-500 rounded-lg text-sm">
+                </div>
+            </div>
+            
+            <div id="incident-fields" class="hidden grid grid-cols-2 gap-3">
+                <div>
+                    <label for="data-owner" class="neon-green text-xs mb-1">OWNER/CONTACT:</label>
+                    <input type="text" id="data-owner" name="owner" class="input-active w-full mb-3 p-2 bg-mid-blue border border-green-500 rounded-lg text-sm" placeholder="Entity or Contact Name">
+                </div>
+                <div>
+                    <label for="data-number" class="neon-green text-xs mb-1">INCIDENT NUMBER:</label>
+                    <input type="text" id="data-number" name="number" class="input-active w-full mb-3 p-2 bg-mid-blue border border-green-500 rounded-lg text-sm" placeholder="Case Number / ID">
+                </div>
+            </div>
+            
+            <label for="data-notes" class="neon-cyan text-xs mb-1">NOTES/SUMMARY:</label>
+            <textarea id="data-notes" name="notes" rows="6" class="input-active w-full mb-4 p-2 bg-mid-blue border border-cyan-500 rounded-lg text-sm"></textarea>
+
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="data-cancel-btn" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">[ X ] CANCEL</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">[ ✓ ] SAVE ENTRY</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL: CONFIRMATION -->
+    <div id="notification-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+        <div class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-red-500 shadow-xl shadow-red-500/30">
+            <h3 id="notification-title" class="text-lg font-bold mb-3 text-red-400">ALERT</h3>
+            <p id="notification-message" class="text-sm mb-4"></p>
+            <div id="notification-actions" class="flex justify-end space-x-2">
+                <button id="notification-cancel" class="hidden p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+                <button id="notification-confirm" class="p-2 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ATTACHMENT LABEL -->
+    <div id="attachment-label-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+        <form id="attachment-label-form" class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-cyan-500 shadow-xl shadow-cyan-500/30">
+            <h3 class="text-lg font-bold mb-3 neon-cyan">ATTACHMENT CONTEXT</h3>
+            <p class="text-sm mb-4">Provide a short label for the attached file (used for tooltip):</p>
+            <input type="text" id="attachment-label-input" required class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm" placeholder="e.g., 'Initial Threat Report'">
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="attachment-label-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">ATTACH &amp; SAVE</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL: ATTACHMENT EDIT -->
+    <div id="attachment-edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+        <form id="attachment-edit-form" class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-cyan-500 shadow-xl shadow-cyan-500/30">
+            <h3 class="text-lg font-bold mb-3 neon-cyan">EDIT ATTACHMENT CONTEXT</h3>
+            <input type="hidden" id="edit-item-id">
+            <input type="hidden" id="edit-item-type">
+            <input type="hidden" id="edit-att-index">
+            <label for="attachment-edit-label-input" class="neon-cyan text-xs mb-1">LABEL:</label>
+            <input type="text" id="attachment-edit-label-input" required class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm">
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="attachment-edit-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">SAVE LABEL</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL: RAW VIEW / SMART VIEWER -->
+    <div id="raw-view-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md transition-opacity">
+        <div class="modal-content relative bg-dark-navy p-6 w-11/12 md:w-3/4 h-5/6 rounded-lg glow-border-cyan flex flex-col">
+            
+            <!-- HEADER with Copy Rune -->
+            <div class="flex justify-between items-center mb-4 border-b border-cyan-500 pb-2 pr-10">
+                <h2 id="raw-view-title" class="text-2xl font-['Michroma'] neon-cyan glow-text-cyan">CONTENT VIEWER</h2>
+                <button id="viewer-copy-btn" class="glyph-btn text-cyan-400 hover:text-white" title="Copy All Content">❐</button>
+            </div>
+            
+            <!-- CLOSE OVERLAY RUNE -->
+            <button id="raw-view-close-btn" class="absolute top-5 right-5 text-cyan-500 rune-close text-2xl font-bold cursor-pointer bg-transparent border-none outline-none z-[90]">✖</button>
+
+            <div class="flex-grow relative mb-4 overflow-y-auto">
+                <div id="media-view-area" class="w-full h-full p-3 bg-mid-blue rounded-lg text-sm flex items-center justify-center hidden"></div>
+                <!-- ELECTRIC BLUE TEXT VIEWER -->
+                <textarea id="raw-view-textarea" class="text-viewer w-full h-full p-3 text-sm rounded-lg resize-none border-2 border-dashed border-cyan-500/50 font-['Space_Mono']" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PREVIEW -->
+    <div id="preview-modal" class="hidden fixed inset-0 z-[75] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md transition-opacity">
+        <div class="modal-content relative bg-dark-navy p-4 w-full h-full md:w-5/6 md:h-5/6 rounded-lg glow-border-cyan flex flex-col">
+            <div class="flex justify-between items-center mb-2 border-b border-cyan-500 pb-2">
+                <h2 class="text-xl font-['Michroma'] neon-cyan">HTML PREVIEW</h2>
+                <button id="preview-close-btn" class="text-red-500 rune-close text-2xl font-bold cursor-pointer bg-transparent border-none">✖</button>
+            </div>
+            <iframe id="preview-iframe" class="flex-grow w-full bg-white rounded border border-cyan-500"></iframe>
+        </div>
+    </div>
+
+    <!-- MODAL: IMPORT OPTIONS -->
+    <div id="import-options-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+        <div class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-cyan-500 shadow-xl shadow-cyan-500/30">
+            <h3 class="text-lg font-bold mb-3 neon-cyan">DATA IMPORT MODE</h3>
+            <p class="text-sm mb-4">Select how to process the imported **.srcd** file:</p>
+            <div class="flex flex-col space-y-3">
+                <button id="import-mode-overwrite" class="p-3 text-xs rounded-lg bg-red-700 hover:bg-red-600 glow-border-cyan border-red-500">OVERWRITE: ERASE CURRENT DATA</button>
+                <button id="import-mode-merge" class="p-3 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600 glow-border-cyan border-cyan-500">MERGE: ADD NEW, UPDATE DUPLICATES</button>
+                <button id="import-mode-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAB: MOBILE MENU -->
+    <div id="fab-menu-container" class="fab-menu-container fixed bottom-4 right-4 z-40">
+        <div id="fab-actions" class="flex flex-col items-end space-y-2 mb-2 hidden">
+            <button id="fab-scratchpad-btn" class="w-10 h-10 rounded-full bg-slate-600 text-white text-lg flex items-center justify-center shadow-lg glow-border-cyan">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="neon-cyan"><path d="M8 2.5V18.5"/><path d="M16 2.5V18.5"/><path d="M22 20.5H2"/><path d="M15 20.5H9"/><path d="M12 20.5v-16"/></svg>
+            </button>
+            <button id="fab-notes-btn" class="w-10 h-10 rounded-full bg-slate-600 text-white text-lg flex items-center justify-center shadow-lg glow-border-cyan">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="neon-cyan"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            </button>
+            <button id="fab-list-btn" class="w-10 h-10 rounded-full bg-slate-600 text-white text-lg flex items-center justify-center shadow-lg glow-border-cyan">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="neon-cyan"><line x1="12" x2="19" y1="12" y2="12"/><line x1="12" x2="19" y1="6" y2="6"/><line x1="12" x2="19" y1="18" y2="18"/><path d="M6 12h.01"/><path d="M6 18h.01"/><path d="M6 6h.01"/></svg>
+            </button>
+        </div>
+        <button id="fab-main-btn" class="w-14 h-14 rounded-full bg-cyan-600 text-white text-3xl flex items-center justify-center shadow-xl glow-border-cyan font-['Michroma']">SRC</button>
+    </div>
+    
+    <div id="adr-toast-container"></div>
+
+    <script>
+        const generateId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+        const APP_ID = 'SRC-D2-V1';
+        
+        const STORAGE_KEYS = {
+            PROJECTS: 'srcd2_projects',
+            INCIDENTS: 'srcd2_incidents',
+            SCRATCHPAD: 'srcd2_scratchpad_v2' 
+        };
+
+        /* --- INDEXEDDB SETUP --- */
+        const DB_NAME = 'DataBridgeDB2';
+        const DB_VERSION = 1;
+        const OBJECT_STORE_NAME = 'Attachments';
+        let db;
+
+        const openDatabase = () => {
+            return new Promise((resolve, reject) => {
+                if (!window.indexedDB) return reject(new Error("IndexedDB not supported."));
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = (e) => reject(e.target.error);
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    db.createObjectStore(OBJECT_STORE_NAME, { keyPath: 'id' });
+                };
+            });
+        };
+
+        const saveAttachmentBlob = async (id, blob) => {
+            if (!db) await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([OBJECT_STORE_NAME], 'readwrite');
+                const req = tx.objectStore(OBJECT_STORE_NAME).put({ id, blob });
+                req.onsuccess = () => resolve(true);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        };
+
+        const getAttachmentBlob = async (id) => {
+            if (!db) await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([OBJECT_STORE_NAME], 'readonly');
+                const req = tx.objectStore(OBJECT_STORE_NAME).get(id);
+                req.onsuccess = (e) => resolve(e.target.result ? e.target.result.blob : undefined);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        };
+
+        const deleteAttachmentBlob = async (id) => {
+            if (!db) await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([OBJECT_STORE_NAME], 'readwrite');
+                const req = tx.objectStore(OBJECT_STORE_NAME).delete(id);
+                req.onsuccess = () => resolve(true);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        };
+
+        /* --- APP STATE --- */
+        let currentState = {
+            projects: [],
+            incidents: [],
+            selectedItem: null,
+            isMobile: window.innerWidth <= 768,
+            attachmentContext: null,
+            attachmentFileContent: null,
+            activeObjectURLs: [],
+            activeScratchpadTab: 'main'
+        };
+        
+        const setModalOpen = (isOpen) => document.body.classList.toggle('modal-open', isOpen);
+        const $ = (s) => document.querySelector(s);
+        const $$ = (s) => document.querySelectorAll(s);
+
+        /* --- DOM ELEMENTS --- */
+        const DOMElements = {
+            dashboardContainer: $('#dashboard-container'),
+            leftPane: $('#left-pane'), rightPane: $('#right-pane'),
+            projectList: $('#project-list'), incidentList: $('#incident-list'),
+            projectCount: $('#project-count'), incidentCount: $('#incident-count'),
+            detailView: $('#detail-view'), detailEmpty: $('#detail-empty'),
+
+            // Modals
+            dataModal: $('#data-modal'), dataForm: $('#data-form'), dataModalTitle: $('#data-modal-title'),
+            incidentFields: $('#incident-fields'),
+            
+            // Scratchpad
+            scratchpadModal: $('#scratchpad-modal'),
+            scratchpadTabs: $$('.scratchpad-tab-btn'),
+            scratchpadMain: $('#scratchpad-main'),
+            scratchpadCode: $('#scratchpad-code'),
+            scratchpadVip: $('#scratchpad-vip'),
+            scratchpadTextareas: $$('.scratchpad-textarea'),
+            scratchpadPreviewBtn: $('#scratchpad-preview-btn'),
+            scratchpadAnalyzeBtn: $('#scratchpad-analyze-btn'),
+            
+            // Metrics
+            spLines: $('#sp-lines'),
+            spChars: $('#sp-chars'),
+
+            // ID Analyzer
+            analyzerModal: $('#analyzer-modal'),
+            analyzerCloseBtn: $('#analyzer-close-btn'),
+            analyzerCopyBtn: $('#analyzer-copy-btn'),
+            analyzerStatus: $('#analyzer-status'),
+            analyzerOutput: $('#analyzer-output'),
+
+            // Others
+            previewModal: $('#preview-modal'), previewIframe: $('#preview-iframe'),
+            notificationModal: $('#notification-modal'), notificationTitle: $('#notification-title'),
+            notificationMessage: $('#notification-message'), notificationCancel: $('#notification-cancel'),
+            notificationConfirm: $('#notification-confirm'),
+            importOptionsModal: $('#import-options-modal'), importFileInput: $('#import-file-input'),
+
+            attachmentLabelModal: $('#attachment-label-modal'), attachmentLabelForm: $('#attachment-label-form'),
+            attachmentLabelInput: $('#attachment-label-input'), attachmentLabelCancel: $('#attachment-label-cancel'),
+            attachmentEditModal: $('#attachment-edit-modal'), attachmentEditForm: $('#attachment-edit-form'),
+            attachmentEditInput: $('#attachment-edit-label-input'),
+            
+            // Viewer (Updated)
+            rawViewModal: $('#raw-view-modal'), rawViewTitle: $('#raw-view-title'),
+            rawViewTextarea: $('#raw-view-textarea'), mediaViewArea: $('#media-view-area'), 
+            rawViewCloseBtn: $('#raw-view-close-btn'), viewerCopyBtn: $('#viewer-copy-btn'),
+
+            fabMenuContainer: $('#fab-menu-container'), fabMainBtn: $('#fab-main-btn'),
+            fabActions: $('#fab-actions'), fabListBtn: $('#fab-list-btn'),
+            fabNotesBtn: $('#fab-notes-btn'), fabScratchpadBtn: $('#fab-scratchpad-btn'),
+
+            addProjectBtn: $('#add-project-btn'), addIncidentBtn: $('#add-incident-btn'),
+            scratchpadToggleBtn: $('#scratchpad-toggle-btn'),
+            exportDataBtn: $('#export-data-btn'), importDataBtn: $('#import-data-btn'),
+            scratchpadExportBtn: $('#scratchpad-export-btn'), scratchpadClearBtn: $('#scratchpad-clear-btn'),
+            scratchpadCloseBtn: $('#scratchpad-close-btn')
+        };
+
+        /* --- TOAST & UTILS --- */
+        const showToast = (message, type = 'info', timeout = 2500) => {
+            const container = document.getElementById('adr-toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'adr-toast';
+            toast.innerHTML = message;
+            
+            if (type === 'success') toast.style.borderLeftColor = 'var(--secondary)';
+            else if (type === 'error') toast.style.borderLeftColor = 'var(--critical)';
+            else toast.style.borderLeftColor = 'var(--primary)';
+
+            container.appendChild(toast);
+            void toast.offsetWidth; 
+            toast.style.opacity = 1;
+            setTimeout(() => {
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 500);
+            }, timeout);
+        };
+
+        const generateLocalTimestampFilename = () => {
+            const now = new Date();
+            const pad = (num) => num.toString().padStart(2, '0');
+            const year = now.getFullYear();
+            const month = pad(now.getMonth() + 1);
+            const day = pad(now.getDate());
+            const hours = pad(now.getHours());
+            const minutes = pad(now.getMinutes());
+            const seconds = pad(now.getSeconds());
+            return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+        };
+
+        const getFromLocalStorage = (key) => {
+            try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+        };
+        const saveToLocalStorage = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+
+        const getScratchpadFromSessionStorage = () => {
+            try {
+                const data = sessionStorage.getItem(STORAGE_KEYS.SCRATCHPAD);
+                if (!data) return { main: '', code: '', vip: '' };
+                const parsed = JSON.parse(data);
+                if (parsed.snippet && !parsed.code) parsed.code = parsed.snippet;
+                return { main: '', code: '', vip: '', ...parsed };
+            } catch { return { main: '', code: '', vip: '' }; }
+        };
+        const saveScratchpadToSessionStorage = (data) => sessionStorage.setItem(STORAGE_KEYS.SCRATCHPAD, JSON.stringify(data));
+
+        const revokeActiveURLs = () => {
+            currentState.activeObjectURLs.forEach(url => URL.revokeObjectURL(url));
+            currentState.activeObjectURLs = [];
+        };
+
+        const confirmAction = (message, title, callback) => {
+            setModalOpen(true);
+            DOMElements.notificationTitle.textContent = title;
+            DOMElements.notificationMessage.innerHTML = message;
+            
+            const isCritical = title.includes('ERROR') || title.includes('DELETION') || title.includes('DELETE') || title.includes('CLEAR');
+            const modalContent = DOMElements.notificationModal.querySelector('.modal-content');
+            
+            if (isCritical) {
+                modalContent.classList.replace('border-cyan-500', 'border-red-500');
+                modalContent.classList.add('shadow-red-500/30');
+                DOMElements.notificationTitle.className = 'text-lg font-bold mb-3 text-red-400';
+            } else {
+                modalContent.classList.replace('border-red-500', 'border-cyan-500');
+                modalContent.classList.remove('shadow-red-500/30');
+                DOMElements.notificationTitle.className = 'text-lg font-bold mb-3 text-cyan-400';
+            }
+
+            if (callback) {
+                DOMElements.notificationCancel.classList.remove('hidden');
+                DOMElements.notificationConfirm.textContent = 'CONFIRM';
+                DOMElements.notificationConfirm.onclick = () => {
+                    DOMElements.notificationModal.classList.add('hidden');
+                    if(DOMElements.scratchpadModal.classList.contains('hidden')) setModalOpen(false);
+                    callback();
+                };
+                DOMElements.notificationCancel.onclick = () => {
+                    DOMElements.notificationModal.classList.add('hidden');
+                    if(DOMElements.scratchpadModal.classList.contains('hidden')) setModalOpen(false);
+                };
+            } else {
+                DOMElements.notificationCancel.classList.add('hidden');
+                DOMElements.notificationConfirm.textContent = 'OK';
+                DOMElements.notificationConfirm.onclick = () => {
+                    DOMElements.notificationModal.classList.add('hidden');
+                    if(DOMElements.scratchpadModal.classList.contains('hidden')) setModalOpen(false);
+                };
+            }
+            DOMElements.notificationModal.classList.remove('hidden');
+        };
+
+        /* --- RESTORED: ROBUST SORTING UTILITIES --- */
+        const extractSortableNumber = (label) => {
+            if (!label) return null;
+            const matches = label.match(/\d+/g);
+            if (matches && matches.length > 0) {
+                return matches.reduce((max, numStr) => Math.max(max, parseInt(numStr, 10)), 0);
+            }
+            return null;
+        };
+
+        const extractDateFromLabel = (label) => {
+            if (!label) return null;
+            let match = label.match(/(\d{4}[-./]\d{1,2}[-./]\d{1,2})/);
+            if (match) return match[0].replace(/[-./]/g, '-');
+            match = label.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+            if (match) {
+                const d = new Date(match[0]);
+                if (!isNaN(d)) return d.toISOString().split('T')[0];
+            }
+            return null;
+        };
+
+        const getPrimarySortValue = (item) => {
+            let highestNumber = null;
+            let latestDate = item.createdAt || '1970-01-01'; // Fallback
+            
+            (item.attachments || []).forEach(att => {
+                const num = extractSortableNumber(att.label);
+                if (num !== null) {
+                    if (highestNumber === null || num > highestNumber) highestNumber = num;
+                }
+                const date = extractDateFromLabel(att.label);
+                if (date && date > latestDate) latestDate = date;
+            });
+
+            if (highestNumber !== null) {
+                return { type: 'number', value: String(highestNumber).padStart(10, '0') };
+            }
+            return { type: 'date', value: latestDate };
+        };
+
+        /* --- RESTORED: UPSERT MERGE LOGIC --- */
+        const mergeData = (existingArray, newDataArray) => {
+            const existingMap = new Map(existingArray.map(item => [item.id, item]));
+            let addedCount = 0;
+            let updatedCount = 0;
+
+            (newDataArray || []).forEach(newItem => {
+                if (existingMap.has(newItem.id)) {
+                    Object.assign(existingMap.get(newItem.id), newItem);
+                    updatedCount++;
+                } else {
+                    existingMap.set(newItem.id, newItem);
+                    addedCount++;
+                }
+            });
+            
+            return { 
+                mergedArray: Array.from(existingMap.values()), 
+                addedCount, 
+                updatedCount 
+            };
+        };
+
+        const finalizeImport = (mode) => {
+            const data = window.importedData;
+            DOMElements.importOptionsModal.classList.add('hidden');
+            setModalOpen(false);
+            
+            let currentProjects = getFromLocalStorage(STORAGE_KEYS.PROJECTS);
+            let currentIncidents = getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
+            let currentScratchpad = getScratchpadFromSessionStorage();
+
+            let finalProjects, finalIncidents, finalScratchpad;
+            let msg = '';
+
+            if (mode === 'overwrite') {
+                finalProjects = data.projects || [];
+                finalIncidents = data.incidents || [];
+                // Restores ALL tabs if present
+                finalScratchpad = data.scratchpad || { main: '', code: '', vip: '' };
+                msg = `Import Success (OVERWRITE): ${finalProjects.length} Projects, ${finalIncidents.length} Incidents.`;
+            } else {
+                const pResult = mergeData(currentProjects, data.projects);
+                const iResult = mergeData(currentIncidents, data.incidents);
+                finalProjects = pResult.mergedArray;
+                finalIncidents = iResult.mergedArray;
+                
+                // Smart Merge for Scratchpad
+                finalScratchpad = { ...currentScratchpad };
+                if (data.scratchpad) {
+                    if (data.scratchpad.main !== undefined) finalScratchpad.main = data.scratchpad.main;
+                    if (data.scratchpad.code !== undefined) finalScratchpad.code = data.scratchpad.code;
+                    else if (data.scratchpad.snippet !== undefined) finalScratchpad.code = data.scratchpad.snippet;
+                    if (data.scratchpad.vip !== undefined) finalScratchpad.vip = data.scratchpad.vip;
+                }
+                
+                msg = `Import Success (MERGE): ${pResult.addedCount + iResult.addedCount} Added, ${pResult.updatedCount + iResult.updatedCount} Updated.`;
+            }
+
+            saveToLocalStorage(STORAGE_KEYS.PROJECTS, finalProjects);
+            saveToLocalStorage(STORAGE_KEYS.INCIDENTS, finalIncidents);
+            saveScratchpadToSessionStorage(finalScratchpad);
+            
+            currentState.projects = finalProjects;
+            currentState.incidents = finalIncidents;
+            
+            renderList(DOMElements.projectList, currentState.projects, 'project');
+            renderList(DOMElements.incidentList, currentState.incidents, 'incident');
+            DOMElements.detailView.innerHTML = DOMElements.detailEmpty.outerHTML;
+            currentState.selectedItem = null;
+            
+            showToast(msg, 'success');
+        };
+
+        /* --- EXPORT FUNCTIONS --- */
+        const handleFullExport = () => {
+            const spData = getScratchpadFromSessionStorage();
+            const data = {
+                projects: currentState.projects,
+                incidents: currentState.incidents,
+                scratchpad: spData,
+                appId: 'SRC-D2-V1',
+                exportTimestamp: new Date().toISOString(),
+            };
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const filename = `SRCD2_${generateLocalTimestampFilename()}.srcd`;
+            a.download = filename;
+            a.href = url;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Backup Saved: ${filename}`, 'success');
+        };
+
+        const handleScratchpadExport = () => {
+            const activeTabKey = currentState.activeScratchpadTab;
+            const content = $(`#scratchpad-${activeTabKey}`).value;
+            if (!content.trim()) return showToast(`Cannot export: ${activeTabKey.toUpperCase()} is empty.`, 'info');
+            
+            let prefix = 'MAIN';
+            if (activeTabKey === 'code') prefix = 'CODE';
+            else if (activeTabKey === 'vip') prefix = 'VIP';
+            
+            const data = {
+                scratchpad: { [activeTabKey]: content },
+                appId: `SRC-D2-${prefix}-EXPORT`,
+                exportTimestamp: new Date().toISOString(),
+            };
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const filename = `${prefix}_${generateLocalTimestampFilename()}.srcd`;
+            a.download = filename;
+            a.href = url;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Saved ${filename}`, 'success');
+        };
+
+        const handleScratchpadClear = () => {
+            const activeTabKey = currentState.activeScratchpadTab;
+            const textarea = $(`#scratchpad-${activeTabKey}`);
+            if (!textarea.value.trim()) return showToast('Buffer empty.', 'info');
+            confirmAction(`Clear **${activeTabKey.toUpperCase()}** buffer?`, 'CONFIRM CLEAR', () => {
+                textarea.value = '';
+                const currentPads = getScratchpadFromSessionStorage();
+                currentPads[activeTabKey] = '';
+                saveScratchpadToSessionStorage(currentPads); 
+                updateScratchpadMetrics();
+                showToast(`${activeTabKey.toUpperCase()} cleared.`, 'error');
+            });
+        };
+
+        /* --- METRICS & ANALYZER --- */
+        const updateScratchpadMetrics = () => {
+            const activeTextarea = Array.from(DOMElements.scratchpadTextareas).find(t => !t.classList.contains('hidden'));
+            if (activeTextarea) {
+                const text = activeTextarea.value;
+                const lines = text.length > 0 ? text.split(/\r\n|\r|\n/).length : 0;
+                DOMElements.spLines.textContent = lines;
+                DOMElements.spChars.textContent = text.length;
+            }
+        };
+
+        const runIdAnalysis = () => {
+            const mainContent = DOMElements.scratchpadMain.value;
+            const codeContent = DOMElements.scratchpadCode.value; 
+            if (!mainContent.trim() || !codeContent.trim()) return showToast('Analysis requires HTML in both MAIN and CODE tabs.', 'error');
+
+            const parser = new DOMParser();
+            const docMain = parser.parseFromString(mainContent, 'text/html');
+            const docCode = parser.parseFromString(codeContent, 'text/html');
+
+            const getIds = (doc) => Array.from(doc.querySelectorAll('[id]')).map(el => el.getAttribute('id')).filter(id => id);
+            
+            const mainIds = getIds(docMain);
+            const codeIds = getIds(docCode);
+            const missingIds = mainIds.filter(id => !codeIds.includes(id));
+
+            setModalOpen(true);
+            DOMElements.analyzerModal.classList.remove('hidden');
+
+            if (missingIds.length === 0) {
+                DOMElements.analyzerStatus.innerHTML = `<span class="text-green-400 glow-text-secondary">SYSTEM SYNC: 100% ID INTEGRITY</span>`;
+                DOMElements.analyzerOutput.value = "ANALYSIS COMPLETE > SUCCESS\n\nNo ID regressions detected.\nThe Code version preserves all logic hooks found in the Source of Truth.";
+                DOMElements.analyzerOutput.className = "flex-grow w-full p-4 bg-black/40 border border-green-500 rounded text-green-400 font-['Space_Mono'] text-xs resize-none focus:outline-none focus:border-green-400";
+            } else {
+                DOMElements.analyzerStatus.innerHTML = `<span class="neon-cyan glow-text-cyan">WARNING: ID REGRESSION DETECTED (${missingIds.length})</span>`;
+                DOMElements.analyzerOutput.value = `ANALYSIS REPORT > MISSING IDENTIFIERS\n\nCONTEXT:\nThe provided Code is missing the following ID hooks present in Main.\nFunctionality attached to these IDs will break.\n\nMISSING IDs LIST:\n${missingIds.map(id => `- #${id}`).join('\n')}\n\nINSTRUCTION FOR AI:\nPlease regenerate the code. You must preserve the IDs listed above in their respective elements to maintain application logic.`;
+                DOMElements.analyzerOutput.className = "flex-grow w-full p-4 bg-black/40 border border-red-500 rounded text-red-300 font-['Space_Mono'] text-xs resize-none focus:outline-none focus:border-red-500";
+            }
+        };
+
+        /* --- CORE FUNCTIONS (Optimized with Event Delegation) --- */
+        const renderList = (listEl, data, type) => {
+            listEl.innerHTML = '';
+            
+            data.sort((a, b) => {
+                if (type === 'incident') {
+                    const sortA = getPrimarySortValue(a);
+                    const sortB = getPrimarySortValue(b);
+                    if (sortA.type === 'number' && sortB.type === 'number') return sortB.value.localeCompare(sortA.value);
+                    if (sortA.type === 'number' && sortB.type === 'date') return -1;
+                    if (sortA.type === 'date' && sortB.type === 'number') return 1;
+                    return sortB.value.localeCompare(sortA.value);
+                } else {
+                    const dateA = a.dueDate || '9999-12-31';
+                    const dateB = b.dueDate || '9999-12-31';
+                    return dateA.localeCompare(dateB);
+                }
+            });
+            
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `p-3 bg-mid-blue rounded-lg cursor-pointer hover:bg-slate-700 transition border-l-4 ${type==='project'?'border-cyan-500':'border-green-500'} flex justify-between items-center text-sm`;
+                
+                div.addEventListener('click', (e) => {
+                    if (!e.target.closest('button')) {
+                        renderDetail(item.id, type);
+                    }
+                });
+
+                let badgeColor = 'bg-cyan-900';
+                if (type === 'incident') {
+                    if (item.status === 'Active') badgeColor = 'bg-red-800';
+                    else if (item.status === 'Resolved') badgeColor = 'bg-green-800';
+                }
+                
+                div.innerHTML = `
+                    <div class="truncate pr-4 pointer-events-none min-w-0 flex-grow">
+                        <span class="font-bold mr-2 text-white">${item.title}</span>
+                        ${item.status ? `<span class="px-2 py-0.5 text-xs rounded-full ${badgeColor} text-white">${item.status.toUpperCase()}</span>` : ''}
+                    </div>
+                    <div class="flex space-x-2 text-xs items-center flex-shrink-0">
+                        <button class="glyph-btn text-yellow-400 hover:text-yellow-200 edit-btn" data-id="${item.id}" data-type="${type}" title="Edit">[ ⋊ ]</button>
+                        <button class="glyph-btn text-red-400 hover:text-red-200 delete-btn" data-id="${item.id}" data-type="${type}" title="Delete">[ ⟁ ]</button>
+                    </div>`;
+                listEl.appendChild(div);
+            });
+            
+            listEl.querySelectorAll('.edit-btn').forEach(btn => 
+                btn.addEventListener('click', (e) => openDataModal(e.target.dataset.type, e.target.dataset.id))
+            );
+            listEl.querySelectorAll('.delete-btn').forEach(btn => 
+                btn.addEventListener('click', (e) => deleteItem(e.target.dataset.id, e.target.dataset.type))
+            );
+
+            if(type==='project') DOMElements.projectCount.textContent = data.length;
+            else DOMElements.incidentCount.textContent = data.length;
+        };
+
+        const renderDetail = (id, type) => {
+            const list = type === 'project' ? currentState.projects : currentState.incidents;
+            const item = list.find(i => i.id === id);
+            if (!item) return;
+
+            currentState.selectedItem = { id, type };
+            const fields = [];
+            fields.push({ label: 'TYPE', value: type.toUpperCase() });
+            if (item.number) fields.push({ label: 'INCIDENT NUMBER', value: item.number });
+            if (item.owner) fields.push({ label: 'OWNER/CONTACT', value: item.owner });
+            fields.push({ label: 'STATUS', value: item.status || 'N/A', color: item.status === 'Active' ? 'text-red-400' : (item.status === 'Resolved' ? 'text-green-400' : 'text-cyan-400') });
+            if (item.dueDate) fields.push({ label: 'TARGET DATE', value: item.dueDate });
+
+            // UPDATED: Truncate width adjustment + Brackets
+            const attachmentsHtml = (item.attachments || []).map((att, idx) => `
+                <div class="flex justify-between items-center border-b border-gray-700 py-3 text-sm">
+                    <span class="text-yellow-400 truncate w-1/3 text-left pl-1 min-w-0" title="${att.label}">${att.label}</span>
+                    <span class="text-gray-500 text-xs truncate flex-grow mx-2 min-w-0" title="${att.filename}">${att.filename}</span>
+                    <div class="flex items-center flex-shrink-0">
+                        <button class="glyph-btn view-att text-cyan-400 hover:text-cyan-200 mx-0.5" data-idx="${idx}" title="View Content">[ ⊛ ]</button>
+                        <button class="glyph-btn edit-att text-yellow-400 hover:text-yellow-200 mx-0.5" data-idx="${idx}" title="Edit Label">[ ⋊ ]</button>
+                        <button class="glyph-btn del-att text-red-400 hover:text-red-200 mx-0.5" data-idx="${idx}" title="Delete">[ ⟁ ]</button>
+                    </div>
+                </div>`).join('');
+
+            DOMElements.detailView.innerHTML = `
+                <div class="h-full flex flex-col">
+                    <!-- TOP HALF: Details + Notes -->
+                    <div class="h-1/2 flex flex-col pr-2 border-b border-cyan-900/30 pb-2">
+                        <div class="flex justify-between items-start mb-2 flex-shrink-0">
+                            <h2 class="text-3xl font-['Michroma'] ${type==='project'?'neon-cyan':'neon-green'} pr-4 truncate min-w-0">${item.title}</h2>
+                            <div class="flex space-x-2 mt-1 shrink-0"> 
+                                <button id="detail-edit" class="p-2 text-xs rounded-lg bg-yellow-700 hover:bg-yellow-600 glow-btn-yellow text-white" title="Edit Entry">[ ⋊ ]</button>
+                                <button id="detail-delete" class="p-2 text-xs rounded-lg bg-red-800 hover:bg-red-700 glow-btn-red text-white" title="Delete Entry">[ ⟁ ]</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-2 flex-shrink-0">
+                            ${fields.map(f => `<div class="p-3 bg-mid-blue rounded border-l-2 border-cyan-500"><p class="text-xs text-gray-400">${f.label}</p><p class="text-sm font-bold ${f.color||'text-white'} truncate">${f.value}</p></div>`).join('')}
+                        </div>
+                        
+                        <div class="flex-grow overflow-hidden p-3 bg-mid-blue rounded-lg glow-border-cyan flex flex-col panel-grid-bg">
+                            <h3 class="text-lg neon-cyan mb-2 border-b border-cyan-500 pb-1 flex-shrink-0">NOTES/SUMMARY</h3>
+                            <div class="flex-grow overflow-y-auto pr-2">
+                                <p class="whitespace-pre-wrap text-sm">${item.notes || 'No notes.'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOTTOM HALF: Attachments -->
+                    <div class="h-1/2 flex flex-col pt-2">
+                        <div class="flex-grow overflow-hidden p-3 bg-mid-blue rounded-lg glow-border-cyan flex flex-col panel-grid-bg">
+                            <div class="flex justify-between items-center mb-2 border-b border-green-500 pb-1 flex-shrink-0">
+                                <h3 class="text-lg neon-green">ATTACHMENTS (${item.attachments ? item.attachments.length : 0})</h3>
+                                <button id="detail-attach" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-btn-green text-white">[ + ATTACH ]</button>
+                            </div>
+                            <div class="flex-grow overflow-y-auto pr-2 space-y-1 pb-24">
+                                ${attachmentsHtml || '<p class="text-xs text-gray-500">No attachments found.</p>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            
+            $('#detail-edit').onclick = () => openDataModal(type, id);
+            $('#detail-delete').onclick = () => deleteItem(id, type);
+            $('#detail-attach').onclick = () => { currentState.attachmentContext = { id, type }; DOMElements.importFileInput.click(); };
+            
+            $$('.view-att').forEach(b => b.onclick = (e) => handleViewAttachment(id, type, e.target.dataset.idx));
+            $$('.edit-att').forEach(b => b.onclick = (e) => openAttachmentEditModal(id, type, e.target.dataset.idx));
+            $$('.del-att').forEach(b => b.onclick = (e) => handleDeleteAttachment(id, type, e.target.dataset.idx));
+            
+            if(currentState.isMobile) setMobileView('detail');
+        };
+
+        const deleteItem = (id, type) => {
+            confirmAction(`Confirm deletion of ${type.toUpperCase()} ID: ${id}?`, 'CONFIRM DELETION', () => {
+                const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+                let list = getFromLocalStorage(key).filter(i => i.id !== id);
+                saveToLocalStorage(key, list);
+                if (type === 'project') currentState.projects = list; else currentState.incidents = list;
+                renderList(type==='project'?DOMElements.projectList:DOMElements.incidentList, list, type);
+                if (currentState.selectedItem?.id === id) {
+                    DOMElements.detailView.innerHTML = DOMElements.detailEmpty.outerHTML;
+                    currentState.selectedItem = null;
+                }
+                showToast('Entry deleted.', 'error');
+            });
+        };
+
+        const openDataModal = (type, id = null) => {
+            setModalOpen(true);
+            DOMElements.dataForm.reset();
+            DOMElements.dataForm['data-id'].value = id || generateId();
+            DOMElements.dataForm['data-type'].value = type;
+            DOMElements.dataModalTitle.textContent = (id ? 'EDIT' : 'NEW') + ' ENTRY > ' + type.toUpperCase();
+            DOMElements.incidentFields.classList.toggle('hidden', type === 'project');
+            if (id) {
+                const item = (type==='project'?currentState.projects:currentState.incidents).find(i => i.id === id);
+                if (item) {
+                    DOMElements.dataForm['data-title'].value = item.title;
+                    DOMElements.dataForm['data-status'].value = item.status;
+                    DOMElements.dataForm['data-due-date'].value = item.dueDate;
+                    DOMElements.dataForm['data-notes'].value = item.notes;
+                    if(type!=='project') {
+                        DOMElements.dataForm['data-owner'].value = item.owner;
+                        DOMElements.dataForm['data-number'].value = item.number;
+                    }
+                }
+            }
+            DOMElements.dataModal.classList.remove('hidden');
+        };
+
+        const handleDataSubmit = (e) => {
+            e.preventDefault();
+            const f = DOMElements.dataForm;
+            const id = f['data-id'].value, type = f['data-type'].value;
+            const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+            let list = getFromLocalStorage(key);
+            const exists = list.find(i => i.id === id);
+            const payload = {
+                id, title: f['data-title'].value, status: f['data-status'].value,
+                dueDate: f['data-due-date'].value, notes: f['data-notes'].value,
+                attachments: exists ? exists.attachments : [],
+                createdAt: exists ? exists.createdAt : new Date().toISOString()
+            };
+            if(type!=='project') { payload.owner = f['data-owner'].value; payload.number = f['data-number'].value; }
+            if(exists) list = list.map(i => i.id===id ? {...i, ...payload} : i); else list.push(payload);
+            saveToLocalStorage(key, list);
+            if(type==='project') currentState.projects = list; else currentState.incidents = list;
+            renderList(type==='project'?DOMElements.projectList:DOMElements.incidentList, list, type);
+            if(currentState.selectedItem?.id === id) renderDetail(id, type);
+            DOMElements.dataModal.classList.add('hidden');
+            setModalOpen(false);
+            showToast('Protocol saved.', 'success');
+        };
+
+        /* --- ATTACHMENTS --- */
+        const handleFileSelected = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const { id, type } = currentState.attachmentContext;
+            if(type === 'global_import') {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try { window.importedData = JSON.parse(ev.target.result); 
+                        DOMElements.importOptionsModal.classList.remove('hidden'); setModalOpen(true);
+                    } catch { showToast('Invalid .srcd file.', 'error'); }
+                };
+                reader.readAsText(file); e.target.value = ''; return;
+            }
+            const uid = `attach-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+            if(file.name.endsWith('.srcd')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const json = JSON.parse(ev.target.result);
+                        currentState.attachmentFileContent = JSON.stringify(json);
+                        currentState.attachmentContext.fileName = file.name;
+                        currentState.attachmentContext.mimeType = 'application/json-srcd';
+                        DOMElements.attachmentLabelInput.value = file.name;
+                        DOMElements.attachmentLabelModal.classList.remove('hidden'); setModalOpen(true);
+                    } catch { showToast('Error reading .srcd attachment.', 'error'); }
+                };
+                reader.readAsText(file);
+            } else {
+                saveAttachmentBlob(uid, file).then(() => {
+                    currentState.attachmentFileContent = uid;
+                    currentState.attachmentContext.fileName = file.name;
+                    currentState.attachmentContext.mimeType = file.type;
+                    DOMElements.attachmentLabelInput.value = file.name;
+                    DOMElements.attachmentLabelModal.classList.remove('hidden'); setModalOpen(true);
+                }).catch(err => showToast('DB Error: '+err, 'error'));
+            }
+            e.target.value = '';
+        };
+
+        const handleAttachmentLabelSubmit = (e) => {
+            e.preventDefault();
+            const { id, type, fileName, mimeType } = currentState.attachmentContext;
+            const label = DOMElements.attachmentLabelInput.value;
+            const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+            let list = getFromLocalStorage(key);
+            list = list.map(i => {
+                if(i.id === id) {
+                    i.attachments = i.attachments || [];
+                    i.attachments.push({
+                        id: currentState.attachmentFileContent.startsWith('attach-') ? currentState.attachmentFileContent : undefined,
+                        content: currentState.attachmentFileContent.startsWith('attach-') ? undefined : currentState.attachmentFileContent,
+                        filename: fileName, label, mimeType, timestamp: new Date().toISOString()
+                    });
+                }
+                return i;
+            });
+            saveToLocalStorage(key, list);
+            if(type==='project') currentState.projects = list; else currentState.incidents = list;
+            DOMElements.attachmentLabelModal.classList.add('hidden');
+            setModalOpen(false);
+            renderDetail(id, type);
+            showToast('File attached.', 'success');
+        };
+
+        const handleViewAttachment = async (id, type, idx) => {
+            const item = (type==='project'?currentState.projects:currentState.incidents).find(i=>i.id===id);
+            const att = item.attachments[idx];
+            revokeActiveURLs();
+            setModalOpen(true);
+            
+            let displayContent = '';
+
+            if(att.content) {
+                if (att.filename.endsWith('.srcd') || att.mimeType === 'application/json-srcd') {
+                    try {
+                        const parsed = JSON.parse(att.content);
+                        const parts = [];
+
+                        const extractParts = (obj) => {
+                            if (obj.main) parts.push({ label: 'MAIN', content: obj.main });
+                            if (obj.code) parts.push({ label: 'CODE', content: obj.code });
+                            if (obj.snippet) parts.push({ label: 'CODE', content: obj.snippet });
+                            if (obj.vip) parts.push({ label: 'VIP CONTEXT', content: obj.vip });
+                        };
+
+                        if (parsed.scratchpad) extractParts(parsed.scratchpad);
+                        else extractParts(parsed);
+
+                        if (parts.length === 1) {
+                            displayContent = parts[0].content;
+                        } else if (parts.length > 1) {
+                            displayContent = parts.map(p => `<!-- ${p.label} -->\n${p.content}`).join('\n\n' + '-'.repeat(40) + '\n\n');
+                        } else {
+                            displayContent = JSON.stringify(parsed, null, 2);
+                        }
+
+                    } catch (e) {
+                        displayContent = att.content; 
+                    }
+                } else {
+                    displayContent = att.content;
+                }
+                
+                DOMElements.rawViewTitle.textContent = `VIEW > ${att.filename}`;
+                DOMElements.rawViewTextarea.value = displayContent;
+                DOMElements.rawViewTextarea.classList.remove('hidden');
+                DOMElements.mediaViewArea.classList.add('hidden');
+                DOMElements.rawViewModal.classList.remove('hidden');
+
+            } else if (att.id) {
+                const blob = await getAttachmentBlob(att.id);
+                if(blob) {
+                    const url = URL.createObjectURL(blob);
+                    currentState.activeObjectURLs.push(url);
+                    DOMElements.rawViewTitle.textContent = `VIEW > ${att.filename}`;
+                    DOMElements.rawViewTextarea.classList.add('hidden');
+                    DOMElements.mediaViewArea.classList.remove('hidden');
+                    if(att.mimeType.startsWith('image/')) DOMElements.mediaViewArea.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain">`;
+                    else if(att.mimeType === 'application/pdf') DOMElements.mediaViewArea.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+                    else DOMElements.mediaViewArea.innerHTML = `<a href="${url}" download="${att.filename}" class="neon-cyan">Download Binary File</a>`;
+                    DOMElements.rawViewModal.classList.remove('hidden');
+                } else showToast('Data missing in DB.', 'error');
+            }
+        };
+        
+        const handleDeleteAttachment = (id, type, idx) => {
+            const item = (type==='project'?currentState.projects:currentState.incidents).find(i=>i.id===id);
+            const att = item.attachments[idx];
+            confirmAction(`Delete attachment: ${att.filename}?`, 'DELETE FILE', async () => {
+                if(att.id) await deleteAttachmentBlob(att.id);
+                item.attachments.splice(idx, 1);
+                const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+                let list = getFromLocalStorage(key).map(i => i.id===id ? item : i);
+                saveToLocalStorage(key, list);
+                if(type==='project') currentState.projects = list; else currentState.incidents = list;
+                renderDetail(id, type);
+                showToast('Attachment deleted.', 'error');
+            });
+        };
+
+        const openAttachmentEditModal = (id, type, idx) => {
+            const item = (type==='project'?currentState.projects:currentState.incidents).find(i=>i.id===id);
+            DOMElements.attachmentEditForm['edit-item-id'].value = id;
+            DOMElements.attachmentEditForm['edit-item-type'].value = type;
+            DOMElements.attachmentEditForm['edit-att-index'].value = idx;
+            DOMElements.attachmentEditInput.value = item.attachments[idx].label;
+            setModalOpen(true);
+            DOMElements.attachmentEditModal.classList.remove('hidden');
+        };
+
+        /* --- SCRATCHPAD LOGIC --- */
+        const openScratchpad = () => {
+            const data = getScratchpadFromSessionStorage();
+            DOMElements.scratchpadMain.value = data.main;
+            DOMElements.scratchpadCode.value = data.code;
+            DOMElements.scratchpadVip.value = data.vip;
+            setModalOpen(true);
+            DOMElements.scratchpadModal.classList.remove('hidden');
+            updateScratchpadMetrics();
+        };
+
+        const switchTab = (tab) => {
+            currentState.activeScratchpadTab = tab;
+            DOMElements.scratchpadTabs.forEach(b => {
+                const active = b.dataset.tab === tab;
+                b.classList.toggle('active-tab', active);
+                b.classList.toggle('neon-cyan', active);
+                b.classList.toggle('text-white', !active);
+                b.classList.toggle('opacity-70', !active);
+            });
+            DOMElements.scratchpadTextareas.forEach(t => t.classList.toggle('hidden', t.dataset.tab !== tab));
+            updateScratchpadMetrics();
+        };
+
+        const handleScratchpadPreview = () => {
+            const content = DOMElements.scratchpadTextareas[0].parentNode.querySelector(`textarea:not(.hidden)`).value;
+            const doc = DOMElements.previewIframe.contentWindow.document;
+            doc.open();
+            doc.write(content.includes('<html') ? content : `<html><body style="background:#050A19;color:#0ff;font-family:monospace">${content}</body></html>`);
+            doc.close();
+            setModalOpen(true);
+            DOMElements.previewModal.classList.remove('hidden');
+        };
+
+        /* --- MOBILE --- */
+        const setMobileView = (view) => {
+            if(!currentState.isMobile) return;
+            DOMElements.dashboardContainer.classList.remove('mobile-list-view', 'mobile-detail-view');
+            DOMElements.dashboardContainer.classList.add(view === 'list' ? 'mobile-list-view' : 'mobile-detail-view');
+            DOMElements.fabMainBtn.textContent = view === 'list' ? 'SRC' : 'BACK';
+            DOMElements.fabActions.classList.add('hidden');
+        };
+
+        /* --- INIT --- */
+        const initApp = async () => {
+            if(!DOMElements.previewModal) console.warn("Missing DOM Element: Preview Modal");
+
+            await openDatabase();
+            currentState.projects = getFromLocalStorage(STORAGE_KEYS.PROJECTS);
+            currentState.incidents = getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
+            renderList(DOMElements.projectList, currentState.projects, 'project');
+            renderList(DOMElements.incidentList, currentState.incidents, 'incident');
+
+            // Listeners: Modals
+            $('#data-cancel-btn').onclick = () => { DOMElements.dataModal.classList.add('hidden'); setModalOpen(false); };
+            DOMElements.dataForm.onsubmit = handleDataSubmit;
+
+            // Listeners: Main Buttons
+            DOMElements.addProjectBtn.onclick = () => openDataModal('project');
+            DOMElements.addIncidentBtn.onclick = () => openDataModal('incident');
+            DOMElements.scratchpadToggleBtn.onclick = openScratchpad;
+            DOMElements.importDataBtn.onclick = () => { currentState.attachmentContext = {type:'global_import'}; DOMElements.importFileInput.click(); };
+            DOMElements.importFileInput.onchange = handleFileSelected;
+            DOMElements.exportDataBtn.addEventListener('click', handleFullExport); 
+            
+            // Listeners: Scratchpad
+            DOMElements.scratchpadCloseBtn.onclick = () => { DOMElements.scratchpadModal.classList.add('hidden'); setModalOpen(false); };
+            DOMElements.scratchpadTabs.forEach(b => b.onclick = (e) => switchTab(e.target.dataset.tab));
+            DOMElements.scratchpadTextareas.forEach(t => t.oninput = (e) => {
+                const d = getScratchpadFromSessionStorage();
+                d[e.target.dataset.tab] = e.target.value;
+                saveScratchpadToSessionStorage(d);
+                updateScratchpadMetrics();
+            });
+            DOMElements.scratchpadPreviewBtn.onclick = handleScratchpadPreview;
+            DOMElements.scratchpadAnalyzeBtn.onclick = runIdAnalysis;
+            DOMElements.scratchpadExportBtn.onclick = handleScratchpadExport; 
+            DOMElements.scratchpadClearBtn.onclick = handleScratchpadClear;
+
+            // Listeners: Analyzer Modal
+            DOMElements.analyzerCloseBtn.onclick = () => { 
+                DOMElements.analyzerModal.classList.add('hidden'); 
+            };
+            DOMElements.analyzerCopyBtn.onclick = () => {
+                DOMElements.analyzerOutput.select();
+                navigator.clipboard.writeText(DOMElements.analyzerOutput.value)
+                    .then(() => showToast('Report copied to clipboard.', 'success'))
+                    .catch(() => showToast('Clipboard access failed.', 'error'));
+            };
+
+            // Listeners: Misc
+            if(DOMElements.previewModal) {
+                $('#preview-close-btn').onclick = () => { DOMElements.previewModal.classList.add('hidden'); setModalOpen(false); };
+            }
+
+            if(DOMElements.rawViewCloseBtn) {
+                DOMElements.rawViewCloseBtn.addEventListener('click', () => {
+                    DOMElements.rawViewModal.classList.add('hidden');
+                    setModalOpen(false);
+                });
+            }
+
+            DOMElements.viewerCopyBtn.onclick = () => {
+                DOMElements.rawViewTextarea.select();
+                navigator.clipboard.writeText(DOMElements.rawViewTextarea.value)
+                    .then(() => showToast('Content copied.', 'success'))
+                    .catch(() => showToast('Clipboard failed.', 'error'));
+            }
+            DOMElements.attachmentLabelCancel.onclick = () => { DOMElements.attachmentLabelModal.classList.add('hidden'); setModalOpen(false); };
+            DOMElements.attachmentLabelForm.onsubmit = handleAttachmentLabelSubmit;
+            
+            // Edit Attachment Label
+            $('#attachment-edit-cancel').onclick = () => { DOMElements.attachmentEditModal.classList.add('hidden'); setModalOpen(false); };
+            DOMElements.attachmentEditForm.onsubmit = (e) => {
+                e.preventDefault();
+                const id = DOMElements.attachmentEditForm['edit-item-id'].value;
+                const type = DOMElements.attachmentEditForm['edit-item-type'].value;
+                const idx = DOMElements.attachmentEditForm['edit-att-index'].value;
+                const item = (type==='project'?currentState.projects:currentState.incidents).find(i=>i.id===id);
+                item.attachments[idx].label = DOMElements.attachmentEditInput.value;
+                saveToLocalStorage(type==='project'?STORAGE_KEYS.PROJECTS:STORAGE_KEYS.INCIDENTS, type==='project'?currentState.projects:currentState.incidents);
+                DOMElements.attachmentEditModal.classList.add('hidden'); setModalOpen(false);
+                renderDetail(id, type);
+                showToast('Label updated.', 'info');
+            };
+            
+            // Import Options
+            $('#import-mode-overwrite').onclick = () => finalizeImport('overwrite');
+            $('#import-mode-merge').onclick = () => finalizeImport('merge');
+            $('#import-mode-cancel').onclick = () => {
+                window.importedData = null;
+                DOMElements.importOptionsModal.classList.add('hidden');
+                setModalOpen(false);
+                showToast('Import cancelled.', 'info');
+            };
+
+            // Mobile FAB
+            DOMElements.fabMainBtn.onclick = () => {
+                if(DOMElements.dashboardContainer.classList.contains('mobile-detail-view')) setMobileView('list');
+                else DOMElements.fabActions.classList.toggle('hidden');
+            };
+            DOMElements.fabListBtn.onclick = () => setMobileView('list');
+            DOMElements.fabScratchpadBtn.onclick = () => { openScratchpad(); DOMElements.fabActions.classList.add('hidden'); };
+            DOMElements.fabNotesBtn.onclick = () => { if(currentState.selectedItem) { setMobileView('detail'); DOMElements.fabActions.classList.add('hidden'); } };
+
+            // Hotkeys
+            document.addEventListener('keydown', (e) => {
+                if(e.ctrlKey && e.key === '`') { e.preventDefault(); DOMElements.scratchpadModal.classList.contains('hidden') ? openScratchpad() : DOMElements.scratchpadCloseBtn.click(); }
+            });
+
+            if(currentState.isMobile) setMobileView('list');
+        };
+
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
