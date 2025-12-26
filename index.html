@@ -1,0 +1,2735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRC-D2 | Peace Operator [SIGINT + WATERFALL]</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- Cyber-Console / Matrix Aesthetic --- */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Michroma&display=swap');
+        
+        :root {
+            /* Standard Scheme */
+            --primary: #00FFFF; /* Electric Cyan */
+            --secondary: #00FF00; /* Neon Green */
+            --silver: #E0FFFF; /* Near White */
+            --dark-bg: #050A19; /* Deep Navy/Black */
+            --mid-bg: #1A2238; /* Dark Blue-Gray */
+            --critical: #FF3333; /* Red for alerts */
+            --warning: #FFD700; /* Gold/Yellow */
+            
+            /* Glows */
+            --text-glow-primary: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.4);
+            --border-glow-primary: 0 0 8px rgba(0, 255, 255, 1), inset 0 0 8px rgba(0, 255, 255, 0.6);
+            --text-glow-secondary: 0 0 8px rgba(0, 255, 0, 0.8);
+            
+            /* Custom Colored Glows for Buttons */
+            --border-glow-yellow: 0 0 8px rgba(255, 215, 0, 0.8), inset 0 0 5px rgba(255, 215, 0, 0.4);
+            --border-glow-red: 0 0 8px rgba(255, 51, 51, 0.8), inset 0 0 5px rgba(255, 51, 51, 0.4);
+            --border-glow-green: 0 0 8px rgba(0, 255, 0, 0.8), inset 0 0 5px rgba(0, 255, 0, 0.4);
+            
+            /* Midnight Purple Aesthetic */
+            --midnight-purp-bg: #0f0518;
+            --neon-pink: #FF00FF;
+            --border-glow-pink: 0 0 8px rgba(255, 0, 255, 0.8), inset 0 0 5px rgba(255, 0, 255, 0.4);
+            --text-glow-pink: 0 0 5px rgba(255, 0, 255, 0.8);
+            
+            /* Rune / Close Button Glow */
+            --text-glow-red: 0 0 10px rgba(255, 51, 51, 0.8), 0 0 20px rgba(255, 51, 51, 0.5);
+        }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            background-color: var(--dark-bg);
+            color: var(--silver);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Utility Classes */
+        .neon-cyan { color: var(--primary); text-shadow: var(--text-glow-primary); }
+        .neon-green { color: var(--secondary); text-shadow: var(--text-glow-secondary); }
+        .bg-dark-navy { background-color: var(--dark-bg); }
+        .bg-mid-blue { background-color: var(--mid-bg); }
+        
+        .glow-border-cyan { border: 1px solid var(--primary); box-shadow: var(--border-glow-primary); }
+        .glow-border-green { border: 1px solid var(--secondary); box-shadow: var(--border-glow-green); }
+        
+        /* Specialized Button Glows */
+        .glow-btn-yellow { border: 1px solid var(--warning); box-shadow: var(--border-glow-yellow); color: #fff; }
+        .glow-btn-red { border: 1px solid var(--critical); box-shadow: var(--border-glow-red); color: #fff; }
+        .glow-btn-green { border: 1px solid var(--secondary); box-shadow: var(--border-glow-green); color: #fff; }
+
+        /* Panel Grid Background for Empty States */
+        .panel-grid-bg {
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Glyph Buttons */
+        .glyph-btn {
+            font-family: 'Michroma', sans-serif;
+            font-size: 0.9rem;
+            line-height: 1;
+            padding: 4px 6px;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .glyph-btn:hover {
+            transform: scale(1.1);
+            background-color: rgba(255,255,255,0.1);
+            text-shadow: 0 0 8px currentColor;
+        }
+
+        .rune-close {
+            text-shadow: var(--text-glow-red);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            z-index: 100;
+        }
+        .rune-close:hover {
+            transform: scale(1.2);
+            color: #ff9999;
+        }
+
+        /* MIDNIGHT PURPLE BUTTON STYLE */
+        .btn-midnight-purple {
+            background-color: var(--midnight-purp-bg);
+            color: var(--neon-pink);
+            border: 1px solid var(--neon-pink);
+            box-shadow: 0 0 5px rgba(255, 0, 255, 0.2);
+            transition: all 0.2s ease;
+            font-family: 'Michroma', sans-serif;
+            letter-spacing: 0.5px;
+            text-shadow: var(--text-glow-pink);
+        }
+        .btn-midnight-purple:hover {
+            box-shadow: var(--border-glow-pink);
+            background-color: #1a0b2e;
+            transform: translateY(-1px);
+        }
+
+        /* Scanline Overlay */
+        .scanline-overlay::before {
+            content: "";
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0, 0, 0, 0.3) 50%);
+            background-size: 100% 4px; pointer-events: none; z-index: 9999; /* Top Layer */
+        }
+        
+        /* Layout & Scrollbars */
+        .dashboard-container { height: 100vh; display: flex; transition: all 0.3s ease; }
+        .left-pane, .right-pane { height: 100%; overflow-y: auto; flex-shrink: 0; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background-color: var(--secondary); border-radius: 3px; box-shadow: 0 0 5px var(--secondary); }
+        ::-webkit-scrollbar-track { background-color: var(--mid-bg); }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .left-pane, .right-pane { position: absolute; width: 100%; z-index: 10; }
+            .dashboard-container.mobile-list-view .left-pane { transform: translateX(0); z-index: 20; }
+            .dashboard-container.mobile-list-view .right-pane { transform: translateX(100%); z-index: 10; }
+            .dashboard-container.mobile-detail-view .left-pane { transform: translateX(-100%); z-index: 10; }
+            .dashboard-container.mobile-detail-view .right-pane { transform: translateX(0); z-index: 20; }
+        }
+
+        /* Inputs */
+        input:focus, textarea:focus, button:focus { outline: none; box-shadow: 0 0 5px var(--primary); }
+        
+        /* Scratchpad Textareas */
+        .scratchpad-textarea {
+            font-family: 'Space Mono', monospace;
+            line-height: 1.4;
+            tab-size: 4;
+            color: var(--secondary);
+            background-color: rgba(26, 34, 56, 0.8);
+        }
+
+        /* Active Input Fields (Green) */
+        .input-active {
+            color: var(--secondary);
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+        }
+
+        /* Read-Only Viewer (Electric Blue) */
+        .text-viewer {
+            color: var(--primary);
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+            background-color: #050A19;
+        }
+
+        /* ADR Toast System - CENTERED BOTTOM */
+        #adr-toast-container {
+            position: fixed; 
+            bottom: 20px; 
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            pointer-events: none; 
+            display: flex; 
+            flex-direction: column-reverse; /* Stack upwards from bottom */
+            align-items: center; 
+            gap: 10px;
+        }
+        .adr-toast {
+            background-color: rgba(26, 34, 56, 0.95);
+            border-left: 4px solid var(--secondary);
+            color: var(--silver); padding: 12px 16px; border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); font-size: 0.85rem;
+            min-width: 250px; transition: opacity 0.5s ease-in-out; opacity: 0;
+            text-align: center;
+        }
+
+        /* --- PEACE OPERATOR / TACTICAL STYLES --- */
+        .tactical-dim {
+            filter: brightness(0.1) grayscale(1);
+            transition: filter 1s ease;
+        }
+    </style>
+</head>
+<body class="scanline-overlay">
+
+    <div id="dashboard-container" class="dashboard-container bg-dark-navy">
+        <!-- LEFT PANE -->
+        <div id="left-pane" class="left-pane w-full md:w-1/3 p-4 border-r-2 border-r-cyan-500 glow-border-cyan">
+            <header class="mb-4">
+                <h1 class="text-2xl font-['Michroma'] glow-text-cyan">SRC-D2 > STATUS</h1>
+            </header>
+
+            <!-- METRICS SUMMARY -->
+            <div id="summary" class="mb-6 p-3 bg-mid-blue rounded-lg glow-border-cyan text-xs">
+                <p class="neon-cyan text-sm mb-2">METRICS_SUMMARY.LOG</p>
+                <div class="flex justify-between items-center gap-1">
+                    <span class="whitespace-nowrap">PRJ: <span id="project-count" class="neon-green">0</span></span>
+                    <span class="whitespace-nowrap">INC: <span id="incident-count" class="neon-green">0</span></span>
+                    <div class="flex items-center min-w-0">
+                        <span class="whitespace-nowrap mr-1">STATUS:</span>
+                        <span id="sync-status" class="neon-green text-[10px] truncate" title="OFFLINE/CLIENT">OFFLINE/CLIENT</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-between gap-2 mb-6">
+                <button id="add-project-btn" class="flex-grow p-2 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600 glow-border-cyan">[ + ] NEW PROJECT</button>
+                <button id="add-incident-btn" class="flex-grow p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">[ + ] NEW INCIDENT</button>
+                <button id="scratchpad-toggle-btn" class="flex-grow p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600 glow-border-cyan" title="Ctrl+~">[ * ] SCRATCHPAD</button>
+            </div>
+            
+            <!-- SYMMETRICAL IO BUTTONS -->
+            <div class="flex gap-2 mb-6 w-full">
+                <button id="export-data-btn" class="flex-1 w-0 truncate p-2 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 glow-border-cyan">[ < ] EXPORT (.srcd)</button>
+                <button id="import-data-btn" class="flex-1 w-0 truncate p-2 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 glow-border-cyan">[ > ] IMPORT</button>
+                <input type="file" id="import-file-input" class="hidden" accept=".srcd, *">
+            </div>
+
+            <h2 class="text-xl neon-cyan mt-6 mb-3 font-['Michroma']">PROJECTS [P]</h2>
+            <div id="project-list" class="space-y-2 mb-8"></div>
+
+            <h2 class="text-xl neon-green mt-6 mb-3 font-['Michroma']">INCIDENTS [I]</h2>
+            <div id="incident-list" class="space-y-2"></div>
+        </div>
+
+        <!-- RIGHT PANE -->
+        <div id="right-pane" class="right-pane w-full md:w-2/3 p-4">
+            <div id="detail-view" class="h-full">
+                <div id="detail-empty" class="h-full flex flex-col justify-center items-center text-center p-8">
+                    <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V1.0</span>
+                    <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
+                    <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SCRATCHPAD -->
+    <div id="scratchpad-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity">
+        <div class="modal-content bg-dark-navy p-6 w-11/12 md:w-3/4 h-[90vh] rounded-lg glow-border-cyan flex flex-col overflow-hidden">
+            <h2 class="text-2xl font-['Michroma'] neon-cyan mb-4 flex-shrink-0">SCRATCHPAD > EPHEMERAL CONTEXT ENGINE</h2>
+            
+            <div id="scratchpad-tabs" class="flex border-b border-cyan-500 mb-0 flex-shrink-0">
+                <button data-tab="main" class="scratchpad-tab-btn p-2 text-sm font-bold border-r border-cyan-500 active-tab">MAIN</button>
+                <button data-tab="code" class="scratchpad-tab-btn p-2 text-sm font-bold border-r border-cyan-500 opacity-70 hover:opacity-100">CODE</button>
+                <button data-tab="vip" class="scratchpad-tab-btn p-2 text-sm font-bold border-r border-cyan-500 opacity-70 hover:opacity-100">VIP_CONTEXT</button>
+                <span class="flex-grow"></span>
+            </div>
+
+            <div id="scratchpad-content-container" class="flex-grow relative w-full h-full min-h-0 bg-transparent">
+                <textarea id="scratchpad-main" data-tab="main" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-cyan-500/50 focus:border-cyan-500" placeholder="Type large-scale thoughts, drafts, or inline HTML code here..."></textarea>
+                <textarea id="scratchpad-code" data-tab="code" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-green-500/50 absolute top-0 left-0 hidden focus:border-green-500" placeholder="Paste and sort code snippets, AI outputs, or technical documentation here."></textarea>
+                <textarea id="scratchpad-vip" data-tab="vip" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-yellow-500/50 absolute top-0 left-0 hidden focus:border-yellow-500" placeholder="Reserved space for mission-critical context or polished responses."></textarea>
+                <span class="absolute top-2 right-4 text-xs opacity-50 neon-green pointer-events-none">Autosaved</span>
+            </div>
+            
+            <!-- METRICS & ANALYZER BAR -->
+            <div class="flex justify-between items-center px-3 py-1 bg-black/40 border-x-2 border-b-2 border-dashed border-gray-700/50 rounded-b-lg mb-3 flex-shrink-0 h-10 w-full">
+                <div class="text-[10px] font-['Space_Mono'] text-gray-500 flex space-x-3 items-center">
+                    <span>LINES: <span id="sp-lines" class="text-cyan-400">0</span></span>
+                    <span class="text-gray-700">|</span>
+                    <span>CHARS: <span id="sp-chars" class="text-cyan-400">0</span></span>
+                </div>
+                <button id="scratchpad-analyze-btn" class="btn-midnight-purple py-0.5 px-3 text-[10px] rounded uppercase flex items-center gap-2" title="Compare MAIN vs CODE HTML IDs">
+                    <span>[ ? ] ANALYZE IDs</span>
+                </button>
+            </div>
+
+            <div class="flex justify-end space-x-2 flex-shrink-0">
+                <button id="scratchpad-preview-btn" class="py-1 px-3 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600 glow-border-cyan">[ </> ] PREVIEW HTML</button>
+                <button id="scratchpad-export-btn" class="py-1 px-3 text-xs rounded-lg bg-slate-700 hover:bg-slate-600 glow-border-cyan">[ < ] SAVE AS .srcd</button>
+                <button id="scratchpad-clear-btn" class="py-1 px-3 text-xs rounded-lg bg-red-700 hover:bg-red-600 glow-border-cyan">[ X ] CLEAR CONTEXT</button>
+                <button id="scratchpad-close-btn" class="py-1 px-3 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 glow-border-cyan">[ > ] CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ANALYZER (Overlay Rune Close) -->
+    <div id="analyzer-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md transition-opacity">
+        <div class="modal-content relative bg-dark-navy p-6 w-11/12 md:w-2/3 h-3/4 rounded-lg glow-border-cyan flex flex-col shadow-[0_0_30px_rgba(0,255,255,0.2)]">
+            <div class="flex items-center mb-4 border-b border-cyan-500 pb-2 pr-10">
+                <h2 class="text-2xl font-['Michroma'] neon-cyan glow-text-cyan">ID ANALYZER > REGRESSION CHECK</h2>
+            </div>
+            <button id="analyzer-close-btn" class="absolute top-5 right-5 text-red-500 rune-close text-2xl font-bold cursor-pointer bg-transparent border-none outline-none z-50" title="Close Overlay">✖</button>
+            <div id="analyzer-result-container" class="flex-grow flex flex-col overflow-hidden gap-2">
+                <div id="analyzer-status" class="text-lg font-bold font-['Michroma']"></div>
+                <textarea id="analyzer-output" class="flex-grow w-full p-4 bg-black/40 border border-cyan-500/30 rounded text-cyan-200 font-['Space_Mono'] text-xs resize-none focus:outline-none focus:border-cyan-500" readonly></textarea>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button id="analyzer-copy-btn" class="py-2 px-4 text-xs font-bold rounded-lg bg-slate-800 border border-cyan-500 text-cyan-300 hover:bg-cyan-700 hover:text-white transition-all">
+                    [ COPY REPORT TO CLIPBOARD ]
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DATA INPUT -->
+    <div id="data-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity">
+        <form id="data-form" class="modal-content bg-dark-navy p-6 w-11/12 md:w-1/2 rounded-lg glow-border-cyan flex flex-col">
+            <h2 id="data-modal-title" class="text-2xl font-['Michroma'] neon-cyan mb-4">NEW ENTRY > PROJECT</h2>
+            <input type="hidden" id="data-id" name="id">
+            <input type="hidden" id="data-type" name="type">
+
+            <label for="data-title" class="neon-cyan text-xs mb-1">TITLE (REQUIRED):</label>
+            <input type="text" id="data-title" name="title" required class="input-active w-full mb-3 p-2 bg-mid-blue border border-cyan-500 rounded-lg text-sm">
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="data-status" class="neon-green text-xs mb-1">STATUS:</label>
+                    <select id="data-status" name="status" class="input-active w-full mb-3 p-2 bg-mid-blue border border-green-500 rounded-lg text-sm">
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Archived">Archived</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="data-due-date" class="neon-cyan text-xs mb-1">DUE DATE (YYYY-MM-DD):</label>
+                    <input type="date" id="data-due-date" name="dueDate" class="input-active w-full mb-3 p-2 bg-mid-blue border border-cyan-500 rounded-lg text-sm">
+                </div>
+            </div>
+            
+            <div id="incident-fields" class="hidden grid grid-cols-2 gap-3">
+                <div>
+                    <label for="data-owner" class="neon-green text-xs mb-1">OWNER/CONTACT:</label>
+                    <input type="text" id="data-owner" name="owner" class="input-active w-full mb-3 p-2 bg-mid-blue border border-green-500 rounded-lg text-sm" placeholder="Entity or Contact Name">
+                </div>
+                <div>
+                    <label for="data-number" class="neon-green text-xs mb-1">INCIDENT NUMBER:</label>
+                    <input type="text" id="data-number" name="number" class="input-active w-full mb-3 p-2 bg-mid-blue border border-green-500 rounded-lg text-sm" placeholder="Case Number / ID">
+                </div>
+            </div>
+            
+            <label for="data-notes" class="neon-cyan text-xs mb-1">NOTES/SUMMARY:</label>
+            <textarea id="data-notes" name="notes" rows="6" class="input-active w-full mb-4 p-2 bg-mid-blue border border-cyan-500 rounded-lg text-sm"></textarea>
+
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="data-cancel-btn" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">[ X ] CANCEL</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">[ ✓ ] SAVE ENTRY</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL: CONFIRMATION -->
+    <div id="notification-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+        <div class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-red-500 shadow-xl shadow-red-500/30">
+            <h3 id="notification-title" class="text-lg font-bold mb-3 text-red-400">ALERT</h3>
+            <p id="notification-message" class="text-sm mb-4"></p>
+            <div id="notification-actions" class="flex justify-end space-x-2">
+                <button id="notification-cancel" class="hidden p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+                <button id="notification-confirm" class="p-2 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ATTACHMENT LABEL -->
+    <div id="attachment-label-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+        <form id="attachment-label-form" class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-cyan-500 shadow-xl shadow-cyan-500/30">
+            <h3 class="text-lg font-bold mb-3 neon-cyan">ATTACHMENT CONTEXT</h3>
+            <p class="text-sm mb-4">Provide a short label for the attached file (used for tooltip):</p>
+            <input type="text" id="attachment-label-input" required class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm" placeholder="e.g., 'Initial Threat Report'">
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="attachment-label-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">ATTACH &amp; SAVE</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL: ATTACHMENT EDIT -->
+    <div id="attachment-edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+        <form id="attachment-edit-form" class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-cyan-500 shadow-xl shadow-cyan-500/30">
+            <h3 class="text-lg font-bold mb-3 neon-cyan">EDIT ATTACHMENT CONTEXT</h3>
+            <input type="hidden" id="edit-item-id">
+            <input type="hidden" id="edit-item-type">
+            <input type="hidden" id="edit-att-index">
+            <label for="attachment-edit-label-input" class="neon-cyan text-xs mb-1">LABEL:</label>
+            <input type="text" id="attachment-edit-label-input" required class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm">
+            <div class="flex justify-end space-x-2">
+                <button type="button" id="attachment-edit-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">SAVE LABEL</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL: RAW VIEW / SMART VIEWER -->
+    <div id="raw-view-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md transition-opacity">
+        <div class="modal-content relative bg-dark-navy p-6 w-11/12 md:w-3/4 h-5/6 rounded-lg glow-border-cyan flex flex-col">
+            
+            <!-- HEADER with Copy Rune -->
+            <div class="flex justify-between items-center mb-4 border-b border-cyan-500 pb-2 pr-10">
+                <h2 id="raw-view-title" class="text-2xl font-['Michroma'] neon-cyan glow-text-cyan">CONTENT VIEWER</h2>
+                <button id="viewer-copy-btn" class="glyph-btn text-cyan-400 hover:text-white" title="Copy All Content">❐</button>
+            </div>
+            
+            <!-- CLOSE OVERLAY RUNE -->
+            <button id="raw-view-close-btn" class="absolute top-5 right-5 text-cyan-500 rune-close text-2xl font-bold cursor-pointer bg-transparent border-none outline-none z-[90]">✖</button>
+
+            <div class="flex-grow relative mb-4 overflow-y-auto">
+                <div id="media-view-area" class="w-full h-full p-3 bg-mid-blue rounded-lg text-sm flex items-center justify-center hidden"></div>
+                <!-- ELECTRIC BLUE TEXT VIEWER -->
+                <textarea id="raw-view-textarea" class="text-viewer w-full h-full p-3 text-sm rounded-lg resize-none border-2 border-dashed border-cyan-500/50 font-['Space_Mono']" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PREVIEW -->
+    <div id="preview-modal" class="hidden fixed inset-0 z-[75] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md transition-opacity">
+        <div class="modal-content relative bg-dark-navy p-4 w-full h-full md:w-5/6 md:h-5/6 rounded-lg glow-border-cyan flex flex-col">
+            <div class="flex justify-between items-center mb-2 border-b border-cyan-500 pb-2">
+                <h2 class="text-xl font-['Michroma'] neon-cyan">HTML PREVIEW</h2>
+                <button id="preview-close-btn" class="text-red-500 rune-close text-2xl font-bold cursor-pointer bg-transparent border-none">✖</button>
+            </div>
+            <iframe id="preview-iframe" class="flex-grow w-full bg-white rounded border border-cyan-500"></iframe>
+        </div>
+    </div>
+
+    <!-- MODAL: IMPORT OPTIONS -->
+    <div id="import-options-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+        <div class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-cyan-500 shadow-xl shadow-cyan-500/30">
+            <h3 class="text-lg font-bold mb-3 neon-cyan">DATA IMPORT MODE</h3>
+            <p class="text-sm mb-4">Select how to process the imported **.srcd** file:</p>
+            <div class="flex flex-col space-y-3">
+                <button id="import-mode-overwrite" class="p-3 text-xs rounded-lg bg-red-700 hover:bg-red-600 glow-border-cyan border-red-500">OVERWRITE: ERASE CURRENT DATA</button>
+                <button id="import-mode-merge" class="p-3 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600 glow-border-cyan border-cyan-500">MERGE: ADD NEW, UPDATE DUPLICATES</button>
+                <button id="import-mode-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAB: MOBILE MENU -->
+    <div id="fab-menu-container" class="fab-menu-container fixed bottom-4 right-4 z-40">
+        <div id="fab-actions" class="flex flex-col items-end space-y-2 mb-2 hidden">
+            <button id="fab-scratchpad-btn" class="w-10 h-10 rounded-full bg-slate-600 text-white text-lg flex items-center justify-center shadow-lg glow-border-cyan">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="neon-cyan"><path d="M8 2.5V18.5"/><path d="M16 2.5V18.5"/><path d="M22 20.5H2"/><path d="M15 20.5H9"/><path d="M12 20.5v-16"/></svg>
+            </button>
+            <button id="fab-sdap-btn" class="w-10 h-10 rounded-full bg-slate-600 text-white text-lg flex items-center justify-center shadow-lg glow-border-cyan" title="SDAP-7 Logger">
+                <span class="text-yellow-400 font-bold text-xs">ᛸ</span>
+            </button>
+            <button id="fab-notes-btn" class="w-10 h-10 rounded-full bg-slate-600 text-white text-lg flex items-center justify-center shadow-lg glow-border-cyan">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="neon-cyan"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            </button>
+            <button id="fab-list-btn" class="w-10 h-10 rounded-full bg-slate-600 text-white text-lg flex items-center justify-center shadow-lg glow-border-cyan">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="neon-cyan"><line x1="12" x2="19" y1="12" y2="12"/><line x1="12" x2="19" y1="6" y2="6"/><line x1="12" x2="19" y1="18" y2="18"/><path d="M6 12h.01"/><path d="M6 18h.01"/><path d="M6 6h.01"/></svg>
+            </button>
+        </div>
+        <button id="fab-main-btn" class="w-14 h-14 rounded-full bg-cyan-600 text-white text-3xl flex items-center justify-center shadow-xl glow-border-cyan font-['Michroma']">SRC</button>
+    </div>
+    
+    <div id="adr-toast-container"></div>
+
+    <script>
+        const generateId = () => Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+        const APP_ID = 'SRC-D2-V1';
+        
+        const STORAGE_KEYS = {
+            PROJECTS: 'srcd2_projects',
+            INCIDENTS: 'srcd2_incidents',
+            SCRATCHPAD: 'srcd2_scratchpad_v2' 
+        };
+
+        /* --- INDEXEDDB SETUP --- */
+        const DB_NAME = 'DataBridgeDB2';
+        const DB_VERSION = 1;
+        const OBJECT_STORE_NAME = 'Attachments';
+        let db;
+
+        const openDatabase = () => {
+            return new Promise((resolve, reject) => {
+                if (!window.indexedDB) return reject(new Error("IndexedDB not supported."));
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = (e) => reject(e.target.error);
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    db.createObjectStore(OBJECT_STORE_NAME, { keyPath: 'id' });
+                };
+            });
+        };
+
+        const saveAttachmentBlob = async (id, blob) => {
+            if (!db) await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([OBJECT_STORE_NAME], 'readwrite');
+                const req = tx.objectStore(OBJECT_STORE_NAME).put({ id, blob });
+                req.onsuccess = () => resolve(true);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        };
+
+        const getAttachmentBlob = async (id) => {
+            if (!db) await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([OBJECT_STORE_NAME], 'readonly');
+                const req = tx.objectStore(OBJECT_STORE_NAME).get(id);
+                req.onsuccess = (e) => resolve(e.target.result ? e.target.result.blob : undefined);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        };
+
+        const deleteAttachmentBlob = async (id) => {
+            if (!db) await openDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction([OBJECT_STORE_NAME], 'readwrite');
+                const req = tx.objectStore(OBJECT_STORE_NAME).delete(id);
+                req.onsuccess = () => resolve(true);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        };
+
+        /* --- APP STATE --- */
+        let currentState = {
+            projects: [],
+            incidents: [],
+            selectedItem: null,
+            isMobile: window.innerWidth <= 768,
+            attachmentContext: null,
+            attachmentFileContent: null,
+            activeObjectURLs: [],
+            activeScratchpadTab: 'main'
+        };
+        
+        const setModalOpen = (isOpen) => document.body.classList.toggle('modal-open', isOpen);
+        const $ = (s) => document.querySelector(s);
+        const $$ = (s) => document.querySelectorAll(s);
+
+        /* --- DOM ELEMENTS --- */
+        const DOMElements = {
+            dashboardContainer: $('#dashboard-container'),
+            leftPane: $('#left-pane'), rightPane: $('#right-pane'),
+            projectList: $('#project-list'), incidentList: $('#incident-list'),
+            projectCount: $('#project-count'), incidentCount: $('#incident-count'),
+            detailView: $('#detail-view'), detailEmpty: $('#detail-empty'),
+
+            // Modals
+            dataModal: $('#data-modal'), dataForm: $('#data-form'), dataModalTitle: $('#data-modal-title'),
+            incidentFields: $('#incident-fields'),
+            
+            // Scratchpad
+            scratchpadModal: $('#scratchpad-modal'),
+            scratchpadTabs: $$('.scratchpad-tab-btn'),
+            scratchpadMain: $('#scratchpad-main'),
+            scratchpadCode: $('#scratchpad-code'),
+            scratchpadVip: $('#scratchpad-vip'),
+            scratchpadTextareas: $$('.scratchpad-textarea'),
+            scratchpadPreviewBtn: $('#scratchpad-preview-btn'),
+            scratchpadAnalyzeBtn: $('#scratchpad-analyze-btn'),
+            
+            // Metrics
+            spLines: $('#sp-lines'),
+            spChars: $('#sp-chars'),
+
+            // ID Analyzer
+            analyzerModal: $('#analyzer-modal'),
+            analyzerCloseBtn: $('#analyzer-close-btn'),
+            analyzerCopyBtn: $('#analyzer-copy-btn'),
+            analyzerStatus: $('#analyzer-status'),
+            analyzerOutput: $('#analyzer-output'),
+
+            // Others
+            previewModal: $('#preview-modal'), previewIframe: $('#preview-iframe'),
+            notificationModal: $('#notification-modal'), notificationTitle: $('#notification-title'),
+            notificationMessage: $('#notification-message'), notificationCancel: $('#notification-cancel'),
+            notificationConfirm: $('#notification-confirm'),
+            importOptionsModal: $('#import-options-modal'), importFileInput: $('#import-file-input'),
+
+            attachmentLabelModal: $('#attachment-label-modal'), attachmentLabelForm: $('#attachment-label-form'),
+            attachmentLabelInput: $('#attachment-label-input'), attachmentLabelCancel: $('#attachment-label-cancel'),
+            attachmentEditModal: $('#attachment-edit-modal'), attachmentEditForm: $('#attachment-edit-form'),
+            attachmentEditInput: $('#attachment-edit-label-input'),
+            
+            // Viewer (Updated)
+            rawViewModal: $('#raw-view-modal'), rawViewTitle: $('#raw-view-title'),
+            rawViewTextarea: $('#raw-view-textarea'), mediaViewArea: $('#media-view-area'), 
+            rawViewCloseBtn: $('#raw-view-close-btn'), viewerCopyBtn: $('#viewer-copy-btn'),
+
+            fabMenuContainer: $('#fab-menu-container'), fabMainBtn: $('#fab-main-btn'),
+            fabActions: $('#fab-actions'), fabListBtn: $('#fab-list-btn'),
+            fabNotesBtn: $('#fab-notes-btn'), fabScratchpadBtn: $('#fab-scratchpad-btn'),
+            fabSdapBtn: $('#fab-sdap-btn'),
+
+            addProjectBtn: $('#add-project-btn'), addIncidentBtn: $('#add-incident-btn'),
+            scratchpadToggleBtn: $('#scratchpad-toggle-btn'),
+            exportDataBtn: $('#export-data-btn'), importDataBtn: $('#import-data-btn'),
+            scratchpadExportBtn: $('#scratchpad-export-btn'), scratchpadClearBtn: $('#scratchpad-clear-btn'),
+            scratchpadCloseBtn: $('#scratchpad-close-btn')
+        };
+
+        /* --- TOAST & UTILS --- */
+        const showToast = (message, type = 'info', timeout = 2500) => {
+            const container = document.getElementById('adr-toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'adr-toast';
+            toast.innerHTML = message;
+            
+            if (type === 'success') toast.style.borderLeftColor = 'var(--secondary)';
+            else if (type === 'error') toast.style.borderLeftColor = 'var(--critical)';
+            else toast.style.borderLeftColor = 'var(--primary)';
+
+            container.appendChild(toast);
+            void toast.offsetWidth; 
+            toast.style.opacity = 1;
+            setTimeout(() => {
+                toast.style.opacity = 0;
+                setTimeout(() => toast.remove(), 500);
+            }, timeout);
+        };
+
+        const generateLocalTimestampFilename = () => {
+            const now = new Date();
+            const pad = (num) => num.toString().padStart(2, '0');
+            const year = now.getFullYear();
+            const month = pad(now.getMonth() + 1);
+            const day = pad(now.getDate());
+            const hours = pad(now.getHours());
+            const minutes = pad(now.getMinutes());
+            const seconds = pad(now.getSeconds());
+            return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+        };
+
+        const getFromLocalStorage = (key) => {
+            try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+        };
+        const saveToLocalStorage = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+
+        const getScratchpadFromSessionStorage = () => {
+            try {
+                const data = sessionStorage.getItem(STORAGE_KEYS.SCRATCHPAD);
+                if (!data) return { main: '', code: '', vip: '' };
+                const parsed = JSON.parse(data);
+                if (parsed.snippet && !parsed.code) parsed.code = parsed.snippet;
+                return { main: '', code: '', vip: '', ...parsed };
+            } catch { return { main: '', code: '', vip: '' }; }
+        };
+        const saveScratchpadToSessionStorage = (data) => sessionStorage.setItem(STORAGE_KEYS.SCRATCHPAD, JSON.stringify(data));
+
+        const revokeActiveURLs = () => {
+            currentState.activeObjectURLs.forEach(url => URL.revokeObjectURL(url));
+            currentState.activeObjectURLs = [];
+        };
+
+        const confirmAction = (message, title, callback) => {
+            setModalOpen(true);
+            DOMElements.notificationTitle.textContent = title;
+            DOMElements.notificationMessage.innerHTML = message;
+            
+            const isCritical = title.includes('ERROR') || title.includes('DELETION') || title.includes('DELETE') || title.includes('CLEAR');
+            const modalContent = DOMElements.notificationModal.querySelector('.modal-content');
+            
+            if (isCritical) {
+                modalContent.classList.replace('border-cyan-500', 'border-red-500');
+                modalContent.classList.add('shadow-red-500/30');
+                DOMElements.notificationTitle.className = 'text-lg font-bold mb-3 text-red-400';
+            } else {
+                modalContent.classList.replace('border-red-500', 'border-cyan-500');
+                modalContent.classList.remove('shadow-red-500/30');
+                DOMElements.notificationTitle.className = 'text-lg font-bold mb-3 text-cyan-400';
+            }
+
+            if (callback) {
+                DOMElements.notificationCancel.classList.remove('hidden');
+                DOMElements.notificationConfirm.textContent = 'CONFIRM';
+                DOMElements.notificationConfirm.onclick = () => {
+                    DOMElements.notificationModal.classList.add('hidden');
+                    if(DOMElements.scratchpadModal.classList.contains('hidden')) setModalOpen(false);
+                    callback();
+                };
+                DOMElements.notificationCancel.onclick = () => {
+                    DOMElements.notificationModal.classList.add('hidden');
+                    if(DOMElements.scratchpadModal.classList.contains('hidden')) setModalOpen(false);
+                };
+            } else {
+                DOMElements.notificationCancel.classList.add('hidden');
+                DOMElements.notificationConfirm.textContent = 'OK';
+                DOMElements.notificationConfirm.onclick = () => {
+                    DOMElements.notificationModal.classList.add('hidden');
+                    if(DOMElements.scratchpadModal.classList.contains('hidden')) setModalOpen(false);
+                };
+            }
+            DOMElements.notificationModal.classList.remove('hidden');
+        };
+
+        /* --- RESTORED: ROBUST SORTING UTILITIES --- */
+        const extractSortableNumber = (label) => {
+            if (!label) return null;
+            const matches = label.match(/\d+/g);
+            if (matches && matches.length > 0) {
+                return matches.reduce((max, numStr) => Math.max(max, parseInt(numStr, 10)), 0);
+            }
+            return null;
+        };
+
+        const extractDateFromLabel = (label) => {
+            if (!label) return null;
+            let match = label.match(/(\d{4}[-./]\d{1,2}[-./]\d{1,2})/);
+            if (match) return match[0].replace(/[-./]/g, '-');
+            match = label.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+            if (match) {
+                const d = new Date(match[0]);
+                if (!isNaN(d)) return d.toISOString().split('T')[0];
+            }
+            return null;
+        };
+
+        const getPrimarySortValue = (item) => {
+            let highestNumber = null;
+            let latestDate = item.createdAt || '1970-01-01'; // Fallback
+            
+            (item.attachments || []).forEach(att => {
+                const num = extractSortableNumber(att.label);
+                if (num !== null) {
+                    if (highestNumber === null || num > highestNumber) highestNumber = num;
+                }
+                const date = extractDateFromLabel(att.label);
+                if (date && date > latestDate) latestDate = date;
+            });
+
+            if (highestNumber !== null) {
+                return { type: 'number', value: String(highestNumber).padStart(10, '0') };
+            }
+            return { type: 'date', value: latestDate };
+        };
+
+        /* --- RESTORED: UPSERT MERGE LOGIC --- */
+        const mergeData = (existingArray, newDataArray) => {
+            const existingMap = new Map(existingArray.map(item => [item.id, item]));
+            let addedCount = 0;
+            let updatedCount = 0;
+
+            (newDataArray || []).forEach(newItem => {
+                if (existingMap.has(newItem.id)) {
+                    Object.assign(existingMap.get(newItem.id), newItem);
+                    updatedCount++;
+                } else {
+                    existingMap.set(newItem.id, newItem);
+                    addedCount++;
+                }
+            });
+            
+            return { 
+                mergedArray: Array.from(existingMap.values()), 
+                addedCount, 
+                updatedCount 
+            };
+        };
+
+        const finalizeImport = (mode) => {
+            const data = window.importedData;
+            DOMElements.importOptionsModal.classList.add('hidden');
+            setModalOpen(false);
+            
+            let currentProjects = getFromLocalStorage(STORAGE_KEYS.PROJECTS);
+            let currentIncidents = getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
+            let currentScratchpad = getScratchpadFromSessionStorage();
+
+            let finalProjects, finalIncidents, finalScratchpad;
+            let msg = '';
+
+            if (mode === 'overwrite') {
+                finalProjects = data.projects || [];
+                finalIncidents = data.incidents || [];
+                // Restores ALL tabs if present
+                finalScratchpad = data.scratchpad || { main: '', code: '', vip: '' };
+                msg = `Import Success (OVERWRITE): ${finalProjects.length} Projects, ${finalIncidents.length} Incidents.`;
+            } else {
+                const pResult = mergeData(currentProjects, data.projects);
+                const iResult = mergeData(currentIncidents, data.incidents);
+                finalProjects = pResult.mergedArray;
+                finalIncidents = iResult.mergedArray;
+                
+                // Smart Merge for Scratchpad
+                finalScratchpad = { ...currentScratchpad };
+                if (data.scratchpad) {
+                    if (data.scratchpad.main !== undefined) finalScratchpad.main = data.scratchpad.main;
+                    if (data.scratchpad.code !== undefined) finalScratchpad.code = data.scratchpad.code;
+                    else if (data.scratchpad.snippet !== undefined) finalScratchpad.code = data.scratchpad.snippet;
+                    if (data.scratchpad.vip !== undefined) finalScratchpad.vip = data.scratchpad.vip;
+                }
+                
+                msg = `Import Success (MERGE): ${pResult.addedCount + iResult.addedCount} Added, ${pResult.updatedCount + iResult.updatedCount} Updated.`;
+            }
+
+            saveToLocalStorage(STORAGE_KEYS.PROJECTS, finalProjects);
+            saveToLocalStorage(STORAGE_KEYS.INCIDENTS, finalIncidents);
+            saveScratchpadToSessionStorage(finalScratchpad);
+            
+            currentState.projects = finalProjects;
+            currentState.incidents = finalIncidents;
+            
+            renderList(DOMElements.projectList, currentState.projects, 'project');
+            renderList(DOMElements.incidentList, currentState.incidents, 'incident');
+            DOMElements.detailView.innerHTML = DOMElements.detailEmpty.outerHTML;
+            currentState.selectedItem = null;
+            
+            showToast(msg, 'success');
+        };
+
+        /* --- EXPORT FUNCTIONS --- */
+        const handleFullExport = () => {
+            const spData = getScratchpadFromSessionStorage();
+            const data = {
+                projects: currentState.projects,
+                incidents: currentState.incidents,
+                scratchpad: spData,
+                appId: 'SRC-D2-V1',
+                exportTimestamp: new Date().toISOString(),
+            };
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const filename = `SRCD2_${generateLocalTimestampFilename()}.srcd`;
+            a.download = filename;
+            a.href = url;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Backup Saved: ${filename}`, 'success');
+        };
+
+        const handleScratchpadExport = () => {
+            const activeTabKey = currentState.activeScratchpadTab;
+            const content = $(`#scratchpad-${activeTabKey}`).value;
+            if (!content.trim()) return showToast(`Cannot export: ${activeTabKey.toUpperCase()} is empty.`, 'info');
+            
+            let prefix = 'MAIN';
+            if (activeTabKey === 'code') prefix = 'CODE';
+            else if (activeTabKey === 'vip') prefix = 'VIP';
+            
+            const data = {
+                scratchpad: { [activeTabKey]: content },
+                appId: `SRC-D2-${prefix}-EXPORT`,
+                exportTimestamp: new Date().toISOString(),
+            };
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const filename = `${prefix}_${generateLocalTimestampFilename()}.srcd`;
+            a.download = filename;
+            a.href = url;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Saved ${filename}`, 'success');
+        };
+
+        const handleScratchpadClear = () => {
+            const activeTabKey = currentState.activeScratchpadTab;
+            const textarea = $(`#scratchpad-${activeTabKey}`);
+            if (!textarea.value.trim()) return showToast('Buffer empty.', 'info');
+            confirmAction(`Clear **${activeTabKey.toUpperCase()}** buffer?`, 'CONFIRM CLEAR', () => {
+                textarea.value = '';
+                const currentPads = getScratchpadFromSessionStorage();
+                currentPads[activeTabKey] = '';
+                saveScratchpadToSessionStorage(currentPads); 
+                updateScratchpadMetrics();
+                showToast(`${activeTabKey.toUpperCase()} cleared.`, 'error');
+            });
+        };
+
+        /* --- METRICS & ANALYZER --- */
+        const updateScratchpadMetrics = () => {
+            const activeTextarea = Array.from(DOMElements.scratchpadTextareas).find(t => !t.classList.contains('hidden'));
+            if (activeTextarea) {
+                const text = activeTextarea.value;
+                const lines = text.length > 0 ? text.split(/\r\n|\r|\n/).length : 0;
+                DOMElements.spLines.textContent = lines;
+                DOMElements.spChars.textContent = text.length;
+            }
+        };
+
+        const runIdAnalysis = () => {
+            const mainContent = DOMElements.scratchpadMain.value;
+            const codeContent = DOMElements.scratchpadCode.value; 
+            if (!mainContent.trim() || !codeContent.trim()) return showToast('Analysis requires HTML in both MAIN and CODE tabs.', 'error');
+
+            const parser = new DOMParser();
+            const docMain = parser.parseFromString(mainContent, 'text/html');
+            const docCode = parser.parseFromString(codeContent, 'text/html');
+
+            const getIds = (doc) => Array.from(doc.querySelectorAll('[id]')).map(el => el.getAttribute('id')).filter(id => id);
+            
+            const mainIds = getIds(docMain);
+            const codeIds = getIds(docCode);
+            const missingIds = mainIds.filter(id => !codeIds.includes(id));
+
+            setModalOpen(true);
+            DOMElements.analyzerModal.classList.remove('hidden');
+
+            if (missingIds.length === 0) {
+                DOMElements.analyzerStatus.innerHTML = `<span class="text-green-400 glow-text-secondary">SYSTEM SYNC: 100% ID INTEGRITY</span>`;
+                DOMElements.analyzerOutput.value = "ANALYSIS COMPLETE > SUCCESS\n\nNo ID regressions detected.\nThe Code version preserves all logic hooks found in the Source of Truth.";
+                DOMElements.analyzerOutput.className = "flex-grow w-full p-4 bg-black/40 border border-green-500 rounded text-green-400 font-['Space_Mono'] text-xs resize-none focus:outline-none focus:border-green-400";
+            } else {
+                DOMElements.analyzerStatus.innerHTML = `<span class="neon-cyan glow-text-cyan">WARNING: ID REGRESSION DETECTED (${missingIds.length})</span>`;
+                DOMElements.analyzerOutput.value = `ANALYSIS REPORT > MISSING IDENTIFIERS\n\nCONTEXT:\nThe provided Code is missing the following ID hooks present in Main.\nFunctionality attached to these IDs will break.\n\nMISSING IDs LIST:\n${missingIds.map(id => `- #${id}`).join('\n')}\n\nINSTRUCTION FOR AI:\nPlease regenerate the code. You must preserve the IDs listed above in their respective elements to maintain application logic.`;
+                DOMElements.analyzerOutput.className = "flex-grow w-full p-4 bg-black/40 border border-red-500 rounded text-red-300 font-['Space_Mono'] text-xs resize-none focus:outline-none focus:border-red-500";
+            }
+        };
+
+        /* --- CORE FUNCTIONS (Optimized with Event Delegation) --- */
+        const renderList = (listEl, data, type) => {
+            listEl.innerHTML = '';
+            
+            data.sort((a, b) => {
+                if (type === 'incident') {
+                    const sortA = getPrimarySortValue(a);
+                    const sortB = getPrimarySortValue(b);
+                    if (sortA.type === 'number' && sortB.type === 'number') return sortB.value.localeCompare(sortA.value);
+                    if (sortA.type === 'number' && sortB.type === 'date') return -1;
+                    if (sortA.type === 'date' && sortB.type === 'number') return 1;
+                    return sortB.value.localeCompare(sortA.value);
+                } else {
+                    const dateA = a.dueDate || '9999-12-31';
+                    const dateB = b.dueDate || '9999-12-31';
+                    return dateA.localeCompare(dateB);
+                }
+            });
+            
+            data.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `p-3 bg-mid-blue rounded-lg cursor-pointer hover:bg-slate-700 transition border-l-4 ${type==='project'?'border-cyan-500':'border-green-500'} flex justify-between items-center text-sm`;
+                
+                div.addEventListener('click', (e) => {
+                    if (!e.target.closest('button')) {
+                        renderDetail(item.id, type);
+                    }
+                });
+
+                let badgeColor = 'bg-cyan-900';
+                if (type === 'incident') {
+                    if (item.status === 'Active') badgeColor = 'bg-red-800';
+                    else if (item.status === 'Resolved') badgeColor = 'bg-green-800';
+                }
+                
+                div.innerHTML = `
+                    <div class="truncate pr-4 pointer-events-none min-w-0 flex-grow">
+                        <span class="font-bold mr-2 text-white">${item.title}</span>
+                        ${item.status ? `<span class="px-2 py-0.5 text-xs rounded-full ${badgeColor} text-white">${item.status.toUpperCase()}</span>` : ''}
+                    </div>
+                    <div class="flex space-x-2 text-xs items-center flex-shrink-0">
+                        <button class="glyph-btn text-yellow-400 hover:text-yellow-200 edit-btn" data-id="${item.id}" data-type="${type}" title="Edit">[ ⋊ ]</button>
+                        <button class="glyph-btn text-red-400 hover:text-red-200 delete-btn" data-id="${item.id}" data-type="${type}" title="Delete">[ ⟁ ]</button>
+                    </div>`;
+                listEl.appendChild(div);
+            });
+            
+            listEl.querySelectorAll('.edit-btn').forEach(btn => 
+                btn.addEventListener('click', (e) => openDataModal(e.target.dataset.type, e.target.dataset.id))
+            );
+            listEl.querySelectorAll('.delete-btn').forEach(btn => 
+                btn.addEventListener('click', (e) => deleteItem(e.target.dataset.id, e.target.dataset.type))
+            );
+
+            if(type==='project') DOMElements.projectCount.textContent = data.length;
+            else DOMElements.incidentCount.textContent = data.length;
+        };
+
+        const renderDetail = (id, type) => {
+            const list = type === 'project' ? currentState.projects : currentState.incidents;
+            const item = list.find(i => i.id === id);
+            if (!item) return;
+
+            currentState.selectedItem = { id, type };
+            const fields = [];
+            fields.push({ label: 'TYPE', value: type.toUpperCase() });
+            if (item.number) fields.push({ label: 'INCIDENT NUMBER', value: item.number });
+            if (item.owner) fields.push({ label: 'OWNER/CONTACT', value: item.owner });
+            fields.push({ label: 'STATUS', value: item.status || 'N/A', color: item.status === 'Active' ? 'text-red-400' : (item.status === 'Resolved' ? 'text-green-400' : 'text-cyan-400') });
+            if (item.dueDate) fields.push({ label: 'TARGET DATE', value: item.dueDate });
+
+            // UPDATED: Truncate width adjustment + Brackets
+            const attachmentsHtml = (item.attachments || []).map((att, idx) => `
+                <div class="flex justify-between items-center border-b border-gray-700 py-3 text-sm">
+                    <span class="text-yellow-400 truncate w-1/3 text-left pl-1 min-w-0" title="${att.label}">${att.label}</span>
+                    <span class="text-gray-500 text-xs truncate flex-grow mx-2 min-w-0" title="${att.filename}">${att.filename}</span>
+                    <div class="flex items-center flex-shrink-0">
+                        <button class="glyph-btn view-att text-cyan-400 hover:text-cyan-200 mx-0.5" data-idx="${idx}" title="View Content">[ ⊛ ]</button>
+                        <button class="glyph-btn edit-att text-yellow-400 hover:text-yellow-200 mx-0.5" data-idx="${idx}" title="Edit Label">[ ⋊ ]</button>
+                        <button class="glyph-btn del-att text-red-400 hover:text-red-200 mx-0.5" data-idx="${idx}" title="Delete">[ ⟁ ]</button>
+                    </div>
+                </div>`).join('');
+
+            DOMElements.detailView.innerHTML = `
+                <div class="h-full flex flex-col">
+                    <!-- TOP HALF: Details + Notes -->
+                    <div class="h-1/2 flex flex-col pr-2 border-b border-cyan-900/30 pb-2">
+                        <div class="flex justify-between items-start mb-2 flex-shrink-0">
+                            <h2 class="text-3xl font-['Michroma'] ${type==='project'?'neon-cyan':'neon-green'} pr-4 truncate min-w-0">${item.title}</h2>
+                            <div class="flex space-x-2 mt-1 shrink-0"> 
+                                <button id="detail-edit" class="p-2 text-xs rounded-lg bg-yellow-700 hover:bg-yellow-600 glow-btn-yellow text-white" title="Edit Entry">[ ⋊ ]</button>
+                                <button id="detail-delete" class="p-2 text-xs rounded-lg bg-red-800 hover:bg-red-700 glow-btn-red text-white" title="Delete Entry">[ ⟁ ]</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-2 flex-shrink-0">
+                            ${fields.map(f => `<div class="p-3 bg-mid-blue rounded border-l-2 border-cyan-500"><p class="text-xs text-gray-400">${f.label}</p><p class="text-sm font-bold ${f.color||'text-white'} truncate">${f.value}</p></div>`).join('')}
+                        </div>
+                        
+                        <div class="flex-grow overflow-hidden p-3 bg-mid-blue rounded-lg glow-border-cyan flex flex-col panel-grid-bg">
+                            <h3 class="text-lg neon-cyan mb-2 border-b border-cyan-500 pb-1 flex-shrink-0">NOTES/SUMMARY</h3>
+                            <div class="flex-grow overflow-y-auto pr-2">
+                                <p class="whitespace-pre-wrap text-sm">${item.notes || 'No notes.'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOTTOM HALF: Attachments -->
+                    <div class="h-1/2 flex flex-col pt-2">
+                        <div class="flex-grow overflow-hidden p-3 bg-mid-blue rounded-lg glow-border-cyan flex flex-col panel-grid-bg">
+                            <div class="flex justify-between items-center mb-2 border-b border-green-500 pb-1 flex-shrink-0">
+                                <h3 class="text-lg neon-green">ATTACHMENTS (${item.attachments ? item.attachments.length : 0})</h3>
+                                <button id="detail-attach" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-btn-green text-white">[ + ATTACH ]</button>
+                            </div>
+                            <div class="flex-grow overflow-y-auto pr-2 space-y-1 pb-24">
+                                ${attachmentsHtml || '<p class="text-xs text-gray-500">No attachments found.</p>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            
+            $('#detail-edit').onclick = () => openDataModal(type, id);
+            $('#detail-delete').onclick = () => deleteItem(id, type);
+            $('#detail-attach').onclick = () => { currentState.attachmentContext = { id, type }; DOMElements.importFileInput.click(); };
+            
+            $$('.view-att').forEach(b => b.onclick = (e) => handleViewAttachment(id, type, e.target.dataset.idx));
+            $$('.edit-att').forEach(b => b.onclick = (e) => openAttachmentEditModal(id, type, e.target.dataset.idx));
+            $$('.del-att').forEach(b => b.onclick = (e) => handleDeleteAttachment(id, type, e.target.dataset.idx));
+            
+            if(currentState.isMobile) setMobileView('detail');
+        };
+
+        const deleteItem = (id, type) => {
+            confirmAction(`Confirm deletion of ${type.toUpperCase()} ID: ${id}?`, 'CONFIRM DELETION', () => {
+                const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+                let list = getFromLocalStorage(key).filter(i => i.id !== id);
+                saveToLocalStorage(key, list);
+                if (type === 'project') currentState.projects = list; else currentState.incidents = list;
+                renderList(type==='project'?DOMElements.projectList:DOMElements.incidentList, list, type);
+                if (currentState.selectedItem?.id === id) {
+                    DOMElements.detailView.innerHTML = DOMElements.detailEmpty.outerHTML;
+                    currentState.selectedItem = null;
+                }
+                showToast('Entry deleted.', 'error');
+            });
+        };
+
+        const openDataModal = (type, id = null) => {
+            setModalOpen(true);
+            DOMElements.dataForm.reset();
+            DOMElements.dataForm['data-id'].value = id || generateId();
+            DOMElements.dataForm['data-type'].value = type;
+            DOMElements.dataModalTitle.textContent = (id ? 'EDIT' : 'NEW') + ' ENTRY > ' + type.toUpperCase();
+            DOMElements.incidentFields.classList.toggle('hidden', type === 'project');
+            if (id) {
+                const item = (type==='project'?currentState.projects:currentState.incidents).find(i => i.id === id);
+                if (item) {
+                    DOMElements.dataForm['data-title'].value = item.title;
+                    DOMElements.dataForm['data-status'].value = item.status;
+                    DOMElements.dataForm['data-due-date'].value = item.dueDate;
+                    DOMElements.dataForm['data-notes'].value = item.notes;
+                    if(type!=='project') {
+                        DOMElements.dataForm['data-owner'].value = item.owner;
+                        DOMElements.dataForm['data-number'].value = item.number;
+                    }
+                }
+            }
+            DOMElements.dataModal.classList.remove('hidden');
+        };
+
+        const handleDataSubmit = (e) => {
+            e.preventDefault();
+            const f = DOMElements.dataForm;
+            const id = f['data-id'].value, type = f['data-type'].value;
+            const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+            let list = getFromLocalStorage(key);
+            const exists = list.find(i => i.id === id);
+            const payload = {
+                id, title: f['data-title'].value, status: f['data-status'].value,
+                dueDate: f['data-due-date'].value, notes: f['data-notes'].value,
+                attachments: exists ? exists.attachments : [],
+                createdAt: exists ? exists.createdAt : new Date().toISOString()
+            };
+            if(type!=='project') { payload.owner = f['data-owner'].value; payload.number = f['data-number'].value; }
+            if(exists) list = list.map(i => i.id===id ? {...i, ...payload} : i); else list.push(payload);
+            saveToLocalStorage(key, list);
+            if(type==='project') currentState.projects = list; else currentState.incidents = list;
+            renderList(type==='project'?DOMElements.projectList:DOMElements.incidentList, list, type);
+            if(currentState.selectedItem?.id === id) renderDetail(id, type);
+            DOMElements.dataModal.classList.add('hidden');
+            setModalOpen(false);
+            showToast('Protocol saved.', 'success');
+        };
+
+        /* --- ATTACHMENTS --- */
+        const handleFileSelected = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const { id, type } = currentState.attachmentContext;
+            if(type === 'global_import') {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try { window.importedData = JSON.parse(ev.target.result); 
+                        DOMElements.importOptionsModal.classList.remove('hidden'); setModalOpen(true);
+                    } catch { showToast('Invalid .srcd file.', 'error'); }
+                };
+                reader.readAsText(file); e.target.value = ''; return;
+            }
+            const uid = `attach-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+            if(file.name.endsWith('.srcd')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const json = JSON.parse(ev.target.result);
+                        currentState.attachmentFileContent = JSON.stringify(json);
+                        currentState.attachmentContext.fileName = file.name;
+                        currentState.attachmentContext.mimeType = 'application/json-srcd';
+                        DOMElements.attachmentLabelInput.value = file.name;
+                        DOMElements.attachmentLabelModal.classList.remove('hidden'); setModalOpen(true);
+                    } catch { showToast('Error reading .srcd attachment.', 'error'); }
+                };
+                reader.readAsText(file);
+            } else {
+                saveAttachmentBlob(uid, file).then(() => {
+                    currentState.attachmentFileContent = uid;
+                    currentState.attachmentContext.fileName = file.name;
+                    currentState.attachmentContext.mimeType = file.type;
+                    DOMElements.attachmentLabelInput.value = file.name;
+                    DOMElements.attachmentLabelModal.classList.remove('hidden'); setModalOpen(true);
+                }).catch(err => showToast('DB Error: '+err, 'error'));
+            }
+            e.target.value = '';
+        };
+
+        const handleAttachmentLabelSubmit = (e) => {
+            e.preventDefault();
+            const { id, type, fileName, mimeType } = currentState.attachmentContext;
+            const label = DOMElements.attachmentLabelInput.value;
+            const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+            let list = getFromLocalStorage(key);
+            list = list.map(i => {
+                if(i.id === id) {
+                    i.attachments = i.attachments || [];
+                    i.attachments.push({
+                        id: currentState.attachmentFileContent.startsWith('attach-') ? currentState.attachmentFileContent : undefined,
+                        content: currentState.attachmentFileContent.startsWith('attach-') ? undefined : currentState.attachmentFileContent,
+                        filename: fileName, label, mimeType, timestamp: new Date().toISOString()
+                    });
+                }
+                return i;
+            });
+            saveToLocalStorage(key, list);
+            if(type==='project') currentState.projects = list; else currentState.incidents = list;
+            DOMElements.attachmentLabelModal.classList.add('hidden');
+            setModalOpen(false);
+            renderDetail(id, type);
+            showToast('File attached.', 'success');
+        };
+
+        const handleViewAttachment = async (id, type, idx) => {
+            const item = (type==='project'?currentState.projects:currentState.incidents).find(i=>i.id===id);
+            const att = item.attachments[idx];
+            revokeActiveURLs();
+            setModalOpen(true);
+            
+            let displayContent = '';
+
+            if(att.content) {
+                if (att.filename.endsWith('.srcd') || att.mimeType === 'application/json-srcd') {
+                    try {
+                        const parsed = JSON.parse(att.content);
+                        const parts = [];
+
+                        const extractParts = (obj) => {
+                            if (obj.main) parts.push({ label: 'MAIN', content: obj.main });
+                            if (obj.code) parts.push({ label: 'CODE', content: obj.code });
+                            if (obj.snippet) parts.push({ label: 'CODE', content: obj.snippet });
+                            if (obj.vip) parts.push({ label: 'VIP CONTEXT', content: obj.vip });
+                        };
+
+                        if (parsed.scratchpad) extractParts(parsed.scratchpad);
+                        else extractParts(parsed);
+
+                        if (parts.length === 1) {
+                            displayContent = parts[0].content;
+                        } else if (parts.length > 1) {
+                            displayContent = parts.map(p => `<!-- ${p.label} -->\n${p.content}`).join('\n\n' + '-'.repeat(40) + '\n\n');
+                        } else {
+                            displayContent = JSON.stringify(parsed, null, 2);
+                        }
+
+                    } catch (e) {
+                        displayContent = att.content; 
+                    }
+                } else {
+                    displayContent = att.content;
+                }
+                
+                DOMElements.rawViewTitle.textContent = `VIEW > ${att.filename}`;
+                DOMElements.rawViewTextarea.value = displayContent;
+                DOMElements.rawViewTextarea.classList.remove('hidden');
+                DOMElements.mediaViewArea.classList.add('hidden');
+                DOMElements.rawViewModal.classList.remove('hidden');
+
+            } else if (att.id) {
+                const blob = await getAttachmentBlob(att.id);
+                if(blob) {
+                    const url = URL.createObjectURL(blob);
+                    currentState.activeObjectURLs.push(url);
+                    DOMElements.rawViewTitle.textContent = `VIEW > ${att.filename}`;
+                    DOMElements.rawViewTextarea.classList.add('hidden');
+                    DOMElements.mediaViewArea.classList.remove('hidden');
+                    if(att.mimeType.startsWith('image/')) DOMElements.mediaViewArea.innerHTML = `<img src="${url}" class="max-w-full max-h-full object-contain">`;
+                    else if(att.mimeType === 'application/pdf') DOMElements.mediaViewArea.innerHTML = `<iframe src="${url}" class="w-full h-full border-none"></iframe>`;
+                    else DOMElements.mediaViewArea.innerHTML = `<a href="${url}" download="${att.filename}" class="neon-cyan">Download Binary File</a>`;
+                    DOMElements.rawViewModal.classList.remove('hidden');
+                } else showToast('Data missing in DB.', 'error');
+            }
+        };
+        
+        const handleDeleteAttachment = (id, type, idx) => {
+            const item = (type==='project'?currentState.projects:currentState.incidents).find(i=>i.id===id);
+            const att = item.attachments[idx];
+            confirmAction(`Delete attachment: ${att.filename}?`, 'DELETE FILE', async () => {
+                if(att.id) await deleteAttachmentBlob(att.id);
+                item.attachments.splice(idx, 1);
+                const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+                let list = getFromLocalStorage(key).map(i => i.id===id ? item : i);
+                saveToLocalStorage(key, list);
+                if(type==='project') currentState.projects = list; else currentState.incidents = list;
+                renderDetail(id, type);
+                showToast('Attachment deleted.', 'error');
+            });
+        };
+
+        const openAttachmentEditModal = (id, type, idx) => {
+            const item = (type==='project'?currentState.projects:currentState.incidents).find(i=>i.id===id);
+            DOMElements.attachmentEditForm['edit-item-id'].value = id;
+            DOMElements.attachmentEditForm['edit-item-type'].value = type;
+            DOMElements.attachmentEditForm['edit-att-index'].value = idx;
+            DOMElements.attachmentEditInput.value = item.attachments[idx].label;
+            setModalOpen(true);
+            DOMElements.attachmentEditModal.classList.remove('hidden');
+        };
+
+        /* --- SCRATCHPAD LOGIC --- */
+        const openScratchpad = () => {
+            const data = getScratchpadFromSessionStorage();
+            DOMElements.scratchpadMain.value = data.main;
+            DOMElements.scratchpadCode.value = data.code;
+            DOMElements.scratchpadVip.value = data.vip;
+            setModalOpen(true);
+            DOMElements.scratchpadModal.classList.remove('hidden');
+            updateScratchpadMetrics();
+        };
+
+        const switchTab = (tab) => {
+            currentState.activeScratchpadTab = tab;
+            DOMElements.scratchpadTabs.forEach(b => {
+                const active = b.dataset.tab === tab;
+                b.classList.toggle('active-tab', active);
+                b.classList.toggle('neon-cyan', active);
+                b.classList.toggle('text-white', !active);
+                b.classList.toggle('opacity-70', !active);
+            });
+            DOMElements.scratchpadTextareas.forEach(t => t.classList.toggle('hidden', t.dataset.tab !== tab));
+            updateScratchpadMetrics();
+        };
+
+        const handleScratchpadPreview = () => {
+            const content = DOMElements.scratchpadTextareas[0].parentNode.querySelector(`textarea:not(.hidden)`).value;
+            const doc = DOMElements.previewIframe.contentWindow.document;
+            doc.open();
+            doc.write(content.includes('<html') ? content : `<html><body style="background:#050A19;color:#0ff;font-family:monospace">${content}</body></html>`);
+            doc.close();
+            setModalOpen(true);
+            DOMElements.previewModal.classList.remove('hidden');
+        };
+
+        /* --- MOBILE --- */
+        const setMobileView = (view) => {
+            if(!currentState.isMobile) return;
+            DOMElements.dashboardContainer.classList.remove('mobile-list-view', 'mobile-detail-view');
+            DOMElements.dashboardContainer.classList.add(view === 'list' ? 'mobile-list-view' : 'mobile-detail-view');
+            DOMElements.fabMainBtn.textContent = view === 'list' ? 'SRC' : 'BACK';
+            DOMElements.fabActions.classList.add('hidden');
+        };
+
+        /* --- INIT --- */
+        const initApp = async () => {
+            if(!DOMElements.previewModal) console.warn("Missing DOM Element: Preview Modal");
+
+            await openDatabase();
+            currentState.projects = getFromLocalStorage(STORAGE_KEYS.PROJECTS);
+            currentState.incidents = getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
+            renderList(DOMElements.projectList, currentState.projects, 'project');
+            renderList(DOMElements.incidentList, currentState.incidents, 'incident');
+
+            // Listeners: Modals
+            $('#data-cancel-btn').onclick = () => { DOMElements.dataModal.classList.add('hidden'); setModalOpen(false); };
+            DOMElements.dataForm.onsubmit = handleDataSubmit;
+
+            // Listeners: Main Buttons
+            DOMElements.addProjectBtn.onclick = () => openDataModal('project');
+            DOMElements.addIncidentBtn.onclick = () => openDataModal('incident');
+            DOMElements.scratchpadToggleBtn.onclick = openScratchpad;
+            DOMElements.importDataBtn.onclick = () => { currentState.attachmentContext = {type:'global_import'}; DOMElements.importFileInput.click(); };
+            DOMElements.importFileInput.onchange = handleFileSelected;
+            DOMElements.exportDataBtn.addEventListener('click', handleFullExport); 
+            
+            // Listeners: Scratchpad
+            DOMElements.scratchpadCloseBtn.onclick = () => { DOMElements.scratchpadModal.classList.add('hidden'); setModalOpen(false); };
+            DOMElements.scratchpadTabs.forEach(b => b.onclick = (e) => switchTab(e.target.dataset.tab));
+            DOMElements.scratchpadTextareas.forEach(t => t.oninput = (e) => {
+                const d = getScratchpadFromSessionStorage();
+                d[e.target.dataset.tab] = e.target.value;
+                saveScratchpadToSessionStorage(d);
+                updateScratchpadMetrics();
+            });
+            DOMElements.scratchpadPreviewBtn.onclick = handleScratchpadPreview;
+            DOMElements.scratchpadAnalyzeBtn.onclick = runIdAnalysis;
+            DOMElements.scratchpadExportBtn.onclick = handleScratchpadExport; 
+            DOMElements.scratchpadClearBtn.onclick = handleScratchpadClear;
+
+            // Listeners: Analyzer Modal
+            DOMElements.analyzerCloseBtn.onclick = () => { 
+                DOMElements.analyzerModal.classList.add('hidden'); 
+            };
+            DOMElements.analyzerCopyBtn.onclick = () => {
+                DOMElements.analyzerOutput.select();
+                navigator.clipboard.writeText(DOMElements.analyzerOutput.value)
+                    .then(() => showToast('Report copied to clipboard.', 'success'))
+                    .catch(() => showToast('Clipboard access failed.', 'error'));
+            };
+
+            // Listeners: Misc
+            if(DOMElements.previewModal) {
+                $('#preview-close-btn').onclick = () => { DOMElements.previewModal.classList.add('hidden'); setModalOpen(false); };
+            }
+
+            if(DOMElements.rawViewCloseBtn) {
+                DOMElements.rawViewCloseBtn.addEventListener('click', () => {
+                    DOMElements.rawViewModal.classList.add('hidden');
+                    setModalOpen(false);
+                });
+            }
+
+            DOMElements.viewerCopyBtn.onclick = () => {
+                DOMElements.rawViewTextarea.select();
+                navigator.clipboard.writeText(DOMElements.rawViewTextarea.value)
+                    .then(() => showToast('Content copied.', 'success'))
+                    .catch(() => showToast('Clipboard failed.', 'error'));
+            }
+            DOMElements.attachmentLabelCancel.onclick = () => { DOMElements.attachmentLabelModal.classList.add('hidden'); setModalOpen(false); };
+            DOMElements.attachmentLabelForm.onsubmit = handleAttachmentLabelSubmit;
+            
+            // Edit Attachment Label
+            $('#attachment-edit-cancel').onclick = () => { DOMElements.attachmentEditModal.classList.add('hidden'); setModalOpen(false); };
+            DOMElements.attachmentEditForm.onsubmit = (e) => {
+                e.preventDefault();
+                const id = DOMElements.attachmentEditForm['edit-item-id'].value;
+                const type = DOMElements.attachmentEditForm['edit-item-type'].value;
+                const idx = DOMElements.attachmentEditForm['edit-att-index'].value;
+                const item = (type==='project'?currentState.projects:currentState.incidents).find(i=>i.id===id);
+                item.attachments[idx].label = DOMElements.attachmentEditInput.value;
+                saveToLocalStorage(type==='project'?STORAGE_KEYS.PROJECTS:STORAGE_KEYS.INCIDENTS, type==='project'?currentState.projects:currentState.incidents);
+                DOMElements.attachmentEditModal.classList.add('hidden'); setModalOpen(false);
+                renderDetail(id, type);
+                showToast('Label updated.', 'info');
+            };
+            
+            // Import Options
+            $('#import-mode-overwrite').onclick = () => finalizeImport('overwrite');
+            $('#import-mode-merge').onclick = () => finalizeImport('merge');
+            $('#import-mode-cancel').onclick = () => {
+                window.importedData = null;
+                DOMElements.importOptionsModal.classList.add('hidden');
+                setModalOpen(false);
+                showToast('Import cancelled.', 'info');
+            };
+
+            // Mobile FAB
+            DOMElements.fabMainBtn.onclick = () => {
+                if(DOMElements.dashboardContainer.classList.contains('mobile-detail-view')) setMobileView('list');
+                else DOMElements.fabActions.classList.toggle('hidden');
+            };
+            DOMElements.fabListBtn.onclick = () => setMobileView('list');
+            DOMElements.fabScratchpadBtn.onclick = () => { openScratchpad(); DOMElements.fabActions.classList.add('hidden'); };
+            DOMElements.fabNotesBtn.onclick = () => { if(currentState.selectedItem) { setMobileView('detail'); DOMElements.fabActions.classList.add('hidden'); } };
+            DOMElements.fabSdapBtn.onclick = () => { openSdapModal(); DOMElements.fabActions.classList.add('hidden'); };
+
+            // Hotkeys
+            document.addEventListener('keydown', (e) => {
+                if(e.ctrlKey && e.key === '`') { e.preventDefault(); DOMElements.scratchpadModal.classList.contains('hidden') ? openScratchpad() : DOMElements.scratchpadCloseBtn.click(); }
+            });
+
+            // Resize Listener for Mobile View
+            window.addEventListener('resize', () => {
+                const mobile = window.innerWidth <= 768;
+                if (mobile !== currentState.isMobile) {
+                    currentState.isMobile = mobile;
+                    if(!mobile) {
+                        DOMElements.dashboardContainer.classList.remove('mobile-list-view', 'mobile-detail-view');
+                        DOMElements.fabActions.classList.add('hidden');
+                    } else {
+                        setMobileView('list');
+                    }
+                }
+            });
+
+            if(currentState.isMobile) setMobileView('list');
+            
+            // WEYU EASTER EGG
+            console.log("%c WEYU-UTANI CORP ", "background: #000; color: #FFF000; font-size: 20px; font-weight: bold;");
+            console.log("SYSTEM: SRC-D2 // PEACE_OPERATOR");
+            console.log("STATUS: READY");
+            console.log("ASSET: FACEHUGGER_PROTOCOL_INITIATED... [OK]");
+        };
+
+        document.addEventListener('DOMContentLoaded', initApp);
+
+/* ======================================================
+   MODULE: WHITE HAT SURVIVAL TOOLKIT [CONSOLIDATED v2]
+   ====================================================== */
+
+/* --- 1. FAB INJECTION (SURVIVAL TOOLKIT - TACTICAL UPDATE) --- */
+const injectSurvivalMenu = () => {
+    if (document.getElementById('survival-fab')) return;
+
+    const fabHTML = `
+    <div id="survival-fab" class="fixed bottom-4 left-4 z-40 flex flex-col-reverse gap-3 items-center">
+        <button id="sv-toggle-btn" class="w-12 h-12 rounded-full bg-[#050A19] border-2 border-cyan-500 text-cyan-500 hover:bg-cyan-900/50 hover:text-white shadow-[0_0_15px_rgba(0,255,255,0.2)] flex items-center justify-center transition-all z-50">
+            <span style="font-size: 1.5rem; font-weight: bold;">ᛉ</span>
+        </button>
+        
+        <div id="sv-menu-items" class="hidden flex flex-col-reverse gap-3">
+            <button id="sv-btn-peace" class="w-10 h-10 rounded-full bg-slate-800 border border-purple-500 text-purple-400 hover:bg-purple-900 hover:text-white shadow-lg flex items-center justify-center" title="Peace Operator: Live Mix">ᚫ</button>
+            <button id="sv-btn-hw" class="w-10 h-10 rounded-full bg-slate-800 border border-green-500 text-green-400 hover:bg-green-900 hover:text-white shadow-lg flex items-center justify-center" title="Hardware Audit">ᛰ</button>
+            <button id="sv-btn-net" class="w-10 h-10 rounded-full bg-slate-800 border border-cyan-500 text-cyan-400 hover:bg-cyan-900 hover:text-white shadow-lg flex items-center justify-center" title="Net Sentry">⌖</button>
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', fabHTML);
+
+    const toggleBtn = document.getElementById('sv-toggle-btn');
+    const menuItems = document.getElementById('sv-menu-items');
+    
+    toggleBtn.onclick = () => {
+        menuItems.classList.toggle('hidden');
+        toggleBtn.classList.toggle('bg-slate-800');
+    };
+
+    document.getElementById('sv-btn-net').onclick = openNetModal;
+    document.getElementById('sv-btn-hw').onclick = openHardwareModal;
+    document.getElementById('sv-btn-peace').onclick = initPeaceOperator; 
+};
+
+
+/* --- 2. MODAL A: NETWORK INTELLIGENCE (WATERFALL EDITION) --- */
+let sentryDataLoop = null;
+let sentryAnimLoop = null;
+let waterfallCtx = null;
+let currentLatency = 0;
+let isOffline = false;
+
+const openNetModal = () => {
+    if (!document.getElementById('modal-net')) {
+        const html = `
+        <div id="modal-net" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
+            <div class="bg-dark-navy p-4 w-full max-w-lg rounded-lg border-2 border-cyan-500 shadow-[0_0_30px_rgba(0,255,255,0.15)] flex flex-col max-h-[90vh]">
+                <div class="flex justify-between items-center mb-3 border-b border-cyan-900 pb-2">
+                    <h2 class="text-xl font-['Michroma'] neon-cyan">NETWORK TELEMETRY</h2>
+                    <button id="net-close" class="text-cyan-500 hover:text-white font-bold text-xl">✖</button>
+                </div>
+
+                <div class="relative w-full h-48 bg-[#020510] border-x-2 border-dashed border-cyan-500/30 rounded mb-2 overflow-hidden shrink-0">
+                    <canvas id="sentry-canvas" class="w-full h-full block"></canvas>
+                    <div class="absolute top-1 left-2 text-[10px] text-cyan-500/30 font-mono tracking-widest">SIGNAL_STREAM_V3</div>
+                </div>
+
+                <div class="flex justify-between items-end mb-1">
+                    <span class="text-[10px] text-gray-500 font-mono">DATA STREAM</span>
+                    <button id="sentry-copy-btn" class="px-2 py-1 text-[10px] bg-cyan-900/50 hover:bg-cyan-700 text-cyan-300 rounded border border-cyan-500/50 font-mono">[ COPY DATA ]</button>
+                </div>
+                <textarea id="sentry-log" class="w-full h-24 bg-black/50 p-2 font-mono text-[10px] text-cyan-400 border border-gray-700 resize-none focus:outline-none mb-4 shrink-0" readonly></textarea>
+
+                <div class="border-t border-cyan-900 pt-3">
+                    <h3 class="text-xs font-['Michroma'] text-gray-400 mb-2">SUBNET / CIDR CALC</h3>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="subnet-input" class="bg-mid-blue border border-cyan-500/50 rounded p-1 text-xs text-white w-2/3 font-mono" placeholder="e.g. 192.168.1.1/24">
+                        <button id="subnet-calc-btn" class="bg-cyan-800 hover:bg-cyan-700 text-white text-xs rounded p-1 w-1/3 border border-cyan-500">CALC</button>
+                    </div>
+                    <div id="subnet-result" class="text-[10px] font-mono text-gray-300 bg-black/30 p-2 rounded min-h-[3rem]">
+                        Ready.
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        // Binds
+        document.getElementById('net-close').onclick = () => {
+            document.getElementById('modal-net').classList.add('hidden');
+            if(sentryDataLoop) clearInterval(sentryDataLoop);
+            if(sentryAnimLoop) cancelAnimationFrame(sentryAnimLoop);
+        };
+        document.getElementById('sentry-copy-btn').onclick = copyLog;
+        document.getElementById('subnet-calc-btn').onclick = runSubnetCalc;
+    }
+
+    // Init Logic
+    document.getElementById('modal-net').classList.remove('hidden');
+    const cvs = document.getElementById('sentry-canvas');
+    cvs.width = cvs.clientWidth;
+    cvs.height = cvs.clientHeight;
+    waterfallCtx = cvs.getContext('2d');
+    
+    // Clear & Init
+    waterfallCtx.fillStyle = '#020510';
+    waterfallCtx.fillRect(0, 0, cvs.width, cvs.height);
+    document.getElementById('sentry-log').value = `SEQ:0000 | T:${new Date().toLocaleTimeString()} | INIT: OK\n`;
+    
+    startSentryLoops();
+};
+
+/* --- LOGIC: NETWORK (Decoupled Loops) --- */
+const startSentryLoops = () => {
+    if(sentryDataLoop) clearInterval(sentryDataLoop);
+    if(sentryAnimLoop) cancelAnimationFrame(sentryAnimLoop);
+    
+    let seq = 1;
+    
+    // 1. DATA LOOP (Heartbeat - 1.5s)
+    sentryDataLoop = setInterval(async () => {
+        const start = Date.now();
+        let isSimulated = false;
+
+        try {
+            // FIX: Check for file protocol to avoid CORS errors on local files
+            if (window.location.protocol === 'file:') {
+                // Simulate latency for offline/local file use
+                await new Promise(r => setTimeout(r, Math.random() * 200 + 50));
+                currentLatency = Date.now() - start;
+                isOffline = false;
+                isSimulated = true;
+            } else {
+                // FIX: Use GET instead of HEAD for broader server compatibility
+                await fetch(window.location.href, { method: 'GET', cache: 'no-store' });
+                currentLatency = Date.now() - start;
+                isOffline = false;
+            }
+        } catch (e) {
+            currentLatency = 999; 
+            isOffline = true;
+        }
+
+        // Log Update
+        const time = new Date().toLocaleTimeString().split(' ')[0];
+        let stat = isOffline ? 'ERR' : (currentLatency > 300 ? 'UNST' : 'NOM');
+        if (isSimulated) stat += '*'; // Mark simulated data
+
+        const logLine = `SEQ:${String(seq).padStart(4,'0')} | T:${time} | D:${String(currentLatency).padStart(3,' ')}ms | S:${stat}`;
+        
+        const logEl = document.getElementById('sentry-log');
+        if(logEl) {
+            logEl.value += logLine + "\n";
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        seq++;
+    }, 1500);
+
+    // 2. VISUAL LOOP (60fps - Full Width Curtain)
+    const drawFrame = () => {
+        if(!waterfallCtx) return;
+        const ctx = waterfallCtx;
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+
+        // Shift Down (Vertical Waterfall)
+        ctx.drawImage(ctx.canvas, 0, 0, w, h - 1, 0, 1, w, h - 1);
+        
+        // Clear Top Row
+        ctx.fillStyle = '#020510';
+        ctx.fillRect(0, 0, w, 1);
+
+        // Determine Color based on Latency
+        let r=0, g=255, b=255;
+        if(currentLatency > 100) { r=0; g=255; b=100; } // Greenish
+        if(currentLatency > 300) { r=255; g=200; b=0; } // Yellowish
+
+        if(isOffline) {
+            // Static Snow (Full Width)
+            for(let x=0; x<w; x+=2) {
+                if(Math.random() > 0.5) {
+                    ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+                    ctx.fillRect(x, 0, 1, 1);
+                }
+            }
+        } else {
+            // Full Width "Sheet of Water"
+            // 1. Base Wash (The "Sheet")
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.15)`; 
+            ctx.fillRect(0, 0, w, 1);
+
+            // 2. High Density Rain (The "Data")
+            // If latency is high, the rain becomes sparse/broken
+            const densityThreshold = currentLatency > 200 ? 0.8 : 0.3; 
+            
+            for(let x=0; x<w; x+=2) {
+                if(Math.random() > densityThreshold) { 
+                    const alpha = Math.random() * 0.6;
+                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                    ctx.fillRect(x, 0, 1, 1);
+                }
+            }
+        }
+
+        sentryAnimLoop = requestAnimationFrame(drawFrame);
+    };
+
+    drawFrame();
+};
+
+const copyLog = () => {
+    const log = document.getElementById('sentry-log');
+    log.select();
+    navigator.clipboard.writeText(log.value);
+};
+
+const runSubnetCalc = () => {
+    const val = document.getElementById('subnet-input').value.trim();
+    const res = document.getElementById('subnet-result');
+    if (!val.includes('/')) { res.innerHTML = "ERR: Invalid CIDR"; return; }
+    
+    // Very Basic Calc logic for UI demo
+    try {
+        const parts = val.split('/');
+        const ip = parts[0];
+        const cidr = parseInt(parts[1]);
+        const hosts = Math.pow(2, 32 - cidr) - 2;
+        res.innerHTML = `
+        CIDR: /${cidr}<br>
+        HOSTS: ${hosts > 0 ? hosts : 0}<br>
+        MASK: Sim-Calc OK.
+        `;
+    } catch { res.innerHTML = "ERR: Parse Fail"; }
+};
+
+/* --- 3. MODAL B: HARDWARE AUDIT (BLE + OPSEC) --- */
+const openHardwareModal = () => {
+    if (!document.getElementById('modal-hw')) {
+        const html = `
+        <div id="modal-hw" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
+            <div class="bg-dark-navy p-4 w-full max-w-md rounded-lg border-2 border-green-500 shadow-[0_0_30px_rgba(0,255,0,0.15)] flex flex-col">
+                <div class="flex justify-between items-center mb-3 border-b border-green-900 pb-2">
+                    <h2 class="text-xl font-['Michroma'] neon-green">DEVICE AUDIT</h2>
+                    <button id="hw-close" class="text-green-500 hover:text-white font-bold text-xl">✖</button>
+                </div>
+
+                <div class="bg-black/40 p-2 border border-green-500/30 rounded mb-3">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-xs text-green-400 font-bold">BLE SPECTRUM</span>
+                        <button id="ble-scan-btn" class="text-[10px] bg-green-900 text-white px-2 rounded hover:bg-green-700">SCAN</button>
+                    </div>
+                    <div id="ble-out" class="h-24 overflow-y-auto font-mono text-[10px] text-gray-400">Waiting for trigger...</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                    <div class="bg-black/40 p-2 border border-green-500/30 rounded">
+                        <div class="text-[10px] text-gray-500">BATTERY</div>
+                        <div id="hw-batt" class="text-lg font-mono text-white">--%</div>
+                    </div>
+                    <div class="bg-black/40 p-2 border border-green-500/30 rounded">
+                        <div class="text-[10px] text-gray-500">CORES</div>
+                        <div id="hw-cpu" class="text-lg font-mono text-white">--</div>
+                    </div>
+                </div>
+
+                <div class="bg-black/40 p-2 border border-green-500/30 rounded">
+                     <div class="text-[10px] text-gray-500 mb-1">FINGERPRINT / UA LEAK</div>
+                     <div id="hw-ua" class="text-[10px] font-mono text-green-300 break-all leading-tight">...</div>
+                </div>
+
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        
+        // Binds
+        document.getElementById('hw-close').onclick = () => document.getElementById('modal-hw').classList.add('hidden');
+        document.getElementById('ble-scan-btn').onclick = runBLE;
+
+        // FIX: Attach battery listener ONCE during initialization to prevent memory leaks
+        if(navigator.getBattery) {
+            navigator.getBattery().then(b => {
+                const update = () => {
+                    const el = document.getElementById('hw-batt');
+                    if(el) el.innerText = Math.round(b.level*100) + '% ' + (b.charging?'⚡':'');
+                };
+                b.addEventListener('levelchange', update);
+                // Store update function on the battery object to call it manually on open
+                b._manualUpdate = update;
+            });
+        }
+    }
+
+    // Init Logic
+    document.getElementById('modal-hw').classList.remove('hidden');
+    
+    // CPU/Bat
+    document.getElementById('hw-cpu').innerText = navigator.hardwareConcurrency || '?';
+    document.getElementById('hw-ua').innerText = navigator.userAgent;
+    
+    // FIX: Manually trigger battery update on open without adding new listeners
+    if(navigator.getBattery) {
+        navigator.getBattery().then(b => {
+            if(b._manualUpdate) b._manualUpdate();
+            else {
+                 const el = document.getElementById('hw-batt');
+                 if(el) el.innerText = Math.round(b.level*100) + '% ' + (b.charging?'⚡':'');
+            }
+        });
+    }
+};
+
+const runBLE = async () => {
+    const out = document.getElementById('ble-out');
+    out.innerHTML = '<span class="text-yellow-400 animate-pulse">INITIALIZING SCAN...</span>';
+    
+    // 1. Check for API Support
+    if (!navigator.bluetooth) {
+        out.innerHTML = '<span class="text-red-500">ERR: WebBluetooth API missing.</span><br><span class="text-gray-500 text-[9px]">Reason: Browser unsupported or running from file://. (Requires HTTPS/Localhost)</span>';
+        
+        // Fallback Simulation for UX
+        setTimeout(() => {
+            out.innerHTML += '<br><br><span class="text-cyan-500">--- SIMULATION MODE ---</span><br>Found: <span class="text-white">Unknown_Tracker_1X</span> (RSSI: -45)<br>Found: <span class="text-white">Smart_Tag_04</span> (RSSI: -82)';
+        }, 1500);
+        return;
+    }
+
+    // 2. Attempt Real Scan
+    try {
+        const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+        out.innerHTML = `<span class="text-green-400">CONNECTED:</span> <span class="text-white">${device.name || 'Unnamed Device'}</span><br><span class="text-gray-500">ID: ${device.id}</span>`;
+    } catch(e) {
+        // User cancelled or error
+        out.innerHTML = `<span class="text-red-400">SCAN_ABORT:</span> ${e.message}`;
+    }
+};
+
+/* --- 4. MODAL C: SDAP-7 LOGGER (W-Y EVANSCIRA) --- */
+let sdapLogs = {};
+let activeSdapLog = 'worklog';
+const SDAP_STORAGE_KEY = 'sdap_project_logs';
+const SDAP_INITIAL = {
+    worklog: "[16:25:00] Initializing SDAP-7 Manual Ingestion Module.\n[16:25:01] Select a tab, paste AI output, and click 'Commit Log Entry'.",
+    decision: "[16:25:10] DECISION LOG: Initial state is 'Analyze', awaiting first codebase report.",
+    task: "[16:25:20] TASK LOG: T-001: Initial codebase analysis; T-002: Define final data schema."
+};
+
+const openSdapModal = () => {
+    if (!document.getElementById('modal-sdap')) {
+        const html = `
+        <div id="modal-sdap" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
+            <div class="bg-dark-navy p-4 w-full max-w-2xl rounded-lg border-2 border-yellow-500 shadow-[0_0_30px_rgba(255,215,0,0.15)] flex flex-col max-h-[90vh]">
+                <div class="flex justify-between items-center mb-3 border-b border-yellow-900 pb-2">
+                    <h2 class="text-xl font-['Michroma'] text-yellow-400" style="text-shadow: 0 0 10px rgba(255,215,0,0.5);">W-Y EVANSCIRA // SDAP-7</h2>
+                    <button id="sdap-close" class="text-yellow-500 hover:text-white font-bold text-xl">✖</button>
+                </div>
+
+                <div class="flex border-b border-yellow-500/30 mb-2">
+                    <button id="sdap-tab-worklog" class="px-4 py-2 text-xs font-bold text-cyan-400 border-r border-yellow-500/30 hover:bg-yellow-900/20 transition-colors">WORKLOG</button>
+                    <button id="sdap-tab-decision" class="px-4 py-2 text-xs font-bold text-green-400 border-r border-yellow-500/30 hover:bg-yellow-900/20 transition-colors">DECISIONS</button>
+                    <button id="sdap-tab-task" class="px-4 py-2 text-xs font-bold text-yellow-400 hover:bg-yellow-900/20 transition-colors">TASKS</button>
+                </div>
+
+                <div id="sdap-log-display" class="w-full h-64 bg-black/50 p-3 font-mono text-xs text-gray-300 border border-yellow-500/30 resize-none overflow-y-auto mb-4 whitespace-pre-wrap"></div>
+
+                <textarea id="sdap-input" class="w-full h-20 bg-black/50 p-2 font-mono text-xs text-white border border-gray-600 focus:border-yellow-500 focus:outline-none mb-3" placeholder="PASTE AGENTIC AI OUTPUT HERE..."></textarea>
+
+                <div class="flex gap-2 mb-3">
+                    <button id="sdap-commit-btn" class="flex-grow bg-yellow-700 hover:bg-yellow-600 text-white text-xs font-bold py-2 px-4 rounded border border-yellow-500 shadow-[0_0_10px_rgba(255,215,0,0.2)]">COMMIT ENTRY</button>
+                    <button id="sdap-export-btn" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2 px-4 rounded border border-gray-500">EXPORT .TXT</button>
+                </div>
+
+                <div id="sdap-emergency-area">
+                    <button id="sdap-emergency-btn" class="w-full bg-red-900/50 hover:bg-red-800 text-red-400 text-[10px] font-bold py-1 rounded border border-red-500/50 tracking-widest transition-all">!!! EMERGENCY SHUTDOWN: CLEAR LOGS !!!</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+
+        // Binds
+        document.getElementById('sdap-close').onclick = () => document.getElementById('modal-sdap').classList.add('hidden');
+        
+        document.getElementById('sdap-tab-worklog').onclick = () => switchSdapLog('worklog');
+        document.getElementById('sdap-tab-decision').onclick = () => switchSdapLog('decision');
+        document.getElementById('sdap-tab-task').onclick = () => switchSdapLog('task');
+        
+        document.getElementById('sdap-commit-btn').onclick = commitSdapEntry;
+        document.getElementById('sdap-export-btn').onclick = exportSdapLogs;
+        document.getElementById('sdap-emergency-btn').onclick = promptSdapEmergency;
+
+        // Load Data
+        loadSdapLogs();
+    }
+
+    // Init
+    document.getElementById('modal-sdap').classList.remove('hidden');
+    switchSdapLog('worklog');
+};
+
+const loadSdapLogs = () => {
+    const stored = localStorage.getItem(SDAP_STORAGE_KEY);
+    if (stored) {
+        try {
+            sdapLogs = JSON.parse(stored);
+            // Integrity check
+            if (!sdapLogs.worklog) sdapLogs.worklog = SDAP_INITIAL.worklog;
+            if (!sdapLogs.decision) sdapLogs.decision = SDAP_INITIAL.decision;
+            if (!sdapLogs.task) sdapLogs.task = SDAP_INITIAL.task;
+        } catch (e) { sdapLogs = SDAP_INITIAL; }
+    } else {
+        sdapLogs = SDAP_INITIAL;
+    }
+};
+
+const saveSdapLogs = () => localStorage.setItem(SDAP_STORAGE_KEY, JSON.stringify(sdapLogs));
+
+const switchSdapLog = (type) => {
+    activeSdapLog = type;
+    
+    // Update Tabs Visuals
+    ['worklog', 'decision', 'task'].forEach(t => {
+        const btn = document.getElementById(`sdap-tab-${t}`);
+        if(t === type) btn.classList.add('bg-yellow-900/40', 'text-white');
+        else btn.classList.remove('bg-yellow-900/40', 'text-white');
+    });
+
+    const display = document.getElementById('sdap-log-display');
+    display.textContent = sdapLogs[type];
+    display.scrollTop = display.scrollHeight;
+};
+
+const commitSdapEntry = () => {
+    const input = document.getElementById('sdap-input');
+    const val = input.value.trim();
+    if(!val) return;
+
+    const ts = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const prefix = `\n\n--- ${ts} --- AGENT INGESTED (${activeSdapLog.toUpperCase()}) ---\n`;
+    
+    sdapLogs[activeSdapLog] += prefix + val;
+    saveSdapLogs();
+    
+    input.value = '';
+    switchSdapLog(activeSdapLog); // Refresh
+};
+
+const exportSdapLogs = () => {
+    const ts = new Date().toISOString().slice(0, 10);
+    const content = 
+        `W-Y EVANSCIRA LABS SDAP-7 EXPORT - ${ts}\n` +
+        `======================================================\n\n` +
+        `--- WORKLOG ---\n${sdapLogs.worklog}\n\n` +
+        `--- DECISIONS ---\n${sdapLogs.decision}\n\n` +
+        `--- TASKS ---\n${sdapLogs.task}\n\n` +
+        `======================================================\n` +
+        `END OF TRANSMISSION`;
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SDAP-7_Log_${ts}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+};
+
+const promptSdapEmergency = () => {
+    const area = document.getElementById('sdap-emergency-area');
+    area.innerHTML = `
+        <div class="flex justify-between items-center bg-red-900/80 p-2 rounded border border-red-500 animate-pulse">
+            <span class="text-white text-xs font-bold">CONFIRM RESET?</span>
+            <div class="flex gap-2">
+                <button id="sdap-confirm-reset" class="bg-red-600 hover:bg-red-500 text-white text-xs px-2 py-1 rounded">YES</button>
+                <button id="sdap-cancel-reset" class="bg-slate-700 hover:bg-slate-600 text-white text-xs px-2 py-1 rounded">NO</button>
+            </div>
+        </div>`;
+        
+    document.getElementById('sdap-confirm-reset').onclick = () => {
+        localStorage.removeItem(SDAP_STORAGE_KEY);
+        sdapLogs = SDAP_INITIAL;
+        saveSdapLogs();
+        switchSdapLog('worklog');
+        restoreSdapEmergency();
+    };
+    document.getElementById('sdap-cancel-reset').onclick = restoreSdapEmergency;
+};
+
+const restoreSdapEmergency = () => {
+    const area = document.getElementById('sdap-emergency-area');
+    area.innerHTML = `<button id="sdap-emergency-btn" class="w-full bg-red-900/50 hover:bg-red-800 text-red-400 text-[10px] font-bold py-1 rounded border border-red-500/50 tracking-widest transition-all">!!! EMERGENCY SHUTDOWN: CLEAR LOGS !!!</button>`;
+    document.getElementById('sdap-emergency-btn').onclick = promptSdapEmergency;
+};
+
+// BOOTSTRAP
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectSurvivalMenu);
+else injectSurvivalMenu();
+
+/* --- MODULE: PEACE OPERATOR (HYBRID FIELD EDITION v3.0) --- */
+/* 
+   MODE A: ENV_ANALYZER (Input Trim, Thermal Spectrogram, Peak Marker)
+   MODE B: PEACE_KEEPER (Threat Detection + Social Intent + Vibe Check)
+*/
+
+let peaceCtx, peaceAnalyser, peaceSource, peaceAnimId, peaceGain;
+let peaceStream = null; 
+let peaceMode = 'ENV_ANALYZER'; 
+
+let audioState = {
+    // --- PHYSICS (CORE) ---
+    peakHold: -100,
+    peakDecay: 0,
+    noiseFloor: -60,
+    dominantHz: 0,
+    spectrogram: [], 
+    volumeHistory: new Array(100).fill(0), 
+    lastUiUpdate: 0,
+    sinePhase: 0,
+    inputGain: 1.0,
+    calibrationFrames: 0,
+    prevBins: new Uint8Array(1024),
+    lastToastTime: 0,
+    
+    // --- PSYCHOACOUSTICS ---
+    spectralFlux: 0,
+    centroidHz: 0,
+    hnr: 0,
+    perceivedNote: "--",
+    dominantNote: "--",
+    lastValidNote: "--",
+    lastValidDom: "--",
+    smoothedCentroidY: 0,
+    
+    // --- ENGINE A: THREAT DETECTION (RESTORED) ---
+    threatLevel: 0.0,
+    psychState: 'CALM',
+    noteHistory: [], // For Anti-Spoofing/Coherence
+    
+    // --- ENGINE B: SOCIAL INTENT (NEW) ---
+    zcr: 0, 
+    pitchBuffer: [], // Size 180
+    socialState: 'NEUTRAL', 
+    flirtProb: 0.0, 
+    laughterSustain: 0, 
+    silenceTimer: 0, 
+    avgPitchBaseline: 0, 
+    intentLabel: "WAITING",
+    reactionLabel: "MONITORING",
+    correctionAlert: ""
+};
+
+const initPeaceOperator = async () => {
+    // 1. Inject Modal with HYBRID DASHBOARD
+    if (!document.getElementById('modal-peace')) {
+        const html = `
+        <div id="modal-peace" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md transition-all duration-500">
+            <div class="relative bg-[#0b0f19] w-full h-full md:w-[95vw] md:h-[90vh] md:rounded-xl md:border-2 md:border-cyan-500 md:shadow-[0_0_50px_rgba(0,255,255,0.1)] flex flex-col overflow-hidden">
+                
+                <!-- TOP BAR -->
+                <div class="flex justify-between items-center bg-black/90 p-2 border-b border-cyan-500/30 shrink-0 z-20">
+                    <div class="flex items-center gap-2">
+                        <div id="peace-led" class="w-2 h-2 rounded-full bg-gray-600 shadow-[0_0_5px_currentColor] transition-colors duration-300"></div>
+                        <h2 class="text-sm md:text-lg font-['Michroma'] text-white tracking-widest truncate">SRC-D2 <span class="text-cyan-500">HYBRID_DSP</span></h2>
+                    </div>
+                    
+                    <div class="flex bg-gray-900 rounded border border-gray-700 p-0.5">
+                        <button id="mode-btn-env" class="px-3 py-1 text-[9px] md:text-[10px] font-bold font-['Michroma'] rounded bg-cyan-900 text-white border border-cyan-500 transition-all">ENG</button>
+                        <button id="mode-btn-peace" class="px-3 py-1 text-[9px] md:text-[10px] font-bold font-['Michroma'] rounded text-gray-500 hover:text-white transition-all">PSY</button>
+                    </div>
+
+                    <button id="peace-close-btn" class="w-8 h-8 flex items-center justify-center text-red-500 border border-red-500/30 rounded hover:bg-red-900/20">✕</button>
+                </div>
+
+                <!-- CONTENT AREA -->
+                <div class="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+                    
+                    <!-- 1. VISUALIZER -->
+                    <div class="order-1 md:order-2 flex-grow relative bg-black h-[45vh] md:h-full w-full">
+                        <canvas id="peace-canvas" class="w-full h-full block"></canvas>
+                        
+                        <!-- Overlay Info -->
+                        <div class="absolute top-2 right-2 flex flex-col items-end pointer-events-none">
+                            <div id="overlay-mode-txt" class="text-lg font-['Michroma'] text-cyan-500/20">ANALYZER</div>
+                            <div id="overlay-sub-txt" class="text-[9px] font-mono text-cyan-500/40">RTA_ACTIVE</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. METRICS & DASHBOARD -->
+                    <div class="order-2 md:order-1 w-full md:w-80 bg-[#050810] border-t md:border-t-0 md:border-r border-cyan-900/50 flex p-3 gap-3 shrink-0 h-[55vh] md:h-full z-10 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+                        
+                        <!-- A. VERTICAL FADER -->
+                        <div class="w-12 md:w-16 bg-black/60 border border-gray-800 rounded-lg p-1 flex flex-col items-center justify-between relative">
+                            <div class="text-[8px] text-gray-500 font-mono mb-1">PK</div>
+                            <div id="fader-peak-txt" class="text-[9px] text-red-500 font-mono font-bold mb-1">-inf</div>
+                            
+                            <div class="relative flex-grow w-4 md:w-6 bg-gray-900 rounded-full overflow-hidden border border-gray-800">
+                                <div id="fader-bar" class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-green-500 via-yellow-400 to-red-500 transition-all duration-75" style="height: 0%"></div>
+                                <div id="fader-peak-line" class="absolute left-0 w-full h-[2px] bg-white shadow-[0_0_5px_white] transition-all duration-100" style="bottom: 0%"></div>
+                            </div>
+                            <div class="text-[8px] text-gray-500 font-mono mt-1">RMS</div>
+                        </div>
+
+                        <!-- B. DATA GRID -->
+                        <div class="flex-grow flex flex-col gap-2 overflow-y-auto">
+                            
+                            <!-- Common: Loudness -->
+                            <div class="bg-black/40 border border-cyan-900/50 p-2 rounded flex justify-between items-center">
+                                <div>
+                                    <div class="text-[9px] text-gray-500 uppercase">Loudness</div>
+                                    <div id="data-db" class="text-xl font-mono text-cyan-400">-inf <span class="text-xs text-gray-600">dB</span></div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[9px] text-gray-500 uppercase">Flux</div>
+                                    <div id="data-flux" class="text-xl font-mono text-purple-400">0.0</div>
+                                </div>
+                            </div>
+
+                            <!-- MODE A: ENGINEER STATS -->
+                            <div id="panel-env-mode" class="flex flex-col gap-2">
+                                <div class="bg-black/40 border border-gray-800 p-2 rounded">
+                                    <div class="flex justify-between">
+                                        <div>
+                                            <div class="text-[8px] text-gray-500 uppercase">Dominant</div>
+                                            <div id="data-dom-note" class="text-lg font-mono text-yellow-400">--</div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-[8px] text-gray-500 uppercase">Perceived</div>
+                                            <div id="data-note" class="text-lg font-mono text-cyan-400">--</div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-1 pt-1 border-t border-gray-800/50 flex justify-between text-[8px] font-mono">
+                                        <span class="text-gray-600">ZCR: <span id="val-zcr" class="text-gray-400">0.00</span></span>
+                                        <span class="text-gray-600">HNR: <span id="val-hnr" class="text-gray-400">0%</span></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-black/40 border border-gray-800 p-2 rounded">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <div class="text-[9px] text-gray-500">INPUT TRIM</div>
+                                        <div id="gain-val" class="text-[9px] text-cyan-400">100%</div>
+                                    </div>
+                                    <input type="range" id="gain-slider" min="0" max="2" step="0.1" value="1" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer mb-2">
+                                    <div id="data-res" class="text-xs text-green-500 font-mono text-center">SPECTRUM CLEAR</div>
+                                </div>
+                            </div>
+
+                            <!-- MODE B: PEACE KEEPER (HYBRID) -->
+                            <div id="panel-peace-mode" class="hidden flex flex-col gap-2 h-full">
+                                
+                                <!-- 1. THREAT MONITOR (Restored) -->
+                                <div class="bg-black/40 border border-gray-800 p-2 rounded">
+                                    <div class="flex justify-between items-end mb-1">
+                                        <div class="text-[9px] text-red-400">THREAT LEVEL</div>
+                                        <div id="threat-pct" class="text-[9px] text-gray-500">0%</div>
+                                    </div>
+                                    <div class="w-full h-1 bg-gray-800 rounded mb-2 overflow-hidden">
+                                        <div id="threat-bar" class="h-full bg-cyan-500 w-0 transition-all duration-75"></div>
+                                    </div>
+                                    <div id="data-state" class="text-lg font-['Michroma'] text-white">CALM</div>
+                                    <div id="data-state-sub" class="text-[9px] text-gray-500 mt-1">MONITORING...</div>
+                                </div>
+
+                                <!-- 2. SOCIAL INTENT (New) -->
+                                <div class="bg-black/60 border border-purple-500/30 p-2 rounded relative overflow-hidden flex-grow">
+                                    <div class="text-[8px] text-purple-400 tracking-widest mb-1">SOCIAL INTENT</div>
+                                    <div id="soc-intent" class="text-sm font-['Michroma'] text-white truncate mb-1">NEUTRAL</div>
+                                    <div id="soc-reaction" class="text-[9px] font-mono text-cyan-300 mb-2">LISTENING...</div>
+                                    
+                                    <!-- Alert Box -->
+                                    <div id="soc-alert" class="text-[9px] font-bold text-red-500 bg-red-900/10 border border-red-900/30 p-1 rounded text-center hidden mb-2">
+                                        BREATHE. DO NOT FILL SILENCE.
+                                    </div>
+
+                                    <!-- Flirt/Vibe Meter -->
+                                    <div class="flex justify-between items-end mb-1">
+                                        <div class="text-[8px] text-pink-400">VIBE CHECK</div>
+                                        <div id="soc-flirt-pct" class="text-[8px] text-white">0%</div>
+                                    </div>
+                                    <div class="w-full h-1 bg-gray-800 rounded overflow-hidden">
+                                        <div id="soc-flirt-bar" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 w-0 transition-all duration-300"></div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+
+        // Binds
+        document.getElementById('peace-close-btn').onclick = closePeaceOperator;
+        document.getElementById('mode-btn-env').onclick = () => setPeaceMode('ENV_ANALYZER');
+        document.getElementById('mode-btn-peace').onclick = () => setPeaceMode('PEACE_KEEPER');
+        
+        // Gain Slider
+        const gainSlider = document.getElementById('gain-slider');
+        const gainVal = document.getElementById('gain-val');
+        gainSlider.oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            const logVal = val * val; 
+            audioState.inputGain = logVal;
+            if(peaceGain) peaceGain.gain.value = logVal;
+            gainVal.innerText = Math.round(val * 100) + "%";
+        };
+
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('peace-canvas');
+            if(canvas) {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+                audioState.spectrogram = [];
+            }
+        });
+    }
+
+    const modal = document.getElementById('modal-peace');
+    modal.classList.remove('hidden');
+
+    try {
+        peaceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        peaceCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (peaceCtx.state === 'suspended') await peaceCtx.resume();
+
+        peaceAnalyser = peaceCtx.createAnalyser();
+        peaceGain = peaceCtx.createGain();
+        peaceSource = peaceCtx.createMediaStreamSource(peaceStream);
+        
+        peaceSource.connect(peaceGain);
+        peaceGain.connect(peaceAnalyser);
+        peaceGain.gain.value = audioState.inputGain;
+        
+        peaceAnalyser.fftSize = 2048; 
+        peaceAnalyser.smoothingTimeConstant = 0.8; 
+
+        const bufferLength = peaceAnalyser.frequencyBinCount; 
+        const dataArrayFreq = new Uint8Array(bufferLength); 
+        const dataArrayTime = new Float32Array(bufferLength);
+        
+        const canvas = document.getElementById('peace-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+
+        // UI Refs
+        const ui = {
+            db: document.getElementById('data-db'),
+            flux: document.getElementById('data-flux'),
+            peakTxt: document.getElementById('fader-peak-txt'),
+            bar: document.getElementById('fader-bar'),
+            peakLine: document.getElementById('fader-peak-line'),
+            hz: document.getElementById('data-hz'),
+            domNote: document.getElementById('data-dom-note'),
+            note: document.getElementById('data-note'),
+            res: document.getElementById('data-res'),
+            led: document.getElementById('peace-led'),
+            zcr: document.getElementById('val-zcr'),
+            hnr: document.getElementById('val-hnr'),
+            // Threat Refs
+            state: document.getElementById('data-state'),
+            stateSub: document.getElementById('data-state-sub'),
+            threatBar: document.getElementById('threat-bar'),
+            threatPct: document.getElementById('threat-pct'),
+            // Social Refs
+            intent: document.getElementById('soc-intent'),
+            reaction: document.getElementById('soc-reaction'),
+            alert: document.getElementById('soc-alert'),
+            flirtBar: document.getElementById('soc-flirt-bar'),
+            flirtPct: document.getElementById('soc-flirt-pct')
+        };
+
+        // --- MAIN LOOP ---
+        const analyze = () => {
+            peaceAnimId = requestAnimationFrame(analyze);
+            
+            peaceAnalyser.getByteFrequencyData(dataArrayFreq);
+            peaceAnalyser.getFloatTimeDomainData(dataArrayTime);
+
+            // 1. PHYSICS & RMS
+            let sumSquares = 0;
+            let peakInstant = 0;
+            let zcrCount = 0;
+
+            for(let i = 0; i < bufferLength; i++) {
+                const amp = Math.abs(dataArrayTime[i]);
+                sumSquares += amp * amp;
+                if (amp > peakInstant) peakInstant = amp;
+                // ZCR
+                if (i > 0) {
+                    if ((dataArrayTime[i] >= 0 && dataArrayTime[i-1] < 0) || 
+                        (dataArrayTime[i] < 0 && dataArrayTime[i-1] >= 0)) {
+                        zcrCount++;
+                    }
+                }
+            }
+            
+            audioState.zcr = zcrCount / bufferLength; 
+            const rms = Math.sqrt(sumSquares / bufferLength);
+            let db = 20 * Math.log10(rms);
+            if (!isFinite(db)) db = -100;
+
+            // Peak Hold
+            let dbPeak = 20 * Math.log10(peakInstant);
+            if (!isFinite(dbPeak)) dbPeak = -100;
+            if (dbPeak > audioState.peakHold) {
+                audioState.peakHold = dbPeak;
+                audioState.peakDecay = 60; 
+            } else {
+                if (audioState.peakDecay > 0) audioState.peakDecay--;
+                else audioState.peakHold -= 0.2; 
+            }
+
+            // 2. FREQUENCY ANALYSIS
+            let maxVal = 0, maxIndex = 0;
+            let totalAmp = 0;
+            let centroidSum = 0;
+            let lowFreqEnergy = 0; 
+            const nyquist = peaceCtx.sampleRate / 2;
+            const startIndex = Math.floor(40 / (peaceCtx.sampleRate / peaceAnalyser.fftSize));
+
+            for (let i = startIndex; i < bufferLength; i++) {
+                const amp = dataArrayFreq[i];
+                totalAmp += amp;
+                centroidSum += amp * (i * nyquist / bufferLength);
+
+                if (amp > maxVal) {
+                    maxVal = amp;
+                    maxIndex = i;
+                }
+                if (i < 20) lowFreqEnergy += amp;
+            }
+
+            audioState.centroidHz = totalAmp > 0 ? centroidSum / totalAmp : 0;
+            const f0 = (maxIndex / bufferLength) * nyquist;
+            audioState.dominantHz = f0;
+
+            // 3. SPECTRAL FLUX
+            let flux = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                let diff = dataArrayFreq[i] - audioState.prevBins[i];
+                if (diff > 0) {
+                    const weight = i > (bufferLength / 2) ? 1.5 : 1.0;
+                    flux += diff * weight;
+                }
+                audioState.prevBins[i] = dataArrayFreq[i];
+            }
+            audioState.spectralFlux = flux / bufferLength;
+
+            // 4. PITCH BUFFER
+            if (db > -50) {
+                audioState.pitchBuffer.push(f0);
+                if (audioState.pitchBuffer.length > 180) audioState.pitchBuffer.shift();
+                audioState.avgPitchBaseline = (audioState.avgPitchBaseline * 0.995) + (f0 * 0.005);
+            }
+
+            // 5. HARMONICITY
+            let localSum = 0, count = 0;
+            for (let i = Math.max(0, maxIndex - 5); i < Math.min(bufferLength, maxIndex + 5); i++) {
+                localSum += dataArrayFreq[i];
+                count++;
+            }
+            let avgLocal = localSum / count;
+            audioState.hnr = avgLocal > 0 ? maxVal / avgLocal : 0; 
+
+            // Notes
+            if (audioState.centroidHz > f0 * 1.8) audioState.perceivedNote = getNote(audioState.centroidHz);
+            else audioState.perceivedNote = getNote(f0);
+            audioState.dominantNote = getNote(f0);
+
+            // --- DUAL ENGINE EXECUTION ---
+            if (peaceMode === 'PEACE_KEEPER') {
+                analyzeThreatLogic(db, f0);
+                analyzeSocialIntent(db, lowFreqEnergy, f0);
+            }
+
+            // 6. UI UPDATE (Throttled)
+            const now = Date.now();
+            if (now - audioState.lastUiUpdate > 50) { 
+                
+                // Common
+                const faderPct = Math.min(100, Math.max(0, ((db + 60) / 60) * 100));
+                const peakPct = Math.min(100, Math.max(0, ((audioState.peakHold + 60) / 60) * 100));
+                
+                ui.db.innerText = db.toFixed(1);
+                ui.flux.innerText = audioState.spectralFlux.toFixed(1);
+                ui.bar.style.height = faderPct + "%";
+                ui.peakLine.style.bottom = peakPct + "%";
+                
+                if (db > -40) {
+                    ui.domNote.innerText = audioState.dominantNote;
+                    ui.note.innerText = audioState.perceivedNote;
+                    ui.zcr.innerText = audioState.zcr.toFixed(2);
+                    ui.hnr.innerText = Math.round(audioState.hnr * 10) + "%";
+                }
+
+                if (peaceMode === 'ENV_ANALYZER') {
+                    // Engineer Logic
+                    if (maxVal > 220 && db < -10) {
+                        if (audioState.centroidHz > 4000) {
+                            ui.res.innerText = `SIBILANCE: ${Math.round(audioState.centroidHz)}Hz`;
+                            ui.res.className = "text-xs text-cyan-400 font-mono text-center";
+                        } else {
+                            ui.res.innerText = `RINGING: ${Math.round(audioState.centroidHz)}Hz`;
+                            ui.res.className = "text-xs text-red-400 font-mono animate-pulse text-center";
+                        }
+                    } else {
+                        ui.res.innerText = "SPECTRUM CLEAR";
+                        ui.res.className = "text-xs text-green-500 font-mono text-center";
+                    }
+                } else {
+                    // --- HYBRID DASHBOARD UPDATES ---
+                    
+                    // 1. Threat Bar (Priority)
+                    ui.threatBar.style.width = (audioState.threatLevel * 100) + "%";
+                    ui.threatPct.innerText = Math.round(audioState.threatLevel * 100) + "%";
+                    
+                    let stateColor = "text-white";
+                    let ledColor = "#4b5563";
+
+                    if (audioState.threatLevel > 0.8) {
+                        ui.state.innerText = "AGGRESSIVE";
+                        stateColor = "text-red-500";
+                        ledColor = "#ef4444";
+                        ui.threatBar.className = "h-full bg-red-500 w-0 transition-all duration-75";
+                    } else if (audioState.threatLevel > 0.4) {
+                        ui.state.innerText = "PROJECTING";
+                        stateColor = "text-yellow-400";
+                        ledColor = "#eab308";
+                        ui.threatBar.className = "h-full bg-yellow-400 w-0 transition-all duration-75";
+                    } else {
+                        ui.state.innerText = "CALM";
+                        stateColor = "text-cyan-400";
+                        ledColor = "#06b6d4";
+                        ui.threatBar.className = "h-full bg-cyan-500 w-0 transition-all duration-75";
+                    }
+                    ui.state.className = `text-lg font-['Michroma'] ${stateColor}`;
+                    ui.led.style.backgroundColor = ledColor;
+
+                    // 2. Social / Sub-State
+                    // If Threat is high, override Social display
+                    if (audioState.threatLevel > 0.5) {
+                        ui.intent.innerText = "HOSTILITY";
+                        ui.intent.className = "text-sm font-['Michroma'] text-red-500 truncate mb-1";
+                        ui.reaction.innerText = "DE-ESCALATE IMMEDIATELY";
+                        ui.alert.classList.add('hidden');
+                    } else {
+                        ui.intent.innerText = audioState.intentLabel;
+                        ui.reaction.innerText = audioState.reactionLabel;
+                        
+                        // Color coding for Social
+                        if (audioState.intentLabel === "GENUINE_LAUGHTER") ui.intent.className = "text-sm font-['Michroma'] text-yellow-400 truncate mb-1 animate-pulse";
+                        else if (audioState.intentLabel === "INTIMATE") ui.intent.className = "text-sm font-['Michroma'] text-pink-400 truncate mb-1";
+                        else ui.intent.className = "text-sm font-['Michroma'] text-white truncate mb-1";
+
+                        if (audioState.correctionAlert) {
+                            ui.alert.innerText = audioState.correctionAlert;
+                            ui.alert.classList.remove('hidden');
+                        } else {
+                            ui.alert.classList.add('hidden');
+                        }
+                    }
+
+                    // 3. Flirt/Vibe
+                    ui.flirtPct.innerText = Math.round(audioState.flirtProb * 100) + "%";
+                    ui.flirtBar.style.width = (audioState.flirtProb * 100) + "%";
+                }
+
+                audioState.lastUiUpdate = now;
+            }
+
+            // 7. DRAWING
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Dynamic FX (Arbitrated)
+            const canvasElement = document.getElementById('peace-canvas');
+            if (audioState.threatLevel > 0.6) {
+                // Threat Mode: High Contrast Red
+                canvasElement.style.filter = `contrast(150%) brightness(80%) saturate(200%) sepia(100%) hue-rotate(-50deg)`; 
+                canvasElement.style.boxShadow = `0 0 20px rgba(239, 68, 68, 0.4)`;
+            } else if (audioState.socialState === 'GENUINE_LAUGHTER') {
+                // Joy Mode: Gold
+                canvasElement.style.filter = `contrast(120%) brightness(120%) saturate(200%) sepia(50%) hue-rotate(40deg)`;
+                canvasElement.style.boxShadow = `none`;
+            } else if (audioState.socialState === 'INTIMATE') {
+                // Intimate Mode: Pink/Purple
+                canvasElement.style.filter = `contrast(110%) brightness(90%) saturate(150%) hue-rotate(280deg)`;
+                canvasElement.style.boxShadow = `none`;
+            } else {
+                canvasElement.style.filter = `contrast(100%) brightness(100%) saturate(100%)`;
+                canvasElement.style.boxShadow = `none`;
+            }
+
+            if (peaceMode === 'ENV_ANALYZER') {
+                drawEngineerMode(ctx, canvas, dataArrayFreq, bufferLength, audioState.dominantHz);
+            } else {
+                drawPeaceMode(ctx, canvas, db);
+            }
+        };
+
+        analyze();
+
+    } catch (err) {
+        console.error(err);
+        alert("Microphone access denied.");
+        closePeaceOperator();
+    }
+};
+
+const triggerToast = (msg, type) => {
+    const now = Date.now();
+    if (now - audioState.lastToastTime > 4000) {
+        // Assuming a showToast function exists in your main app, otherwise console
+        if(typeof showToast === 'function') showToast(msg, type);
+        else console.log(`[TOAST]: ${msg}`);
+        audioState.lastToastTime = now;
+    }
+};
+
+/* --- ENGINE A: THREAT LOGIC (RESTORED) --- */
+const analyzeThreatLogic = (db, f0) => {
+    let threatDelta = -0.005; // Natural decay
+
+    // A. The "Giant" Vowel Stability Gate
+    const isVowelStable = audioState.hnr > 1.5 && audioState.spectralFlux < 2.0;
+    const isLowFreq = f0 < 250;
+
+    // B. Threat Detection
+    if (db > -25) {
+        const highPerceptualPitch = audioState.centroidHz > 1200;
+        const isNoisy = audioState.hnr < 1.2;
+
+        if (highPerceptualPitch && isNoisy) {
+            // High, erratic, noisy = Aggression/Scream
+            threatDelta = 0.04;
+        } else if (isLowFreq && isVowelStable) {
+            // Loud but stable and low = Friendly Giant
+            threatDelta = -0.02; 
+        } else if (db > -10) {
+            // Just generally too loud
+            threatDelta = 0.01;
+        }
+    }
+
+    // C. Coherence Check (Anti-Spoofing)
+    audioState.noteHistory.push(audioState.perceivedNote);
+    if (audioState.noteHistory.length > 10) audioState.noteHistory.shift();
+    
+    const uniqueNotes = new Set(audioState.noteHistory).size;
+    const sub = document.getElementById('data-state-sub');
+    
+    if (uniqueNotes > 5 && audioState.hnr > 1.5 && db > -40) {
+        if(sub) {
+            sub.innerText = "INTERFERENCE DETECTED";
+            sub.className = "text-[9px] text-yellow-500 mt-1 animate-pulse";
+        }
+    } else {
+        if(sub) {
+            sub.className = "text-[9px] text-gray-500 mt-1";
+            if(sub.innerText === "INTERFERENCE DETECTED") sub.innerText = "MONITORING...";
+        }
+    }
+
+    audioState.threatLevel = Math.max(0, Math.min(1, audioState.threatLevel + threatDelta));
+
+    // Alerts
+    if (audioState.threatLevel > 0.8) triggerToast("⚠️ HOSTILITY DETECTED: DE-ESCALATE", "error");
+    else if (db > -12 && audioState.threatLevel < 0.4) triggerToast("⚠️ OPERATOR ALERT: LOWER YOUR VOICE", "warning");
+};
+
+/* --- ENGINE B: SOCIAL INTENT LOGIC (NEW) --- */
+const analyzeSocialIntent = (db, lowFreqEnergy, f0) => {
+    // 1. Pitch Variance
+    let pitchStdDev = 0;
+    if (audioState.pitchBuffer.length > 2) {
+        const mean = audioState.pitchBuffer.reduce((a, b) => a + b, 0) / audioState.pitchBuffer.length;
+        const variance = audioState.pitchBuffer.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / audioState.pitchBuffer.length;
+        pitchStdDev = Math.sqrt(variance);
+    }
+
+    // 2. Silence Timer
+    if (db < -50) audioState.silenceTimer += 16; 
+    else audioState.silenceTimer = 0;
+
+    // 3. CLASSIFICATION
+    const isHighZCR = audioState.zcr > 0.15; 
+    
+    // A. Laughter
+    if (db > -20 && isHighZCR && lowFreqEnergy > 500) {
+        audioState.laughterSustain++;
+        if (audioState.laughterSustain > 120) { 
+            audioState.socialState = 'GENUINE_LAUGHTER';
+            audioState.intentLabel = "PURE_JOY";
+            audioState.reactionLabel = "GENUINE LAUGHTER";
+            audioState.correctionAlert = "";
+        }
+    } else if (db > -35 && isHighZCR && lowFreqEnergy < 200) {
+        if (audioState.laughterSustain < 60 && audioState.laughterSustain > 5) {
+            audioState.socialState = 'NERVOUS_LAUGHTER';
+            audioState.intentLabel = "NERVOUS_DISCHARGE";
+            audioState.reactionLabel = "ANXIETY LEAK";
+            audioState.correctionAlert = "BREATHE. SLOW DOWN.";
+        }
+        audioState.laughterSustain++;
+    } else {
+        audioState.laughterSustain = Math.max(0, audioState.laughterSustain - 2);
+    }
+
+    // B. Humor
+    if (pitchStdDev > 50 && audioState.silenceTimer > 200 && audioState.silenceTimer < 1000) {
+        audioState.socialState = 'HUMOR';
+        audioState.intentLabel = "INTENT_HUMOR";
+        audioState.reactionLabel = "PERFORMATIVE TIMING";
+    }
+
+    // C. Intimacy
+    const isLowPitch = f0 < (audioState.avgPitchBaseline * 0.9);
+    const isBreathy = audioState.spectralFlux > 3.0;
+    const isLowVol = db > -45 && db < -20;
+
+    if (isLowPitch && isBreathy && isLowVol) {
+        audioState.socialState = 'INTIMATE';
+        audioState.intentLabel = "STATE_INTIMATE";
+        audioState.reactionLabel = "PROXIMITY DETECTED";
+        audioState.flirtProb = Math.min(1.0, audioState.flirtProb + 0.01);
+    } else {
+        audioState.flirtProb = Math.max(0, audioState.flirtProb - 0.002);
+    }
+
+    // D. Default
+    if (audioState.laughterSustain === 0 && audioState.flirtProb < 0.2 && pitchStdDev < 20) {
+        audioState.socialState = 'NEUTRAL';
+        audioState.intentLabel = "NEUTRAL_SIGNAL";
+        audioState.reactionLabel = "PASSIVE MONITORING";
+        audioState.correctionAlert = "";
+    }
+};
+
+/* --- DRAWING ENGINES --- */
+
+const drawEngineerMode = (ctx, canvas, dataFreq, len, domHz) => {
+    const w = canvas.width;
+    const h = canvas.height;
+    const drawLimit = Math.floor(len * 0.7); 
+
+    // 1. THERMAL SPECTROGRAM
+    const specHeight = h * 0.6;
+    const rowCanvas = document.createElement('canvas');
+    rowCanvas.width = w;
+    rowCanvas.height = 1;
+    const rowCtx = rowCanvas.getContext('2d');
+    
+    for(let i=0; i<w; i+=4) {
+        const binIdx = Math.floor((i / w) * (len/2)); 
+        const val = dataFreq[binIdx];
+        if(val > 5) {
+            let color = `rgba(0,0,0,0)`;
+            if (val < 50) color = `rgba(0, 0, ${val*5}, 0.5)`; 
+            else if (val < 100) color = `rgba(${val}, 0, ${val*2}, 0.6)`; 
+            else if (val < 180) color = `rgba(${val}, 0, 0, 0.8)`; 
+            else if (val < 220) color = `rgba(255, ${val}, 0, 0.9)`; 
+            else color = `rgba(255, 255, 255, 1)`; 
+            rowCtx.fillStyle = color;
+            rowCtx.fillRect(i, 0, 4, 1);
+        }
+    }
+    
+    audioState.spectrogram.unshift(rowCanvas);
+    if(audioState.spectrogram.length > specHeight) audioState.spectrogram.pop();
+    audioState.spectrogram.forEach((row, idx) => ctx.drawImage(row, 0, idx));
+
+    // 2. RTA BARS
+    const rtaTop = specHeight;
+    const rtaHeight = h - specHeight;
+    ctx.fillStyle = 'rgba(10, 15, 25, 0.9)';
+    ctx.fillRect(0, rtaTop, w, rtaHeight);
+    ctx.strokeStyle = '#1a2238';
+    ctx.beginPath();
+    ctx.moveTo(0, rtaTop + rtaHeight*0.5); ctx.lineTo(w, rtaTop + rtaHeight*0.5);
+    ctx.stroke();
+
+    const barWidth = w / drawLimit; 
+    let x = 0;
+    
+    for(let i = 0; i < drawLimit; i++) {
+        const val = dataFreq[i];
+        const barH = (val / 255) * rtaHeight;
+        const binHz = i * (peaceCtx.sampleRate / peaceAnalyser.fftSize);
+        let hue = (i / drawLimit) * 280;
+        if (Math.abs(binHz - domHz) < 50 && val > 100) hue = 0;
+
+        ctx.fillStyle = `hsla(${hue}, 70%, 60%, 0.8)`;
+        ctx.fillRect(x, h - barH, barWidth, barH);
+        x += barWidth + 0.5;
+    }
+};
+
+const drawPeaceMode = (ctx, canvas, db) => {
+    const w = canvas.width;
+    const h = canvas.height;
+    const cy = h / 2;
+    
+    // Perceptual Center
+    const centroidRatio = Math.min(1, audioState.centroidHz / 5000);
+    const targetY = cy - (centroidRatio * h * 0.3) + (h * 0.15); 
+    audioState.smoothedCentroidY = (audioState.smoothedCentroidY * 0.95) + (targetY * 0.05);
+    const perceptualY = audioState.smoothedCentroidY;
+
+    // Update History
+    const normalizedVol = Math.max(0, (db + 60) / 60);
+    audioState.volumeHistory.push({vol: normalizedVol, y: perceptualY});
+    if(audioState.volumeHistory.length > 60) audioState.volumeHistory.shift();
+
+    // 1. LIQUID HISTORY
+    ctx.beginPath();
+    for (let i = 0; i < audioState.volumeHistory.length; i++) {
+        const data = audioState.volumeHistory[audioState.volumeHistory.length - 1 - i];
+        const x = w - (i * (w / 60));
+        const waveH = data.vol * (h * 0.25);
+        ctx.lineTo(x, data.y - waveH);
+    }
+    for (let i = audioState.volumeHistory.length - 1; i >= 0; i--) {
+        const data = audioState.volumeHistory[audioState.volumeHistory.length - 1 - i];
+        const x = w - (i * (w / 60));
+        const waveH = data.vol * (h * 0.25);
+        ctx.lineTo(x, data.y + waveH);
+    }
+
+    // Color Arbitration
+    let color = '75, 85, 99'; // Gray (Idle)
+    if (audioState.threatLevel > 0.6) color = '239, 68, 68'; // Red (Threat)
+    else if (audioState.socialState === 'GENUINE_LAUGHTER') color = '250, 204, 21'; // Gold (Joy)
+    else if (audioState.socialState === 'INTIMATE') color = '236, 72, 153'; // Pink (Intimate)
+    else if (db > -25) color = '34, 211, 238'; // Cyan (Active)
+
+    ctx.fillStyle = `rgba(${color}, 0.15)`;
+    ctx.fill();
+
+    // 2. THE PERCEPTUAL FILAMENT
+    audioState.sinePhase += (0.05 + (audioState.spectralFlux * 0.01)); 
+    ctx.beginPath();
+    ctx.strokeStyle = `rgb(${color})`;
+    ctx.lineWidth = 2 + (audioState.hnr * 2); 
+
+    for (let i = 0; i < w; i += 5) {
+        const window = Math.sin((i / w) * Math.PI);
+        const noise = (Math.random() - 0.5) * audioState.spectralFlux * 2; 
+        const y = perceptualY + Math.sin(i * 0.02 + audioState.sinePhase) * (20 * normalizedVol) * window + noise;
+        if (i === 0) ctx.moveTo(i, y);
+        else ctx.lineTo(i, y);
+    }
+    ctx.stroke();
+};
+
+/* --- UTILS --- */
+const setPeaceMode = (mode) => {
+    peaceMode = mode;
+    const btnEnv = document.getElementById('mode-btn-env');
+    const btnPeace = document.getElementById('mode-btn-peace');
+    const panelEnv = document.getElementById('panel-env-mode');
+    const panelPeace = document.getElementById('panel-peace-mode');
+    const txt = document.getElementById('overlay-mode-txt');
+    const sub = document.getElementById('overlay-sub-txt');
+
+    if (mode === 'ENV_ANALYZER') {
+        btnEnv.className = "px-3 py-1 text-[9px] md:text-[10px] font-bold font-['Michroma'] rounded bg-cyan-900 text-white border border-cyan-500 transition-all";
+        btnPeace.className = "px-3 py-1 text-[9px] md:text-[10px] font-bold font-['Michroma'] rounded text-gray-500 hover:text-white transition-all";
+        panelEnv.classList.remove('hidden');
+        panelPeace.classList.add('hidden');
+        txt.innerText = "ANALYZER";
+        txt.className = "text-lg font-['Michroma'] text-cyan-500/20";
+        sub.innerText = "RTA_ACTIVE";
+    } else {
+        btnEnv.className = "px-3 py-1 text-[9px] md:text-[10px] font-bold font-['Michroma'] rounded text-gray-500 hover:text-white transition-all";
+        btnPeace.className = "px-3 py-1 text-[9px] md:text-[10px] font-bold font-['Michroma'] rounded bg-purple-900 text-white border border-purple-500 transition-all";
+        panelEnv.classList.add('hidden');
+        panelPeace.classList.remove('hidden');
+        txt.innerText = "HYBRID_DSP";
+        txt.className = "text-lg font-['Michroma'] text-purple-500/20";
+        sub.innerText = "THREAT + INTENT";
+    }
+};
+
+const getNote = (freq) => {
+    const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const c0 = 16.35;
+    if(freq < c0) return "";
+    const halfSteps = Math.round(12 * Math.log2(freq / c0));
+    const octave = Math.floor(halfSteps / 12);
+    const noteIndex = halfSteps % 12;
+    return notes[noteIndex] + octave;
+};
+
+const closePeaceOperator = () => {
+    const modal = document.getElementById('modal-peace');
+    modal.classList.add('hidden');
+    if (peaceAnimId) cancelAnimationFrame(peaceAnimId);
+    if (peaceCtx) peaceCtx.close();
+    if (peaceStream) {
+        peaceStream.getTracks().forEach(t => t.stop());
+        peaceStream = null;
+    }
+};
+</script>
+</body>
+</html>
