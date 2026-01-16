@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEDRA // SYSTEM_LOG</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Michroma&display=swap');
+
+        :root {
+            --bg-deep: #050a10;
+            --bg-panel: #0b1221;
+            --primary: #00ffff; /* Cyan */
+            --secondary: #00ff00; /* Green */
+            --warning: #facc15; /* Yellow */
+            --alert: #ef4444; /* Red */
+            --accent: #a855f7; /* Purple */
+            --text-dim: #64748b;
+            --text-bright: #e2e8f0;
+            --scanline: rgba(0, 0, 0, 0.5);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-deep);
+            color: var(--text-bright);
+            font-family: 'Space Mono', monospace;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- CRT / SCANLINE EFFECTS --- */
+        .crt-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* --- LAYOUT --- */
+        .header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(5, 10, 16, 0.95);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .brand {
+            font-family: 'Michroma', sans-serif;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+
+        .status-light {
+            width: 8px; height: 8px; background: var(--secondary);
+            border-radius: 50%; display: inline-block;
+            box-shadow: 0 0 10px var(--secondary);
+            animation: pulse 2s infinite;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+
+        /* --- LEFT PANE: THE STREAM --- */
+        .stream-pane {
+            background: var(--bg-panel);
+            border-right: 1px solid rgba(0, 255, 255, 0.1);
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .stream-pane::-webkit-scrollbar { width: 4px; }
+        .stream-pane::-webkit-scrollbar-thumb { background: var(--primary); }
+        .stream-pane::-webkit-scrollbar-track { background: var(--bg-deep); }
+
+        .commit-node {
+            margin-bottom: 1rem;
+            padding: 10px;
+            border-left: 2px solid var(--text-dim);
+            background: rgba(255, 255, 255, 0.02);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .commit-node:hover {
+            background: rgba(0, 255, 255, 0.05);
+            border-left-color: var(--primary);
+            padding-left: 15px;
+        }
+
+        .commit-node.active {
+            background: linear-gradient(90deg, rgba(0, 255, 255, 0.1), transparent);
+            border-left-color: var(--warning);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .sha-tag {
+            font-family: 'Michroma';
+            font-size: 0.7rem;
+            color: var(--warning);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .commit-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--text-bright);
+            line-height: 1.2;
+        }
+
+        .commit-meta {
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* --- RIGHT PANE: THE TERMINAL --- */
+        .terminal-pane {
+            padding: 2rem;
+            overflow-y: auto;
+            background-image: radial-gradient(circle at 50% 50%, rgba(20, 30, 50, 0.4), transparent);
+            position: relative;
+        }
+
+        .empty-state {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            text-align: center;
+            opacity: 0.5;
+        }
+
+        .log-container {
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        .log-container.visible { opacity: 1; transform: translateY(0); }
+
+        .log-header {
+            border-bottom: 1px dashed var(--primary);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .log-sha-large {
+            font-family: 'Michroma';
+            font-size: 2rem;
+            color: var(--primary);
+            text-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .log-author-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        .log-body {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+        }
+
+        .log-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .log-subtitle {
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .typewriter-text {
+            border-right: 2px solid var(--primary);
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink { 50% { border-color: transparent; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* --- MOBILE --- */
+        @media (max-width: 768px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .stream-pane { height: 40vh; border-right: none; border-bottom: 1px solid var(--text-dim); }
+            .terminal-pane { height: 60vh; padding: 1rem; }
+            .log-sha-large { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="crt-overlay"></div>
+
+    <div class="header">
+        <div class="brand">CΞDRΛ <span style="font-size:0.6em; opacity:0.7;">// VEDRA_LOG_V1</span></div>
+        <div style="display:flex; align-items:center; gap:10px; font-size:0.7rem;">
+            <span style="color:var(--text-dim)">ENCRYPTED LINK</span>
+            <span class="status-light"></span>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="stream-pane" id="commit-stream">
+            </div>
+
+        <div class="terminal-pane">
+            <div id="empty-state" class="empty-state">
+                <div style="font-size: 3rem; color: var(--text-dim); margin-bottom: 1rem;">⌬</div>
+                SELECT DATA PACKET<br>TO INITIATE DECRYPTION
+            </div>
+            
+            <div id="log-detail" class="log-container hidden">
+                <div class="log-header">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        <div>
+                            <div id="detail-sha" class="log-sha-large"></div>
+                            <div style="margin-top:5px;">
+                                <span id="detail-tag" style="color:var(--warning); font-family:'Space Mono'; font-size:0.8rem;"></span>
+                                <span id="detail-author" class="log-author-badge"></span>
+                            </div>
+                        </div>
+                        <div id="detail-date" style="font-size:0.7rem; color:var(--text-dim); text-align:right;"></div>
+                    </div>
+                </div>
+                
+                <div class="log-body">
+                    <div class="log-section">
+                        <span class="log-subtitle">PRIMARY OBJECTIVE</span>
+                        <div id="detail-desc" class="typewriter-text"></div>
+                    </div>
+                    
+                    <div class="log-section">
+                        <span class="log-subtitle">TECHNICAL MANIFEST</span>
+                        <ul id="detail-tech" style="list-style: none; padding: 0; color: var(--primary);"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. THE TRUTH SOURCE (COMMITS) ---
+        const COMMITS = [
+            {
+                sha: "9f2a1c8",
+                tag: "REL_GUARDIAN_PATCH",
+                author: "MΛVΞRICK",
+                role: "LEAD ARCHITECT",
+                timestamp: "2026-01-15 23:45:00",
+                desc: "Deployment of Peace Operator v4.3. Integrated all VEDRA subsystems into a cohesive release candidate. The system is now field-ready.",
+                tech: [
+                    "Integration of Audio, UI, and Logic modules.",
+                    "Refined Baby Monitor Heuristics (Temporal Gating).",
+                    "Final stability checks on Ghost Mode."
+                ]
+            },
+            {
+                sha: "0b6d4f2",
+                tag: "PERF_BUFFER_FIX",
+                author: "VEGA",
+                role: "PERF ENGINEER",
+                timestamp: "2026-01-15 23:30:00",
+                desc: "Addressed critical memory leak in FFT rendering. The waterfall display now uses a persistent offscreen buffer instead of allocating new DOM elements per frame.",
+                tech: [
+                    "Lazy-loaded OffscreenCanvas implementation.",
+                    "Zombie-Loop Kill Switch added to modal close event.",
+                    "Frame time stabilized at <16ms."
+                ]
+            },
+            {
+                sha: "9a5f1c3",
+                tag: "UX_ACTIVE_VIS",
+                author: "AETHER",
+                role: "UX ARCHITECT",
+                timestamp: "2026-01-15 23:15:00",
+                desc: "Implemented 'Invisible Design' philosophy. HUD elements now remain dormant until relevant data flows through them, reducing operator cognitive load.",
+                tech: [
+                    "Opacity-0 logic for EQ Frequency/Gain bars.",
+                    "Michroma typography enforcement for HUD consistency.",
+                    "Interactive hover states for spectral bands."
+                ]
+            },
+            {
+                sha: "8c4d2e5",
+                tag: "UI_RENDER_LEDS",
+                author: "NYX",
+                role: "FRONT-END",
+                timestamp: "2026-01-15 23:00:00",
+                desc: "Visual overhaul of the EQ subsystem. Added dual-layer discrete LED readouts and dynamic color-shifting for extreme gain states.",
+                tech: [
+                    "CSS Injection: vedra-readout-container.",
+                    "Purple Glow (#a855f7) state for Stacked Faders.",
+                    "Optimized layer compositing for animations."
+                ]
+            },
+            {
+                sha: "7f3b9a1",
+                tag: "FEAT_DSP_STACK",
+                author: "ODIN",
+                role: "AI ORCHESTRATOR",
+                timestamp: "2026-01-15 22:45:00",
+                desc: "Engineered 'Virtual Stacking' algorithm. System can now simulate daisy-chained hardware EQs to achieve -24dB cuts in hostile acoustic environments.",
+                tech: [
+                    "Threshold Tiers: CRITICAL > 230 triggers stack.",
+                    "Absolute-Value Safety Interlock.",
+                    "Auto-EQ logic refactor."
+                ]
+            }
+        ];
+
+        // --- 2. RENDER LOGIC ---
+        const streamContainer = document.getElementById('commit-stream');
+        const detailContainer = document.getElementById('log-detail');
+        const emptyState = document.getElementById('empty-state');
+
+        // Render List
+        COMMITS.forEach((commit, index) => {
+            const node = document.createElement('div');
+            node.className = 'commit-node';
+            node.innerHTML = `
+                <span class="sha-tag">${commit.sha} // ${commit.tag}</span>
+                <div class="commit-title">${commit.desc.substring(0, 60)}...</div>
+                <div class="commit-meta">
+                    <span>[${commit.author}]</span>
+                    <span>${commit.timestamp.split(' ')[1]}</span>
+                </div>
+            `;
+            node.onclick = () => loadCommit(index, node);
+            streamContainer.appendChild(node);
+        });
+
+        // --- 3. DECRYPTION EFFECT ---
+        let typeInterval;
+
+        function loadCommit(index, nodeElement) {
+            // UI Selection
+            document.querySelectorAll('.commit-node').forEach(n => n.classList.remove('active'));
+            nodeElement.classList.add('active');
+
+            // Toggle Views
+            emptyState.style.display = 'none';
+            detailContainer.classList.remove('visible'); // Fade out first
+            
+            const data = COMMITS[index];
+
+            // Short delay for "Transmission" feel
+            setTimeout(() => {
+                // Populate Static Data
+                document.getElementById('detail-sha').innerText = data.sha;
+                document.getElementById('detail-tag').innerText = data.tag;
+                document.getElementById('detail-author').innerText = `${data.author} :: ${data.role}`;
+                document.getElementById('detail-date').innerText = data.timestamp;
+                
+                // Clear dynamic text
+                const descBox = document.getElementById('detail-desc');
+                const techList = document.getElementById('detail-tech');
+                descBox.innerText = '';
+                techList.innerHTML = '';
+
+                detailContainer.classList.add('visible'); // Fade in
+
+                // Typewriter Effect for Description
+                if (typeInterval) clearInterval(typeInterval);
+                let charIndex = 0;
+                const text = data.desc;
+                
+                descBox.style.borderRightWidth = '2px'; // Cursor on
+
+                typeInterval = setInterval(() => {
+                    descBox.innerText += text.charAt(charIndex);
+                    charIndex++;
+                    
+                    // Add random "glitch" characters occasionally
+                    if (Math.random() > 0.95) {
+                        const original = descBox.innerText;
+                        descBox.innerText = original.substring(0, original.length-1) + (Math.random() > 0.5 ? '█' : '▓');
+                        setTimeout(() => descBox.innerText = original, 50);
+                    }
+
+                    if (charIndex >= text.length) {
+                        clearInterval(typeInterval);
+                        descBox.style.borderRightWidth = '0px'; // Cursor off
+                        
+                        // Render Tech List with delay
+                        data.tech.forEach((item, i) => {
+                            setTimeout(() => {
+                                const li = document.createElement('li');
+                                li.innerHTML = `<span style="color:#4b5563; margin-right:8px;">></span> ${item}`;
+                                techList.appendChild(li);
+                            }, i * 200);
+                        });
+                    }
+                }, 15); // Typing speed
+
+            }, 200);
+        }
+
+        // Auto-load first commit on boot
+        window.onload = () => {
+            const firstNode = streamContainer.firstElementChild;
+            if(firstNode) loadCommit(0, firstNode);
+        };
+
+    </script>
+</body>
+</html>
