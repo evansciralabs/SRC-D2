@@ -1,10 +1,10 @@
 {
-  "name": "System Dashboard",
-  "short_name": "SYS_DASH",
-  "start_url": "./index.html",
+  "name": "SRC-D2 Operator Dashboard",
+  "short_name": "SRC-D2",
+  "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#1a1a1a",
+  "background_color": "#050a19",
+  "theme_color": "#0ff",
   "icons": [
     {
       "src": "icon-192.png",
