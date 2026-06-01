@@ -3047,8 +3047,8 @@ const html = `<div id="modal-hybrid-dsp" class="hidden fixed inset-0 z-[100] fle
                             ui.hnr.innerText = Math.round(audioState.voiceHnr * 10) + "%";
                         }
 
-                        if (dspFace === 'LIVE') {
-                            if (envMaxVal > 220 && audioState.envDbSmoothed < -10) {
+                       if (dspFace === 'LIVE') {
+                            if (eMax > 220 && audioState.envDbSmoothed < -10) {
                                 if (audioState.envCentroidHz > 4000) {
                                     ui.res.innerText = `SIBILANCE: ${Math.round(audioState.envCentroidHz)}Hz`;
                                     ui.res.className = "text-xs text-cyan-400 font-mono text-center uppercase";
@@ -3061,6 +3061,7 @@ const html = `<div id="modal-hybrid-dsp" class="hidden fixed inset-0 z-[100] fle
                                 ui.res.className = "text-xs text-green-500 font-mono text-center uppercase";
                             }
                         }
+
                         if (dspFace === 'CRIT') {
                             let currentDose = audioState.targetStandard === 'OSHA' ? audioState.oshaDose : audioState.nioshDose;
                             ui.doseLabel.innerText = audioState.targetStandard === 'OSHA' ? "OSHA DOSE" : "NIOSH DOSE";
