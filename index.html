@@ -3139,13 +3139,21 @@ const html = `<div id="modal-hybrid-dsp" class="hidden fixed inset-0 z-[100] fle
                 };
                 analyze();
 
-            } // end try
-            } catch(err) {
-                console.error(err);
-                showToast('Microphone access denied: '+err.message,'error',5000);
-                closeHybridDSP();
-            }
-        }; // end initHybridDSP
+    } catch(err) {
+        console.error(err);
+        showToast('AUDIO INITIATION FAILED: ' + err.message, 'error', 5000);
+        
+        // Log the failure to the internal diagnostic marquee instead of closing the UI
+        const marquee = document.getElementById('sys-marquee');
+        if (marquee) {
+            marquee.innerHTML += `<div style="color:#ef4444">[SYS] AUDIO THREAT: ${err.message}</div>`;
+            marquee.innerHTML += `<div style="color:#facc15">[SYS] CHECK SECURE CONTEXT (HTTPS or LOCALHOST)</div>`;
+        }
+        
+        // Removed closeHybridDSP() to keep the modal open for diagnostics
+    }
+}; // end initHybridDSP
+
 
         /* ════ EQ RENDER (shared, two containers) ════ */
         const renderEQ = (target='live') => {
