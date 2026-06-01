@@ -496,13 +496,10 @@
 
             <!-- Callsign row -->
             <div class="flex items-center gap-2 px-4 py-3 border-b border-cyan-500/20 flex-shrink-0">
+                <button id="op-ble-scan-btn" class="glyph-btn text-[10px] text-cyan-400 border border-cyan-500/50 hover:bg-cyan-900/50 rounded px-2 py-1 transition-all flex-shrink-0" title="Auto-Sync Hardware Key">⚲</button>
                 <span class="text-[9px] font-['Space_Mono'] neon-cyan tracking-widest flex-shrink-0">ID:</span>
-                <input id="operator-name-input"
-                    class="flex-grow bg-transparent border-b border-cyan-500/30 text-green-400 font-['Space_Mono'] text-xs py-0.5 px-0 outline-none tracking-widest placeholder-gray-600 focus:border-cyan-500 transition-colors"
-                    placeholder="callsign"
-                    maxlength="32"
-                    autocomplete="off"
-                    spellcheck="false" />
+                <input id="operator-name-input" class="flex-grow bg-transparent border-b border-cyan-500/30 text-green-400 font-['Space_Mono'] text-[10px] py-0.5 px-0 outline-none tracking-widest uppercase placeholder-gray-600 focus:border-cyan-500 transition-colors" placeholder="CALLSIGN" autocomplete="off" spellcheck="false" />
+                <input id="operator-glyph-input" class="w-12 bg-transparent border-b border-purple-500/30 text-purple-400 font-['Space_Mono'] text-[10px] py-0.5 px-0 outline-none text-center placeholder-gray-600 focus:border-purple-500 transition-colors" placeholder="GLYPH" autocomplete="off" spellcheck="false" />
                 <button id="operator-modal-confirm" class="glyph-btn text-[9px] neon-green border border-green-500/50 hover:border-green-400 hover:text-white rounded px-2 py-0.5 flex-shrink-0 transition-colors">⌁</button>
                 <button id="operator-modal-clear" class="glyph-btn text-[9px] text-red-500 border border-red-500/50 hover:border-red-400 hover:text-white rounded px-2 py-0.5 flex-shrink-0 transition-colors" style="text-shadow:var(--text-glow-red)">⌫</button>
             </div>
@@ -2211,6 +2208,14 @@ const openNetModal = () => {
                     </div>
                 </div>
                 <button id="net-close" class="absolute top-5 right-5 text-red-500 rune-close text-2xl font-bold cursor-pointer bg-transparent border-none outline-none z-[90]" title="Terminate Sentry">✖</button>
+                <div class="bg-black/60 border border-purple-500/30 p-2 rounded mb-4 flex justify-between items-center z-40 relative">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[9px] text-purple-400 font-mono tracking-widest uppercase">PROVISION KEY:</span>
+                        <button id="ns-prov-btn" class="glyph-btn text-[10px] bg-purple-900 text-white border border-purple-500 rounded px-2 py-1 hover:bg-purple-700 transition-all">[ GENERATE GLYPH ]</button>
+                    </div>
+                    <div id="ns-prov-out" class="text-xl font-['Michroma'] text-yellow-400 drop-shadow-[0_0_8px_rgba(255,215,0,0.8)] px-2"></div>
+                </div>
+
                 <div class="relative w-full h-64 mb-4 bg-black border-2 border-dashed border-cyan-500/50 rounded-lg overflow-hidden">
                     <canvas id="sentry-canvas" class="block w-full h-full opacity-90"></canvas>
                     <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 bg-[length:100%_2px,3px_100%]"></div>
@@ -2252,6 +2257,13 @@ const openNetModal = () => {
         document.getElementById('btn-calc').onclick = calculateSubnet;
         document.getElementById('btn-fetch-ip').onclick = fetchPublicIP;
         document.getElementById('btn-export-log').onclick = exportSentryLog;
+        document.getElementById('ns-prov-btn').onclick = () => {
+            const glyphs = ['★', '☆', '✦', '✧', '✩', '✪', '✫', '✬', '✭', '✮', '✯', '✰', '✵', '✶', '✷', '✸', '✹', '❂', '✴', '✲', '✱', '✳', '⬢', '⬣', '⬡', '⎔', '⌬', '⏣'];
+            const glyph = glyphs[Math.floor(Math.random() * glyphs.length)];
+            document.getElementById('ns-prov-out').innerText = glyph;
+            if(typeof showToast === 'function') showToast("GLYPH GENERATED. SAVE TO SCRATCHPAD.", "success");
+        };
+
     }
 
     const modal = document.getElementById('modal-net');
@@ -2563,46 +2575,48 @@ const runBLE = async () => {
     out.innerHTML = '<span class="text-yellow-400 animate-pulse">INITIALIZING SCAN...</span>';
     
     if (!navigator.bluetooth) {
-        out.innerHTML = '<span class="text-red-500">ERR: WebBluetooth API missing.</span><br><span class="text-gray-500 text-[9px]">Reason: Browser unsupported or running from file://. (Requires HTTPS/Localhost)</span>';
+        out.innerHTML = '<span class="text-red-500">ERR: WebBluetooth API missing.</span>';
         return;
     }
     
     try {
         const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
         
-        // Render the device details and inject a temporary registry button
+        // Show binding inputs once device is connected
         out.innerHTML = `
             <div class="flex flex-col gap-2">
                 <div>
-                    <span class="text-green-400">CONNECTED:</span> <span class="text-white">${device.name || 'Unnamed Device'}</span><br>
+                    <span class="text-green-400">CONNECTED:</span> <span class="text-white">${device.name || 'Unnamed'}</span><br>
                     <span class="text-gray-500 text-[9px]">ID: ${device.id}</span>
                 </div>
-                <button id="btn-register-ble" class="bg-cyan-900 border border-cyan-500 text-white text-[9px] py-1 px-2 rounded hover:bg-cyan-700 transition-all">
-                    [ REGISTER AS WHITE FLAG ]
+                <div class="flex gap-2">
+                    <input type="text" id="hw-bind-cs" class="bg-black border border-green-500/50 text-green-300 text-[10px] p-1 w-24 font-mono uppercase rounded outline-none" placeholder="CALLSIGN">
+                    <input type="text" id="hw-bind-gl" class="bg-black border border-green-500/50 text-green-300 text-[10px] p-1 w-16 font-mono text-center rounded outline-none" placeholder="GLYPH">
+                </div>
+                <button id="btn-register-ble" class="bg-green-900 border border-green-500 text-white text-[9px] py-1.5 px-2 rounded hover:bg-green-700 transition-all">
+                    [ BIND HARDWARE TO CREDENTIALS ]
                 </button>
             </div>
         `;
 
-        // Bind the registry logic
         document.getElementById('btn-register-ble').onclick = () => {
-            let registry = {};
-            try {
-                const stored = localStorage.getItem('srcd2_whiteflag_ble');
-                if (stored) registry = JSON.parse(stored);
-            } catch(e) {}
+            const cs = document.getElementById('hw-bind-cs').value.trim().toUpperCase();
+            const gl = document.getElementById('hw-bind-gl').value.trim();
+            if(!cs || !gl) { if(typeof showToast === 'function') showToast("CALLSIGN & GLYPH REQUIRED", "error"); return; }
             
-            // Map the device ID to the currently active namespace (your callsign)
-            registry[device.id] = _activeNamespace;
+            let registry = {};
+            try { registry = JSON.parse(localStorage.getItem('srcd2_whiteflag_ble')) || {}; } catch(e){}
+            
+            // Link the physical UUID to the combo
+            registry[device.id] = { cs, gl };
             localStorage.setItem('srcd2_whiteflag_ble', JSON.stringify(registry));
             
-            out.innerHTML = `<span class="text-cyan-400">HARDWARE KEY SECURED.</span><br><span class="text-white text-[9px]">ID: ${device.id}<br>BOUND TO: ${_activeNamespace}</span>`;
-            if (typeof showToast === 'function') showToast('WHITE FLAG BOUND TO CALLSIGN', 'success');
+            out.innerHTML = `<span class="text-green-400">HARDWARE BOUND SUCCESSFULLY.</span><br><span class="text-gray-500 text-[9px]">THIS DEVICE WILL AUTO-STREAM ACCESS KEYS.</span>`;
+            if(typeof showToast === 'function') showToast('WHITE FLAG BOUND', 'success');
         };
-
-    } catch(e) {
-        out.innerHTML = `<span class="text-red-400">SCAN_ABORT:</span> ${e.message}`;
-    }
+    } catch(e) { out.innerHTML = `<span class="text-red-400">SCAN_ABORT:</span> ${e.message}`; }
 };
+
 
 /* --- 4. MODAL C: SDAP-7 LOGGER + PROMPT ENGINE (v6.0 LIQUID FAB) --- */
 let sdapLogs = {};
@@ -4439,16 +4453,19 @@ const initPeaceOperator = async () => {
 
     // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────
     const _confirmOperatorId = async () => {
-        const name = _operatorInput.value.trim().toUpperCase();
+        const name = document.getElementById('operator-name-input').value.trim().toUpperCase();
+        const glyph = document.getElementById('operator-glyph-input').value.trim();
         _closeOperatorModal();
-        if (name) {
+        
+        if (name && glyph) {
+            // THE NEW MASTER KEY: Combined string prevents standard alphanumeric brute forcing
+            const passkey = `${name}::${glyph}`;
             localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
             _applyOperatorName(name);
             try {
-                _sessionCryptoKey = await _deriveKey(name);
-                _activeStorage = localStorage; // switch to persistent vault
-                _activeNamespace = name; // Update namespace
-                // Recall vault — discard guest session, load operator data
+                _sessionCryptoKey = await _deriveKey(passkey);
+                _activeStorage = localStorage; 
+                _activeNamespace = name; 
                 await _loadDashboard();
                 showToast(`OPERATOR ID: ${name} // VAULT RECALLED`, 'success');
             } catch (e) {
@@ -4456,12 +4473,51 @@ const initPeaceOperator = async () => {
                 await _initGuestSession();
             }
         } else {
-            // Drop back to guest session
             localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
             _applyOperatorName('');
             await _initGuestSession();
+            if(name || glyph) showToast(`CALLSIGN AND GLYPH REQUIRED`, 'error');
         }
     };
+
+    // BLE Auto-Sync Function
+    document.getElementById('op-ble-scan-btn').onclick = async () => {
+        try {
+            const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+            let registry = {};
+            try { registry = JSON.parse(localStorage.getItem('srcd2_whiteflag_ble')) || {}; } catch(e){}
+
+            if (registry[device.id]) {
+                const authData = registry[device.id];
+                document.getElementById('operator-name-input').value = authData.cs;
+                document.getElementById('operator-glyph-input').value = authData.gl;
+                if(typeof showToast === 'function') showToast(`HW STREAM ACTIVE: ${device.name || 'WHITE FLAG'}`, 'success');
+                _confirmOperatorId(); // Auto-execute
+            } else {
+                if(typeof showToast === 'function') showToast('HARDWARE KEY UNRECOGNIZED', 'error');
+            }
+        } catch (e) { console.log("BLE Scan Aborted."); }
+    };
+
+    // Wire operator modal events
+    _metricsLabel.addEventListener('click', _openOperatorModal);
+    document.getElementById('operator-modal-close').onclick = _closeOperatorModal;
+    document.getElementById('operator-modal-confirm').onclick = _confirmOperatorId;
+    document.getElementById('operator-modal-clear').onclick = () => {
+        document.getElementById('operator-name-input').value = '';
+        document.getElementById('operator-glyph-input').value = '';
+        _confirmOperatorId();
+    };
+    
+    // Support enter key from either input
+    document.getElementById('operator-name-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') _confirmOperatorId();
+        if (e.key === 'Escape') _closeOperatorModal();
+    });
+    document.getElementById('operator-glyph-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') _confirmOperatorId();
+        if (e.key === 'Escape') _closeOperatorModal();
+    });
 
     // Wire operator modal events
     _metricsLabel.addEventListener('click', _openOperatorModal);
