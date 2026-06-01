@@ -2293,6 +2293,24 @@ const startSentryEngine = () => {
         if (!sentryState.active) return;
         const start = performance.now();
         let isLoss = false;
+
+        // --- GHOST PI FORENSIC POLL (SILENT FAILOVER) ---
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 400); // 400ms timeout
+            // Target IP of the future Raspberry Pi data drop
+            const piRes = await fetch('http://10.0.0.99:8080/telemetry', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            
+            if (piRes.ok) {
+                const piData = await piRes.json();
+                if (piData.threat_level === 'CRITICAL') logToSentry(sentryState.seq, `[PI] ALERT: ${piData.threat_type}`);
+            }
+        } catch(e) {
+            // Pi offline or not deployed yet. Proceed to heuristic fallback.
+        }
+        // ------------------------------------------------
+
         try {
             const target = window.location.href.split('#')[0] + '?t=' + start;
             await fetch(target, { method: 'HEAD', cache: 'no-store' });
@@ -4385,7 +4403,31 @@ const initPeaceOperator = async () => {
         }
     };
 
+    const _handleBleUnlock = async () => {
+        try {
+            const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+            let registry = {};
+            try {
+                const stored = localStorage.getItem('srcd2_whiteflag_ble');
+                if (stored) registry = JSON.parse(stored);
+            } catch(e) {}
+
+            if (registry[device.id]) {
+                const mappedCallsign = registry[device.id];
+                document.getElementById('unlock-input').value = mappedCallsign;
+                if (typeof showToast === 'function') showToast(`HARDWARE VERIFIED: ${device.name || 'WHITE FLAG'}`, 'success');
+                // Automatically execute the unlock sequence using the mapped callsign
+                _handleUnlock(mappedCallsign);
+            } else {
+                if (typeof showToast === 'function') showToast('HARDWARE KEY UNRECOGNIZED', 'error');
+            }
+        } catch (e) {
+            console.log("BLE Scan Aborted or Blocked.");
+        }
+    };
+
     // Wire unlock modal buttons
+    document.getElementById('unlock-ble-btn').onclick = _handleBleUnlock;
     document.getElementById('unlock-confirm-btn').onclick = () => {
         _handleUnlock(document.getElementById('unlock-input').value);
     };
