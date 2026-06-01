@@ -3136,23 +3136,20 @@ const html = `<div id="modal-hybrid-dsp" class="hidden fixed inset-0 z-[100] fle
                     if(dspFace==='LIVE')     drawEngineerMode(ctx,canvas,envFreqBuf,bufferLength,(eMaxIdx/bufferLength)*nyquist);
                     else if(dspFace==='TUNE')drawTuneMode(ctx,canvas,envFreqBuf,bufferLength,nyquist);
                     else                     drawCritMode(ctx,canvas,laeqTotal);
-                };
+                }; // <-- CLOSES const analyze
                 analyze();
 
-    } catch(err) {
-        console.error(err);
-        showToast('AUDIO INITIATION FAILED: ' + err.message, 'error', 5000);
-        
-        // Log the failure to the internal diagnostic marquee instead of closing the UI
-        const marquee = document.getElementById('sys-marquee');
-        if (marquee) {
-            marquee.innerHTML += `<div style="color:#ef4444">[SYS] AUDIO THREAT: ${err.message}</div>`;
-            marquee.innerHTML += `<div style="color:#facc15">[SYS] CHECK SECURE CONTEXT (HTTPS or LOCALHOST)</div>`;
-        }
-        
-        // Removed closeHybridDSP() to keep the modal open for diagnostics
-    }
-}; // end initHybridDSP
+            } catch(err) { // <-- CLOSES try block
+                console.error(err);
+                showToast('AUDIO INITIATION FAILED: ' + err.message, 'error', 5000);
+                
+                const marquee = document.getElementById('sys-marquee');
+                if (marquee) {
+                    marquee.innerHTML += `<div style="color:#ef4444">[SYS] AUDIO THREAT: ${err.message}</div>`;
+                    marquee.innerHTML += `<div style="color:#facc15">[SYS] CHECK SECURE CONTEXT (HTTPS or LOCALHOST)</div>`;
+                }
+            }
+        }; // <-- CLOSES initHybridDSP
 
 
         /* ════ EQ RENDER (shared, two containers) ════ */
