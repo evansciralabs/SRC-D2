@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1728,15 +1727,29 @@
                 }
             };
 
-            DOMElements.fabListBtn.onclick = () => { closeExternalDoc(); setMobileView('list'); DOMElements.fabActions.classList.add('hidden'); _rightFabOpen = false; };
-            DOMElements.fabScratchpadBtn.onclick = () => { closeExternalDoc(); openScratchpad(); DOMElements.fabActions.classList.add('hidden'); _rightFabOpen = false; };
-            DOMElements.fabNotesBtn.onclick = () => { closeExternalDoc(); if(currentState.selectedItem) { setMobileView('detail'); } DOMElements.fabActions.classList.add('hidden'); _rightFabOpen = false; };
+            const bindFabTap = (btn, action) => {
+                let triggered = false;
+                const handler = (e) => { 
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    if (!triggered) {
+                        triggered = true;
+                        action();
+                        setTimeout(() => { triggered = false; }, 300);
+                    }
+                };
+                btn.addEventListener('pointerup', handler);
+                btn.addEventListener('touchend', handler, { passive: false });
+                btn.addEventListener('click', handler);
+            };
+
+            bindFabTap(DOMElements.fabListBtn, () => { closeExternalDoc(); setMobileView('list'); DOMElements.fabActions.classList.add('hidden'); _rightFabOpen = false; });
+            bindFabTap(DOMElements.fabScratchpadBtn, () => { closeExternalDoc(); openScratchpad(); DOMElements.fabActions.classList.add('hidden'); _rightFabOpen = false; });
+            bindFabTap(DOMElements.fabNotesBtn, () => { closeExternalDoc(); if(currentState.selectedItem) { setMobileView('detail'); } DOMElements.fabActions.classList.add('hidden'); _rightFabOpen = false; });
             
             DOMElements.fabDspBtn = document.getElementById('fab-dsp-btn');
-DOMElements.fabDspBtn.onclick = () => { closeExternalDoc(); initHybridDSP(); DOMElements.fabActions.classList.add('hidden'); _rightFabOpen = false; };
-            document.addEventListener('keydown', (e) => {
-                if(e.ctrlKey && e.code === 'Backquote') { e.preventDefault(); DOMElements.scratchpadModal.classList.contains('hidden') ? openScratchpad() : DOMElements.scratchpadCloseBtn.click(); }
-            });
+            bindFabTap(DOMElements.fabDspBtn, () => { closeExternalDoc(); initHybridDSP(); DOMElements.fabActions.classList.add('hidden'); _rightFabOpen = false; });
+
 
             window.addEventListener('resize', () => {
                 const mobile = window.innerWidth <= 768;
