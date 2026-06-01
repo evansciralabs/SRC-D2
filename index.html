@@ -3129,17 +3129,18 @@ const html = `<div id="modal-hybrid-dsp" class="hidden fixed inset-0 z-[100] fle
                             ui.ledTherm.className = now < audioState.faultCooldowns.therm ? "w-2 h-2 rounded-full bg-red-600 shadow-[0_0_10px_red] mb-0.5 transition-all animate-pulse" : "w-2 h-2 rounded-full bg-gray-800 mb-0.5 transition-all";
                         }
                         audioState.lastUiUpdate = now;
- 
+                    } // <-- FIX 1: This bracket was missing. It closes the 'if (now - audioState.lastUiUpdate > 30)' block
 
                     // CANVAS
                     ctx.fillStyle='#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
                     if(dspFace==='LIVE')     drawEngineerMode(ctx,canvas,envFreqBuf,bufferLength,(eMaxIdx/bufferLength)*nyquist);
                     else if(dspFace==='TUNE')drawTuneMode(ctx,canvas,envFreqBuf,bufferLength,nyquist);
                     else                     drawCritMode(ctx,canvas,laeqTotal);
-                }; // <-- CLOSES const analyze
-                analyze();
+                }; // <-- FIX 2: Properly closes 'const analyze = () => {'
+                
+                analyze(); // Kicks off the analyzer properly outside the function
 
-            } catch(err) { // <-- CLOSES try block
+            } catch(err) { // <-- FIX 3: Properly closes 'try {' and safely catches the error
                 console.error(err);
                 showToast('AUDIO INITIATION FAILED: ' + err.message, 'error', 5000);
                 
@@ -3149,7 +3150,7 @@ const html = `<div id="modal-hybrid-dsp" class="hidden fixed inset-0 z-[100] fle
                     marquee.innerHTML += `<div style="color:#facc15">[SYS] CHECK SECURE CONTEXT (HTTPS or LOCALHOST)</div>`;
                 }
             }
-        }; // <-- CLOSES initHybridDSP
+        }; // end initHybridDSP
 
 
         /* ════ EQ RENDER (shared, two containers) ════ */
