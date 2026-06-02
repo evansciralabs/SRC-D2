@@ -2280,8 +2280,23 @@ const openNetModal = () => {
         document.getElementById('ns-prov-btn').onclick = () => {
             const glyphs = ['★', '☆', '✦', '✧', '✩', '✪', '✫', '✬', '✭', '✮', '✯', '✰', '✵', '✶', '✷', '✸', '✹', '❂', '✴', '✲', '✱', '✳', '⬢', '⬣', '⬡', '⎔', '⌬', '⏣'];
             const glyph = glyphs[Math.floor(Math.random() * glyphs.length)];
-            document.getElementById('ns-prov-out').innerText = glyph;
-            if(typeof showToast === 'function') showToast("GLYPH GENERATED. SAVE TO SCRATCHPAD.", "success");
+            const out = document.getElementById('ns-prov-out');
+            
+            // Reset output state for generation
+            out.style.transition = 'none';
+            out.style.opacity = '1';
+            out.style.transform = 'scale(1) translateZ(0)';
+            out.style.cursor = 'pointer';
+            out.innerText = glyph;
+            
+            // Interaction: Copy + Phantom Fade
+            out.onclick = () => {
+                navigator.clipboard.writeText(glyph);
+                out.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                out.style.opacity = '0';
+                out.style.transform = 'scale(0.8) translateZ(-100px)';
+                out.onclick = null; // Unbind after execution
+            };
         };
 
     }
@@ -4484,7 +4499,7 @@ const initPeaceOperator = async () => {
         if (e.key === 'Escape') _handleUnlock('');
     });
 
-    // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────
+    // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────    // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────
     const _confirmOperatorId = async () => {
         const nameInput = document.getElementById('operator-name-input');
         const glyphInput = document.getElementById('operator-glyph-input');
@@ -4494,10 +4509,13 @@ const initPeaceOperator = async () => {
         _closeOperatorModal();
         
         if (name) {
-            // THE NEW MASTER KEY: Callsign required, Glyph optional
-            const passkey = glyph ? `${name}::${glyph}` : name;
+            // THE MASTER KEY: Cryptography is bound strictly to the Callsign to prevent data overwrites.
+            // Glyph is utilized as an independent session authenticator, not an encryption variable.
+            const passkey = name;
             
             localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+            if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
+            
             _applyOperatorName(name);
             try {
                 _sessionCryptoKey = await _deriveKey(passkey);
