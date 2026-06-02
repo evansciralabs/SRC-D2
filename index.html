@@ -4479,44 +4479,72 @@ const initPeaceOperator = async () => {
 
     // Load the active namespace into the dashboard
     // ── UNLOCK MODAL LOGIC ───────────────────────────────────────────────
-    const _handleUnlock = async (callsign) => {
-        const _handleUnlock = async (inputVal) => {
-            _hideUnlockModal();
-            if (inputVal && inputVal.trim()) {
-                let name = inputVal.trim().toUpperCase();
-                let glyph = '';
+    const _showUnlockModal = () => {
+        const modal = document.getElementById('unlock-modal');
+        const input = document.getElementById('unlock-input');
+        modal.classList.remove('hidden');
+        // Lock everything beneath — inert blocks all interaction on the dashboard
+        const dashboard = document.getElementById('dashboard-container');
+        if (dashboard) dashboard.setAttribute('inert', '');
+        // Also disable FAB layers that sit above normal z-index stack
+        ['fab-menu-container', 'survival-fab', 'ghost-fab-trigger'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.pointerEvents = 'none';
+        });
+        setModalOpen(true);
+        setTimeout(() => input.focus(), 150);
+    };
+
+    const _hideUnlockModal = () => {
+        document.getElementById('unlock-modal').classList.add('hidden');
+        // Restore dashboard interaction
+        const dashboard = document.getElementById('dashboard-container');
+        if (dashboard) dashboard.removeAttribute('inert');
+        // Restore FAB layers
+        ['fab-menu-container', 'survival-fab', 'ghost-fab-trigger'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.pointerEvents = '';
+        });
+        setModalOpen(false);
+    };
+
+    const _handleUnlock = async (inputVal) => {
+        _hideUnlockModal();
+        if (inputVal && inputVal.trim()) {
+            let name = inputVal.trim().toUpperCase();
+            let glyph = '';
+            
+            // Handle compound payload if pasted into the initial unlock screen
+            if (name.includes(':')) {
+                const parts = name.split(':');
+                name = parts[0].trim();
+                glyph = parts[1].trim();
+            }
+
+            try {
+                _sessionCryptoKey = await _deriveKey(name);
+                _activeStorage = localStorage; 
+                _activeNamespace = name; 
                 
-                // Handle compound payload if pasted into the initial unlock screen
-                if (name.includes(':')) {
-                    const parts = name.split(':');
-                    name = parts[0].trim();
-                    glyph = parts[1].trim();
-                }
+                // EXECUTE GATEKEEPER
+                await _verifyNetworkAuth(glyph);
 
-                try {
-                    _sessionCryptoKey = await _deriveKey(name);
-                    _activeStorage = localStorage; 
-                    _activeNamespace = name; 
-                    
-                    // EXECUTE GATEKEEPER
-                    await _verifyNetworkAuth(glyph);
+                _applyOperatorName(name);
+                localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+                if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
 
-                    _applyOperatorName(name);
-                    localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-                    if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
-
-                    await _loadDashboard();
-                    showToast(`SESSION UNLOCKED // VAULT ACTIVE`, 'success');
-                    document.getElementById('unlock-input').value = '';
-                } catch (e) {
-                    showToast(`AUTH FAIL: ${e.message}`, 'error');
-                    await _initGuestSession();
-                }
-            } else {
+                await _loadDashboard();
+                showToast(`SESSION UNLOCKED // VAULT ACTIVE`, 'success');
+                document.getElementById('unlock-input').value = '';
+            } catch (e) {
+                showToast(`AUTH FAIL: ${e.message}`, 'error');
                 await _initGuestSession();
             }
-        };
-        
+        } else {
+            await _initGuestSession();
+        }
+    };
+
     const _handleBleUnlock = async () => {
         try {
             const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
@@ -4551,99 +4579,99 @@ const initPeaceOperator = async () => {
         if (e.key === 'Escape') _handleUnlock('');
     });
 
-    // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────    // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────
-    const _confirmOperatorId = async () => {
-            // Smooth Paste Parsing
-        document.getElementById('operator-name-input').addEventListener('paste', (e) => {
-            const paste = (e.clipboardData || window.clipboardData).getData('text');
-            if (paste.includes(':')) {
-                e.preventDefault();
-                const [cs, gl] = paste.split(':');
-                document.getElementById('operator-name-input').value = cs.trim();
-                document.getElementById('operator-glyph-input').value = gl.trim();
-                showToast("CREDENTIALS PARSED", "info");
+    // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────
+    
+    // Smooth Paste Parsing
+    document.getElementById('operator-name-input').addEventListener('paste', (e) => {
+        const paste = (e.clipboardData || window.clipboardData).getData('text');
+        if (paste.includes(':')) {
+            e.preventDefault();
+            const [cs, gl] = paste.split(':');
+            document.getElementById('operator-name-input').value = cs.trim();
+            document.getElementById('operator-glyph-input').value = gl.trim();
+            showToast("CREDENTIALS PARSED", "info");
+        }
+    });
+
+    // The Cryptographic Gatekeeper
+    const _verifyNetworkAuth = async (providedGlyph) => {
+        const authConfig = await getFromLocalStorage('srcd2_auth_config', null);
+
+        // Scenario A: No Glyph has ever been tied to this Callsign.
+        if (!authConfig) {
+            if (providedGlyph) {
+                const hash = await _hashGlyph(providedGlyph);
+                await saveToLocalStorage('srcd2_auth_config', {
+                    glyphHash: hash,
+                    approvedNets: [_currentNetworkID]
+                });
+                showToast("NETWORK BOUND TO CALLSIGN", "success");
             }
-        });
+            return true; 
+        }
 
-        // The Cryptographic Gatekeeper
-        const _verifyNetworkAuth = async (providedGlyph) => {
-            const authConfig = await getFromLocalStorage('srcd2_auth_config', null);
+        // Scenario B: Glyph protection is ACTIVE.
+        const isNetworkApproved = authConfig.approvedNets.includes(_currentNetworkID);
 
-            // Scenario A: No Glyph has ever been tied to this Callsign.
-            if (!authConfig) {
-                if (providedGlyph) {
-                    const hash = await _hashGlyph(providedGlyph);
-                    await saveToLocalStorage('srcd2_auth_config', {
-                        glyphHash: hash,
-                        approvedNets: [_currentNetworkID]
-                    });
-                    showToast("NETWORK BOUND TO CALLSIGN", "success");
-                }
-                return true; 
-            }
-
-            // Scenario B: Glyph protection is ACTIVE.
-            const isNetworkApproved = authConfig.approvedNets.includes(_currentNetworkID);
-
-            if (isNetworkApproved) {
-                // Network is safe. Access granted with just Callsign.
+        if (isNetworkApproved) {
+            // Network is safe. Access granted with just Callsign.
+            return true;
+        } else {
+            // Network is UNRECOGNIZED.
+            if (!providedGlyph) throw new Error("UNRECOGNIZED NETWORK. GLYPH REQUIRED.");
+            
+            const hash = await _hashGlyph(providedGlyph);
+            if (hash === authConfig.glyphHash) {
+                // Glyph verified. Authorize this new network permanently.
+                authConfig.approvedNets.push(_currentNetworkID);
+                await saveToLocalStorage('srcd2_auth_config', authConfig);
+                showToast("NEW NETWORK APPROVED & LOGGED", "success");
                 return true;
             } else {
-                // Network is UNRECOGNIZED.
-                if (!providedGlyph) throw new Error("UNRECOGNIZED NETWORK. GLYPH REQUIRED.");
-                
-                const hash = await _hashGlyph(providedGlyph);
-                if (hash === authConfig.glyphHash) {
-                    // Glyph verified. Authorize this new network permanently.
-                    authConfig.approvedNets.push(_currentNetworkID);
-                    await saveToLocalStorage('srcd2_auth_config', authConfig);
-                    showToast("NEW NETWORK APPROVED & LOGGED", "success");
-                    return true;
-                } else {
-                    throw new Error("INVALID GLYPH AUTHENTICATION");
-                }
+                throw new Error("INVALID GLYPH AUTHENTICATION");
             }
-        };
+        }
+    };
 
-        const _confirmOperatorId = async () => {
-            const nameInput = document.getElementById('operator-name-input');
-            const glyphInput = document.getElementById('operator-glyph-input');
+    const _confirmOperatorId = async () => {
+        const nameInput = document.getElementById('operator-name-input');
+        const glyphInput = document.getElementById('operator-glyph-input');
+        
+        const name = nameInput.value.trim().toUpperCase();
+        const glyph = glyphInput.value.trim();
+        _closeOperatorModal();
+        
+        if (name) {
+            const passkey = name;
+            localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+            if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
+            else localStorage.removeItem('srcd2_session_glyph'); // Clear old glyph from state
             
-            const name = nameInput.value.trim().toUpperCase();
-            const glyph = glyphInput.value.trim();
-            _closeOperatorModal();
-            
-            if (name) {
-                const passkey = name;
-                localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-                if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
-                else localStorage.removeItem('srcd2_session_glyph'); // Clear old glyph from state
+            _applyOperatorName(name);
+            try {
+                _sessionCryptoKey = await _deriveKey(passkey);
+                _activeStorage = localStorage; 
+                _activeNamespace = name; 
                 
-                _applyOperatorName(name);
-                try {
-                    _sessionCryptoKey = await _deriveKey(passkey);
-                    _activeStorage = localStorage; 
-                    _activeNamespace = name; 
-                    
-                    // EXECUTE GATEKEEPER
-                    await _verifyNetworkAuth(glyph);
+                // EXECUTE GATEKEEPER
+                await _verifyNetworkAuth(glyph);
 
-                    await _loadDashboard();
-                    showToast(`OPERATOR ID: [REDACTED] // VAULT RECALLED`, 'success');
-                    
-                    nameInput.value = '';
-                    glyphInput.value = '';
-                } catch (e) {
-                    showToast(`AUTH FAIL: ${e.message}`, 'error');
-                    await _initGuestSession();
-                }
-            } else {
-                localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
-                _applyOperatorName('');
+                await _loadDashboard();
+                showToast(`OPERATOR ID: [REDACTED] // VAULT RECALLED`, 'success');
+                
+                nameInput.value = '';
+                glyphInput.value = '';
+            } catch (e) {
+                showToast(`AUTH FAIL: ${e.message}`, 'error');
                 await _initGuestSession();
-                showToast(`CALLSIGN REQUIRED`, 'error');
             }
-        };
+        } else {
+            localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
+            _applyOperatorName('');
+            await _initGuestSession();
+            showToast(`CALLSIGN REQUIRED`, 'error');
+        }
+    };
 
     // BLE Auto-Sync Function
     document.getElementById('op-ble-scan-btn').onclick = async () => {
@@ -4730,7 +4758,6 @@ const initPeaceOperator = async () => {
 
 </script>
 
-// SERVICE WORKER REGISTRATION - Updated for Sandboxing
 <script>
     if ('serviceWorker' in navigator && window.self === window.top) {
         window.addEventListener('load', () => {
