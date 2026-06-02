@@ -619,7 +619,16 @@
             activeScratchpadTab: 'main'
         };
         
-        const setModalOpen = (isOpen) => document.body.classList.toggle('modal-open', isOpen);
+        const setModalOpen = (isOpen) => {
+            document.body.classList.toggle('modal-open', isOpen);
+            ['fab-menu-container', 'survival-fab', 'ghost-fab-trigger'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    if (isOpen) el.classList.add('hidden');
+                    else el.classList.remove('hidden');
+                }
+            });
+        };
         const $ = (s) => document.querySelector(s);
         const $$ = (s) => document.querySelectorAll(s);
 
@@ -973,29 +982,31 @@
         // Both are transparently decoded by srcd2Decrypt.
         // ───────────────────────────────────────────────────────────────────────────
 
-        // Encrypt a plain string → base64uri envelope (v2, full-export signature)
+        // Encrypt a plain string -> AES-GCM envelope (v4, full-export signature)
         const srcd2Encrypt = async (dataObj) => {
             const raw = JSON.stringify(dataObj);
-            // Compress first — then encode. Encrypting before compressing yields no size benefit.
-            const compressed = await _compress(raw);
-            const isCompressed = compressed !== raw;
-            const toEncode = isCompressed ? ' gz ' + compressed : raw;
-            let binaryStr = '';
-            for (let i = 0; i < toEncode.length; i++) binaryStr += String.fromCharCode(toEncode.charCodeAt(i) & 0xff);
-            const encoded = btoa(binaryStr);
-            return JSON.stringify({ _srcd2_sig: 'PHANTOM', _v: 3, payload: encoded, gz: isCompressed });
+            const encryptedPayload = await _encryptForStorage(raw);
+            return JSON.stringify({ _srcd2_sig: 'PHANTOM', _v: 4, payload: encryptedPayload });
         };
 
-        // Universal decoder — handles v1, v2, and legacy plaintext transparently
-        // Accepts either a raw string (from FileReader) or already-parsed object
+        // Universal decoder — handles v4, v3, v2, and legacy plaintext transparently
         const srcd2Decrypt = async (input) => {
             const outer = (typeof input === 'string') ? JSON.parse(input) : input;
+            
+            // v4 envelope — AES-GCM encrypted
+            if (outer._srcd2_sig === 'PHANTOM' && outer._v === 4 && outer.payload) {
+                const decryptedString = await _decryptFromStorage(outer.payload);
+                if (decryptedString === outer.payload) {
+                    throw new Error("KEY_MISMATCH: Cannot unlock file data. Verify Callsign/Glyph.");
+                }
+                return JSON.parse(decryptedString);
+            }
+
             // v3 envelope — compressed + encoded
             if (outer._srcd2_sig === 'PHANTOM' && outer.payload && outer.gz) {
                 try {
                     const binary = atob(outer.payload);
-                    // Strip  gz  marker and decompress
-                    const b64 = binary.slice(4); // remove 3-char marker + null
+                    const b64 = binary.slice(4); 
                     return JSON.parse(await _decompress(b64));
                 } catch (e) { return outer; }
             }
@@ -1841,6 +1852,15 @@
             // Render empty lists immediately — _loadDashboard fills them after auth
             renderList(DOMElements.projectList, [], 'project');
             renderList(DOMElements.incidentList, [], 'incident');
+
+            // Global Click-Outside-to-Close Listener
+            document.body.addEventListener('click', (e) => {
+                const id = e.target.id;
+                if (id === 'data-modal') document.getElementById('data-cancel-btn').click();
+                else if (id === 'scratchpad-modal') document.getElementById('scratchpad-close-btn').click();
+                else if (id === 'operator-modal' && typeof _closeOperatorModal === 'function') _closeOperatorModal();
+                else if (id === 'modal-sdap') document.getElementById('sdap-close').click();
+            });
 
             // Listeners: Modals
             $('#data-cancel-btn').onclick = () => { DOMElements.dataModal.classList.add('hidden'); setModalOpen(false); };
@@ -2733,6 +2753,7 @@ const validateMatrixState = async () => {
 
 const openSdapModal = async () => {
     injectGhostTrigger();
+    setModalOpen(true);
 
     if (document.getElementById('modal-sdap')) {
         document.getElementById('modal-sdap').classList.remove('hidden');
@@ -2743,6 +2764,7 @@ const openSdapModal = async () => {
         if(fab) fab.classList.remove('fab-super-elevated');
         return;
     }
+
 
     const html = `
     <div id="modal-sdap">
@@ -2848,7 +2870,10 @@ const openSdapModal = async () => {
     document.body.insertAdjacentHTML('beforeend', html);
 
     // EVENT LISTENERS
-    document.getElementById('sdap-close').onclick = () => document.getElementById('modal-sdap').classList.add('hidden');
+    document.getElementById('sdap-close').onclick = () => {
+        document.getElementById('modal-sdap').classList.add('hidden');
+        setModalOpen(false);
+    };
     
     ['worklog', 'decision', 'task'].forEach(t => {
         document.getElementById(`sdap-tab-${t}`).onclick = () => {
@@ -3022,8 +3047,11 @@ const generatePromptPayload = () => {
     const domain = document.getElementById('pe-domain').value;
     const inputBuffer = document.getElementById('pe-input').value;
     
+    // Fetch active operator ID, default to GUEST if not set
+    const activeCallsign = localStorage.getItem('srcd2_operator_name') || 'GUEST_OPERATOR';
+    
     let payload = `>>> SYSTEM_HANDSHAKE: SECURE // PROTOCOL: PHANTOM_CREW\n`;
-    payload += `>>> COMMANDER: MΛVΞRICK [LEAD ARCHITECT]\n`;
+    payload += `>>> COMMANDER: ${activeCallsign} [LEAD ARCHITECT]\n`;
     payload += `>>> MISSION_DOMAIN: [${domain}]\n`;
     payload += `--------------------------------------------------\n\n`;
 
@@ -4406,7 +4434,12 @@ const initPeaceOperator = async () => {
                 _applyOperatorName(name);
                 localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
                 await _loadDashboard();
-                showToast(`SESSION UNLOCKED // ${name} // VAULT ACTIVE`, 'success');
+                
+                // Mask callsign in the initial load console log
+                showToast(`SESSION UNLOCKED // [REDACTED] // VAULT ACTIVE`, 'success');
+                
+                // Clear the unlock input
+                document.getElementById('unlock-input').value = '';
             } catch (e) {
                 showToast('KEY DERIVATION FAILED — guest session started', 'error');
                 await _initGuestSession();
@@ -4453,13 +4486,17 @@ const initPeaceOperator = async () => {
 
     // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────
     const _confirmOperatorId = async () => {
-        const name = document.getElementById('operator-name-input').value.trim().toUpperCase();
-        const glyph = document.getElementById('operator-glyph-input').value.trim();
+        const nameInput = document.getElementById('operator-name-input');
+        const glyphInput = document.getElementById('operator-glyph-input');
+        
+        const name = nameInput.value.trim().toUpperCase();
+        const glyph = glyphInput.value.trim();
         _closeOperatorModal();
         
-        if (name && glyph) {
-            // THE NEW MASTER KEY: Combined string prevents standard alphanumeric brute forcing
-            const passkey = `${name}::${glyph}`;
+        if (name) {
+            // THE NEW MASTER KEY: Callsign required, Glyph optional
+            const passkey = glyph ? `${name}::${glyph}` : name;
+            
             localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
             _applyOperatorName(name);
             try {
@@ -4467,16 +4504,22 @@ const initPeaceOperator = async () => {
                 _activeStorage = localStorage; 
                 _activeNamespace = name; 
                 await _loadDashboard();
-                showToast(`OPERATOR ID: ${name} // VAULT RECALLED`, 'success');
+                
+                // Mask callsign in the metrics console log
+                showToast(`OPERATOR ID: [REDACTED] // VAULT RECALLED`, 'success');
+                
+                // Clear UI inputs to prevent visual persistence
+                nameInput.value = '';
+                glyphInput.value = '';
             } catch (e) {
-                showToast(`OPERATOR ID: ${name} // CRYPTO INIT FAILED`, 'error');
+                showToast(`OPERATOR ID: [REDACTED] // CRYPTO INIT FAILED`, 'error');
                 await _initGuestSession();
             }
         } else {
             localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
             _applyOperatorName('');
             await _initGuestSession();
-            if(name || glyph) showToast(`CALLSIGN AND GLYPH REQUIRED`, 'error');
+            showToast(`CALLSIGN REQUIRED`, 'error');
         }
     };
 
