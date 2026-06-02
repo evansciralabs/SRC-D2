@@ -1,8 +1,10 @@
-const CACHE_NAME = 'src-d2-cache-v1';
+const CACHE_NAME = 'src-d2-cache-v3';
 const URLS_TO_CACHE = [
-    '/SRC-D2/',
-    '/SRC-D2/index.html',
-    '/SRC-D2/manifest.json'
+    './',
+    './index.html',
+    './manifest.json',
+    './privacy.html',
+    './whatsnew.html'
 ];
 
 // Install Phase: Pre-cache core assets
