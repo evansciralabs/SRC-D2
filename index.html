@@ -4478,37 +4478,6 @@ const initPeaceOperator = async () => {
         setModalOpen(false);
     };
 
-    // Load the active namespace into the dashboard
-    // ── UNLOCK MODAL LOGIC ───────────────────────────────────────────────
-    const _showUnlockModal = () => {
-        const modal = document.getElementById('unlock-modal');
-        const input = document.getElementById('unlock-input');
-        modal.classList.remove('hidden');
-        // Lock everything beneath — inert blocks all interaction on the dashboard
-        const dashboard = document.getElementById('dashboard-container');
-        if (dashboard) dashboard.setAttribute('inert', '');
-        // Also disable FAB layers that sit above normal z-index stack
-        ['fab-menu-container', 'survival-fab', 'ghost-fab-trigger'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.pointerEvents = 'none';
-        });
-        setModalOpen(true);
-        setTimeout(() => input.focus(), 150);
-    };
-
-    const _hideUnlockModal = () => {
-        document.getElementById('unlock-modal').classList.add('hidden');
-        // Restore dashboard interaction
-        const dashboard = document.getElementById('dashboard-container');
-        if (dashboard) dashboard.removeAttribute('inert');
-        // Restore FAB layers
-        ['fab-menu-container', 'survival-fab', 'ghost-fab-trigger'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.pointerEvents = '';
-        });
-        setModalOpen(false);
-    };
-
     const _handleUnlock = async (inputVal) => {
         _hideUnlockModal();
         if (inputVal && inputVal.trim()) {
