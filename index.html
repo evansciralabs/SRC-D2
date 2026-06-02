@@ -4628,13 +4628,13 @@ const initPeaceOperator = async () => {
 
 </script>
 
-<!-- SERVICE WORKER REGISTRATION -->
+// SERVICE WORKER REGISTRATION - Updated for Sandboxing
 <script>
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && window.self === window.top) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
                 .then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    console.log('ServiceWorker registered.');
                 })
                 .catch(err => {
                     console.log('ServiceWorker registration failed: ', err);
