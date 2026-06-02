@@ -4562,19 +4562,6 @@ const initPeaceOperator = async () => {
         if (e.key === 'Escape') _closeOperatorModal();
     });
 
-    // Wire operator modal events
-    _metricsLabel.addEventListener('click', _openOperatorModal);
-    document.getElementById('operator-modal-close').onclick = _closeOperatorModal;
-    document.getElementById('operator-modal-confirm').onclick = _confirmOperatorId;
-    document.getElementById('operator-modal-clear').onclick = () => {
-        _operatorInput.value = '';
-        _confirmOperatorId();
-    };
-    _operatorInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') _confirmOperatorId();
-        if (e.key === 'Escape') _closeOperatorModal();
-    });
-
     // ── ON LOAD — silent guest boot ──────────────────────────────────────
     // Dashboard loads directly into guest session — no prompt, no friction.
     // User enters their callsign via METRICS_SUMMARY.LOG when they choose to.
