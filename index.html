@@ -516,8 +516,9 @@
                 </div>
             </div>
 
-            <!-- Footer: privacy link — neon-green always, ghost-mode does NOT override -->
-            <div class="flex justify-end items-center px-4 py-2 border-t border-cyan-500/10 bg-black/40 flex-shrink-0">
+            <!-- Footer: external links — ghost-mode does NOT override -->
+            <div class="flex justify-between items-center px-4 py-2 border-t border-cyan-500/10 bg-black/40 flex-shrink-0">
+                <button id="link-whatsnew" class="glyph-btn text-[8px] font-['Space_Mono'] tracking-widest transition-colors" style="color:var(--primary);text-shadow:var(--text-glow-primary)">WHATS_NEW ↗</button>
                 <button id="link-privacy" class="glyph-btn text-[8px] font-['Space_Mono'] tracking-widest transition-colors" style="color:var(--secondary);text-shadow:var(--text-glow-secondary)">PRIVACY_PROTOCOL ↗</button>
             </div>
 
@@ -4747,9 +4748,10 @@ const initPeaceOperator = async () => {
 
     // Bind close button directly — modal HTML is now above this point in the DOM
     document.getElementById('external-doc-close').addEventListener('click', closeExternalDoc);
-    document.getElementById('link-privacy').addEventListener('click', () => openExternalDoc('https://evansciralabs.github.io/SRC-D2/privacy.html', 'PRIVACY_PROTOCOL'));
+    document.getElementById('link-privacy').addEventListener('click', () => openExternalDoc('./privacy.html', 'PRIVACY_PROTOCOL'));
+    document.getElementById('link-whatsnew').addEventListener('click', () => openExternalDoc('./whatsnew.html', 'SYSTEM_UPDATE'));
 
-    // Listen for the termination signal from the privacy.html iframe
+    // Listen for the termination signal from the iframe
     window.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'SRC_D2_CLOSE_DOC') {
             closeExternalDoc();
