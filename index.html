@@ -1946,8 +1946,35 @@ const _loadDashboard = async () => {
     currentState.projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
     currentState.incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
     
+    // OPSEC: Purge the Detail Pane back to default to ensure no sensitive data 
+    // lingers on screen when dropping back into an empty Guest Mode.
+    DOMElements.detailView.innerHTML = `
+        <div id="detail-empty" class="h-full flex flex-col justify-center items-center text-center p-8">
+            <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V5.1</span>
+            <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
+            <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>
+        </div>`;
+    currentState.selectedItem = null;
+    if (typeof window.updateSlingButton === 'function') window.updateSlingButton();
+
     renderList(DOMElements.projectList, currentState.projects, 'project');
     renderList(DOMElements.incidentList, currentState.incidents, 'incident');
+
+    // Animation handling: Only emerge if data exists. Guest Mode stays static & empty.
+    const leftPane = document.getElementById('left-pane');
+    if (leftPane) {
+        const hasData = currentState.projects.length > 0 || currentState.incidents.length > 0;
+        if (hasData) {
+            leftPane.style.opacity = '0';
+            leftPane.classList.remove('anim-emerge');
+            void leftPane.offsetWidth; // Force a DOM reflow
+            leftPane.classList.add('anim-emerge');
+            leftPane.style.opacity = '1';
+        } else {
+            leftPane.style.opacity = '1';
+            leftPane.classList.remove('anim-emerge');
+        }
+    }
 };
 
         const initApp = async () => {
