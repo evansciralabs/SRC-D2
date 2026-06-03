@@ -4655,55 +4655,47 @@ const _applyOperatorName = (name) => {
         const detailEmpty = document.getElementById('detail-empty');
         const leftPane = document.getElementById('left-pane');
         
+        // Ensure the pane is ready
         if (leftPane) leftPane.style.opacity = '0';
-
         if (detailEmpty) {
+            // 1. Establish the "Vault Screen" state
             detailEmpty.classList.add('vault-morph-active');
-
+            
             const versionSpan = detailEmpty.querySelector('span');
             const subTexts = detailEmpty.querySelectorAll('p');
             
-            // 1. THE MORPH (Instantly show the callsign)
+            // 2. Morph existing text into the Callsign
             if (versionSpan) {
-                versionSpan.style.transition = 'all 0.4s ease';
+                versionSpan.style.transition = 'all 0.6s ease';
+                versionSpan.textContent = `[ ${callsign} ]`;
                 versionSpan.style.color = '#0ff';
                 versionSpan.style.textShadow = '0 0 20px #0ff';
-                versionSpan.textContent = `[ ${callsign} ]`;
             }
             subTexts.forEach(p => p.style.opacity = '0');
-            
-            const statusLine = document.createElement('div');
-            statusLine.className = 'text-green-500 font-mono text-[10px] tracking-widest mt-4 opacity-0 transition-opacity duration-300';
-            statusLine.textContent = 'VAULT RECALLED // NAMESPACE RESTORED';
-            detailEmpty.appendChild(statusLine);
-            setTimeout(() => statusLine.style.opacity = '1', 100);
 
-            // 2. THE SHINE (1500ms: Operator registers the successful unlock)
+            // 3. Hang Time (1200ms) - Vault Screen is static and visible here
             setTimeout(() => {
                 
-                // 3. THE CLEARANCE (Vault descends)
-                detailEmpty.classList.add('revealing', 'anim-descend');
+                // 4. Staged Sequence: Vault descends + Data emerges
+                detailEmpty.classList.add('anim-descend');
                 
-                // 4. THE PAYOFF (400ms delay: Let the vault start falling before data emerges)
+                if (leftPane) {
+                    leftPane.classList.add('anim-emerge');
+                    leftPane.style.opacity = '1'; 
+                }
+
+                // 5. Final Reset
                 setTimeout(() => {
-                    if (leftPane) {
-                        leftPane.classList.add('anim-emerge');
-                        leftPane.style.opacity = '1'; 
-                    }
+                    detailEmpty.classList.remove('anim-descend', 'vault-morph-active');
+                    leftPane.classList.remove('anim-emerge');
+                    detailEmpty.innerHTML = `
+                        <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V5.1</span>
+                        <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
+                        <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>`;
+                    resolve();
+                }, 800); 
 
-                    // 5. CLEANUP
-                    setTimeout(() => {
-                        if (leftPane) leftPane.classList.remove('anim-emerge');
-                        detailEmpty.classList.remove('anim-descend', 'vault-morph-active', 'revealing');
-                        detailEmpty.innerHTML = `
-                            <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V5.1</span>
-                            <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
-                            <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>`;
-                        resolve();
-                    }, 500);
-                }, 400); 
-
-            }, 1500); 
+            }, 1200); 
         } else {
             if (leftPane) leftPane.style.opacity = '1';
             resolve();
