@@ -2326,33 +2326,29 @@ const openNetModal = () => {
         document.getElementById('btn-fetch-ip').onclick = fetchPublicIP;
         document.getElementById('btn-export-log').onclick = exportSentryLog;
         document.getElementById('ns-prov-btn').onclick = () => {
-            if (typeof _activeNamespace === 'undefined' || _activeNamespace === 'GUEST') {
-                if(typeof showToast === 'function') showToast("CALLSIGN REQUIRED TO PROVISION GLYPH", "error");
-                return;
-            }
+            // The full array of system glyphs
             const glyphs = ['★', '☆', '✦', '✧', '✩', '✪', '✫', '✬', '✭', '✮', '✯', '✰', '✵', '✶', '✷', '✸', '✹', '❂', '✴', '✲', '✱', '✳', '⬢', '⬣', '⬡', '⎔', '⌬', '⏣'];
             const glyph = glyphs[Math.floor(Math.random() * glyphs.length)];
             const out = document.getElementById('ns-prov-out');
             
+            // Reset visibility states to ensure the generated glyph is displayed
             out.style.transition = 'none';
             out.style.opacity = '1';
             out.style.transform = 'scale(1) translateZ(0)';
-            out.style.cursor = 'pointer';
+            out.style.cursor = 'default';
             out.innerText = glyph;
             
-            out.onclick = () => {
-                // Construct the compound binding string
-                const payload = `${_activeNamespace}:${glyph}`;
-                navigator.clipboard.writeText(payload).then(() => {
-                    out.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-                    out.style.opacity = '0';
-                    out.style.transform = 'scale(0.8) translateZ(-100px)';
-                    out.onclick = null; 
-                    if(typeof showToast === 'function') showToast("GLYPH PROVISIONED. PASTE IN OPERATOR MODULE.", "success");
-                });
-            };
+            // Auto-populate the operator modal input
+            const glyphInput = document.getElementById('operator-glyph-input');
+            if (glyphInput) {
+                glyphInput.value = glyph;
+                if (typeof showToast === 'function') {
+                    showToast("GLYPH MAPPED TO OPERATOR BUFFER", "success");
+                }
+            } else {
+                console.warn("Operator Modal not initialized; glyph captured in telemetry only.");
+            }
         };
-
 
     }
 
@@ -4616,16 +4612,26 @@ const initPeaceOperator = async () => {
         }
     };
 
-    const _confirmOperatorId = async () => {
-        const nameInput = document.getElementById('operator-name-input');
-        const glyphInput = document.getElementById('operator-glyph-input');
+const _confirmOperatorId = async () => {
+    const nameInput = document.getElementById('operator-name-input');
+    const glyphInput = document.getElementById('operator-glyph-input');
+    
+    const name = nameInput.value.trim().toUpperCase();
+    const glyph = glyphInput.value.trim();
+    
+    // Clear inputs immediately for security
+    nameInput.value = '';
+    glyphInput.value = '';
+    
+    _closeOperatorModal();
+    
+    if (name && glyph) {
+        // Store the network-bound pairing in localStorage
+        const networkId = window.location.hostname || 'default_net';
+        const netAuth = { name, glyph };
+        localStorage.setItem(`srcd2_net_auth_${networkId}`, JSON.stringify(netAuth));
         
-        const name = nameInput.value.trim().toUpperCase();
-        const glyph = glyphInput.value.trim();
-        _closeOperatorModal();
-        
-        if (name) {
-            const passkey = name;
+        const passkey = `${name}::${glyph}`;
             localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
             if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
             else localStorage.removeItem('srcd2_session_glyph'); // Clear old glyph from state
