@@ -389,6 +389,19 @@
         </form>
     </div>
 
+    <div id="export-filename-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm transition-opacity">
+    <form id="export-filename-form" class="modal-content bg-mid-blue p-6 w-96 rounded-lg border border-cyan-500 shadow-xl shadow-cyan-500/30">
+        <h3 class="text-lg font-bold mb-3 neon-cyan">EXPORT FILENAME</h3>
+        <p class="text-sm mb-4">Define a custom prefix for this backup (default: SRCD2):</p>
+        <input type="text" id="export-filename-input" class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm" placeholder="SRCD2">
+        <div class="flex justify-end space-x-2">
+            <button type="button" id="export-filename-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600">CANCEL</button>
+            <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">CONFIRM</button>
+        </div>
+    </form>
+</div>
+
+
     <!-- MODAL: RAW VIEW -->
     <div id="raw-view-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md transition-opacity">
         <div class="modal-content relative bg-dark-navy p-6 w-11/12 md:w-3/4 h-5/6 rounded-lg glow-border-cyan flex flex-col">
@@ -727,7 +740,13 @@
             netStatusText: $('#net-status-text'),
 
             scratchpadExportBtn: $('#scratchpad-export-btn'), scratchpadClearBtn: $('#scratchpad-clear-btn'),
-            scratchpadCloseBtn: $('#scratchpad-close-btn')
+            scratchpadCloseBtn: $('#scratchpad-close-btn'),
+
+            exportModal: $('#export-filename-modal'),
+            exportForm: $('#export-filename-form'),
+            exportInput: $('#export-filename-input'),
+            exportCancel: $('#export-filename-cancel')
+
         };
 
         /* --- TOAST & UTILS --- */
@@ -1075,44 +1094,61 @@
 
         // ───────────────────────────────────────────────────────────────────────────
 
-        const handleFullExport = async () => {
-            const spData = await getScratchpadFromSessionStorage();
-            const data = {
-                projects: currentState.projects,
-                incidents: currentState.incidents,
-                scratchpad: spData,
-                appId: 'SRC-D2-V1',
-                exportTimestamp: new Date().toISOString(),
-            };
-            
-            let exportStr, filename, exportMode;
-            if (!navigator.onLine || isForceOffline) {
-                exportStr = JSON.stringify(data, null, 2);
-                filename = `SRCD2_${generateLocalTimestampFilename()}.srcd.json`;
-                exportMode = '[OFFLINE/PLAIN]';
-            } else {
-                try {
-                    exportStr = await srcd2Encrypt(data);
-                    filename = `SRCD2_${generateLocalTimestampFilename()}.srcd`;
-                    exportMode = '[ENCRYPTED]';
-                } catch (e) {
-                    exportStr = JSON.stringify(data, null, 2);
-                    filename = `SRCD2_${generateLocalTimestampFilename()}.srcd.json`;
-                    exportMode = '[CRYPTO-FAIL/PLAIN]';
-                }
-            }
-            
-            const blob = new Blob([exportStr], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.download = filename;
-            a.href = url;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast(`Backup Saved: ${filename} ${exportMode}`, 'success');
-        };
+const handleFullExport = async () => {
+    setModalOpen(true);
+    DOMElements.exportModal.classList.remove('hidden');
+};
+
+// Wire the modal action
+DOMElements.exportCancel.onclick = () => { DOMElements.exportModal.classList.add('hidden'); setModalOpen(false); };
+DOMElements.exportForm.onsubmit = async (e) => {
+    e.preventDefault();
+    DOMElements.exportModal.classList.add('hidden');
+    setModalOpen(false);
+
+    let prefix = DOMElements.exportInput.value.trim().toUpperCase() || 'SRCD2';
+    DOMElements.exportInput.value = ''; // Reset for next time
+
+    const spData = await getScratchpadFromSessionStorage();
+    const data = {
+        projects: currentState.projects,
+        incidents: currentState.incidents,
+        scratchpad: spData,
+        appId: 'SRC-D2-V1',
+        exportTimestamp: new Date().toISOString(),
+    };
+    
+    let exportStr, filename, exportMode;
+    const timestamp = generateLocalTimestampFilename();
+
+    if (!navigator.onLine || isForceOffline) {
+        exportStr = JSON.stringify(data, null, 2);
+        filename = `${prefix}_${timestamp}.srcd.json`;
+        exportMode = '[OFFLINE/PLAIN]';
+    } else {
+        try {
+            exportStr = await srcd2Encrypt(data);
+            filename = `${prefix}_${timestamp}.srcd`;
+            exportMode = '[ENCRYPTED]';
+        } catch (e) {
+            exportStr = JSON.stringify(data, null, 2);
+            filename = `${prefix}_${timestamp}.srcd.json`;
+            exportMode = '[CRYPTO-FAIL/PLAIN]';
+        }
+    }
+    
+    const blob = new Blob([exportStr], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.download = filename;
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Backup Saved: ${filename} ${exportMode}`, 'success');
+};
+
 
         // TASK 3: Ghost-Copy Buffer Grace Period state
         let _exportGraceTimer = null;
