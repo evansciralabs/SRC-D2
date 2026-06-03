@@ -4650,52 +4650,53 @@ const _applyOperatorName = (name) => {
         }
     };
 
-    /* ── VAULT RESTORE ANIMATION (STAGED UNLOCK) ─────────────────────────── */
+    /* ── VAULT RESTORE ANIMATION (MANUAL STEP-THROUGH) ─────────────────── */
     const _vaultFadeIn = (callsign) => new Promise((resolve) => {
         const detailEmpty = document.getElementById('detail-empty');
         const leftPane = document.getElementById('left-pane');
         
-        // Ensure the pane is ready
         if (leftPane) leftPane.style.opacity = '0';
+
         if (detailEmpty) {
-            // 1. Establish the "Vault Screen" state
             detailEmpty.classList.add('vault-morph-active');
-            
             const versionSpan = detailEmpty.querySelector('span');
             const subTexts = detailEmpty.querySelectorAll('p');
             
-            // 2. Morph existing text into the Callsign
-            if (versionSpan) {
-                versionSpan.style.transition = 'all 0.6s ease';
-                versionSpan.textContent = `[ ${callsign} ]`;
-                versionSpan.style.color = '#0ff';
-                versionSpan.style.textShadow = '0 0 20px #0ff';
-            }
+            // PHASE 1: Morph to Callsign (Immediate)
+            versionSpan.style.transition = 'all 0.6s ease';
+            versionSpan.textContent = `[ ${callsign} ]`;
+            versionSpan.style.color = '#0ff';
+            versionSpan.style.textShadow = '0 0 20px #0ff';
             subTexts.forEach(p => p.style.opacity = '0');
 
-            // 3. Hang Time (1200ms) - Vault Screen is static and visible here
+            // PHASE 2: EVALUATION HANG (Extended to 2500ms)
+            // You now have 2.5 seconds to evaluate the callsign before anything moves.
             setTimeout(() => {
                 
-                // 4. Staged Sequence: Vault descends + Data emerges
-                detailEmpty.classList.add('anim-descend');
+                // PHASE 3: VAULT DESCEND (Slowed to 1200ms)
+                detailEmpty.classList.add('revealing', 'anim-descend');
                 
-                if (leftPane) {
-                    leftPane.classList.add('anim-emerge');
-                    leftPane.style.opacity = '1'; 
-                }
-
-                // 5. Final Reset
+                // PHASE 4: DATA EMERGE (Staggered start: wait 600ms into the descend)
                 setTimeout(() => {
-                    detailEmpty.classList.remove('anim-descend', 'vault-morph-active');
-                    leftPane.classList.remove('anim-emerge');
-                    detailEmpty.innerHTML = `
-                        <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V5.1</span>
-                        <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
-                        <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>`;
-                    resolve();
-                }, 800); 
+                    if (leftPane) {
+                        leftPane.style.transition = 'opacity 1.0s ease'; // Slowed emergence
+                        leftPane.classList.add('anim-emerge');
+                        leftPane.style.opacity = '1'; 
+                    }
 
-            }, 1200); 
+                    // PHASE 5: CLEANUP
+                    setTimeout(() => {
+                        detailEmpty.classList.remove('anim-descend', 'vault-morph-active', 'revealing');
+                        if (leftPane) leftPane.classList.remove('anim-emerge');
+                        detailEmpty.innerHTML = `
+                            <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V5.1</span>
+                            <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
+                            <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>`;
+                        resolve();
+                    }, 1000);
+                }, 600); 
+
+            }, 2500); 
         } else {
             if (leftPane) leftPane.style.opacity = '1';
             resolve();
