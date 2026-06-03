@@ -1,10 +1,12 @@
-const CACHE_NAME = 'src-d2-cache-v3';
+const CACHE_NAME = 'src-d2-cache-v5-1'; // Aligned with V5.1 update
 const URLS_TO_CACHE = [
     './',
     './index.html',
     './manifest.json',
     './privacy.html',
-    './whatsnew.html'
+    './whatsnew.html',
+    './icon-192.png', // Added for offline OS rendering
+    './icon-512.png'  // Added for offline OS rendering
 ];
 
 // Install Phase: Pre-cache core assets
@@ -57,7 +59,7 @@ self.addEventListener('fetch', event => {
         );
     } else {
         // NETWORK-ONLY STRATEGY:
-        // Skip cache entirely for API calls (ipify), BLE streams, and Blobs
+        // Skip cache entirely for API calls (ipify), BLE streams, Blobs, and Net Sentry
         event.respondWith(fetch(event.request));
     }
 });
