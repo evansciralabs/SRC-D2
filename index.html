@@ -4495,13 +4495,16 @@ const initPeaceOperator = async () => {
     };
 
     const _initGuestSession = async () => {
-        _activeStorage = sessionStorage; // lock to volatile track
-        _activeNamespace = 'GUEST'; // Update namespace
-        _sessionCryptoKey = await _generateEphemeralKey();
+        _activeStorage = sessionStorage; 
+        _activeNamespace = 'GUEST'; 
+        
+        // ARCHITECTURE FIX: Deterministic key keeps Guest files encrypted but never locked out
+        _sessionCryptoKey = await _deriveKey('GUEST_PHANTOM_KEY_VOLATILE');
+        
         // Wipe sessionStorage guest data for clean boot
         [STORAGE_KEYS.PROJECTS, STORAGE_KEYS.INCIDENTS, STORAGE_KEYS.SCRATCHPAD]
             .forEach(k => sessionStorage.removeItem(getNsKey(k)));
-        // Load guest track data (empty on first boot, populated if returning)
+        
         await _loadDashboard();
     };
 
@@ -4621,38 +4624,37 @@ const initPeaceOperator = async () => {
     });
 
     // The Cryptographic Gatekeeper
-    const _verifyNetworkAuth = async (providedGlyph) => {
-        const authConfig = await getFromLocalStorage('srcd2_auth_config', null);
-        const activeNetID = await _refreshNetworkFingerprint(); // Fetches live IP at unlock
+    const _verifyNetworkAuth = async (callsign, providedGlyph) => {
+        const authKey = `srcd2_auth_${callsign}`;
+        const authConfig = await getFromLocalStorage(authKey, null);
+        const activeNetID = await _refreshNetworkFingerprint();
 
-        // Scenario A: No Glyph has ever been tied to this Callsign.
+        // SCENARIO A: No Glyph has ever been bound to this Callsign.
         if (!authConfig) {
             if (providedGlyph) {
                 const hash = await _hashGlyph(providedGlyph);
-                await saveToLocalStorage('srcd2_auth_config', {
+                await saveToLocalStorage(authKey, {
                     glyphHash: hash,
                     approvedNets: [activeNetID]
                 });
                 showToast("NETWORK BOUND TO CALLSIGN", "success");
             }
-            return true; 
+            return true; // Access granted (unprotected or freshly bound)
         }
 
-        // Scenario B: Glyph protection is ACTIVE.
+        // SCENARIO B: Glyph protection is ACTIVE.
         const isNetworkApproved = authConfig.approvedNets.includes(activeNetID);
 
         if (isNetworkApproved) {
-            // Network is safe. Access granted with just Callsign.
-            return true;
+            return true; // Network is safe. Access granted with Callsign only.
         } else {
-            // Network is UNRECOGNIZED.
+            // SCENARIO C: Unrecognized Network
             if (!providedGlyph) throw new Error("UNRECOGNIZED NETWORK. GLYPH REQUIRED.");
             
             const hash = await _hashGlyph(providedGlyph);
             if (hash === authConfig.glyphHash) {
-                // Glyph verified. Authorize this new network permanently.
                 authConfig.approvedNets.push(activeNetID);
-                await saveToLocalStorage('srcd2_auth_config', authConfig);
+                await saveToLocalStorage(authKey, authConfig);
                 showToast("NEW NETWORK APPROVED & LOGGED", "success");
                 return true;
             } else {
@@ -4662,59 +4664,45 @@ const initPeaceOperator = async () => {
     };
 
     const _confirmOperatorId = async () => {
-    const nameInput = document.getElementById('operator-name-input');
-    const glyphInput = document.getElementById('operator-glyph-input');
-    
-    const name = nameInput.value.trim().toUpperCase();
-    let glyph = glyphInput.value.trim();
-    
-    // Clear DOM inputs immediately
-    nameInput.value = '';
-    glyphInput.value = '';
-    
-    _closeOperatorModal();
-    
-    // Unified Storage Retrieval using the Helper
-const networkId = window.location.hostname || 'default_net';
-const storedAuthStr = localStorage.getItem(`net_auth_${networkId}`);
-let storedAuth = null;
-try { if (storedAuthStr) storedAuth = JSON.parse(storedAuthStr); } catch(e){}
+        const nameInput = document.getElementById('operator-name-input');
+        const glyphInput = document.getElementById('operator-glyph-input');
+        
+        const name = nameInput.value.trim().toUpperCase();
+        const glyph = glyphInput.value.trim();
+        
+        // Clear DOM inputs immediately
+        nameInput.value = '';
+        glyphInput.value = '';
+        
+        _closeOperatorModal();
+        
+        if (name) {
+            try {
+                // 1. Derive Vault Key using ONLY the Callsign
+                _sessionCryptoKey = await _deriveKey(name);
+                _activeStorage = localStorage; 
+                _activeNamespace = name; 
+                
+                // 2. Execute Gatekeeper (Glyph is passed, but only checked if necessary)
+                await _verifyNetworkAuth(name, glyph);
 
-// Fallback: If no glyph provided, check local storage for this network
-if (!glyph && storedAuth && storedAuth.name === name) {
-    glyph = storedAuth.glyph;
-}
-
-
-        if (name && glyph) {
-        // Persist session state securely (Bypass wrapper to force persistent storage)
-        localStorage.setItem(`net_auth_${networkId}`, JSON.stringify({ name, glyph }));
-        localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-        localStorage.setItem('srcd2_session_glyph', glyph);
-
-        _applyOperatorName(name);
-        try {
-            const passkey = `${name}::${glyph}`;
-            _sessionCryptoKey = await _deriveKey(passkey);
-            _activeStorage = localStorage; 
-            _activeNamespace = name; 
-            
-            // EXECUTE GATEKEEPER
-            await _verifyNetworkAuth(glyph);
-
-            await _loadDashboard();
-            showToast(`OPERATOR ID: [REDACTED] // VAULT RECALLED`, 'success');
-        } catch (e) {
-            showToast(`AUTH FAIL: ${e.message}`, 'error');
+                // 3. Update UI and persist active operator state
+                localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+                _applyOperatorName(name);
+                
+                await _loadDashboard();
+                showToast(`OPERATOR ID: ${name} // VAULT RECALLED`, 'success');
+            } catch (e) {
+                showToast(`AUTH FAIL: ${e.message}`, 'error');
+                await _initGuestSession();
+            }
+        } else {
+            localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
+            _applyOperatorName('');
             await _initGuestSession();
+            showToast(`CALLSIGN REQUIRED`, 'error');
         }
-    } else {
-        localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
-        _applyOperatorName('');
-        await _initGuestSession();
-        showToast(`CALLSIGN AND GLYPH REQUIRED`, 'error');
-    }
-};
+    };
 
     // BLE Auto-Sync Function
     document.getElementById('op-ble-scan-btn').onclick = async () => {
