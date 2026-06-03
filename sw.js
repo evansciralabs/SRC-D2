@@ -31,18 +31,33 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Fetch Phase: Network-First, fallback to Cache
+// Fetch Phase: Network-First for App Shell, Network-Only for APIs
 self.addEventListener('fetch', event => {
-    event.respondWith(
-        fetch(event.request).then(response => {
-            // If online, return response and update cache
-            return caches.open(CACHE_NAME).then(cache => {
-                cache.put(event.request, response.clone());
-                return response;
-            });
-        }).catch(() => {
-            // If offline, retrieve from cache
-            return caches.match(event.request);
-        })
-    );
+    // 1. Determine if the request is for a cached static asset
+    const requestUrl = new URL(event.request.url);
+    const isAppShell = URLS_TO_CACHE.some(url => {
+        // Handle the root './' mapping
+        const target = url === './' ? './index.html' : url;
+        return requestUrl.pathname.endsWith(target.replace('./', ''));
+    });
+
+    if (isAppShell) {
+        // NETWORK-FIRST STRATEGY:
+        // Try network first, update cache, fallback to cache on offline
+        event.respondWith(
+            fetch(event.request)
+                .then(response => {
+                    const responseClone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseClone);
+                    });
+                    return response;
+                })
+                .catch(() => caches.match(event.request))
+        );
+    } else {
+        // NETWORK-ONLY STRATEGY:
+        // Skip cache entirely for API calls (ipify), BLE streams, and Blobs
+        event.respondWith(fetch(event.request));
+    }
 });
