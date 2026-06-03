@@ -2474,31 +2474,37 @@ const closeSentry = () => {
 const startSentryEngine = () => {
     if (sentryState.dataLoop) clearInterval(sentryState.dataLoop);
     
+    const _PI_ENABLED = false; // Task 17: Toggle to true when hardware is deployed
+
     sentryState.dataLoop = setInterval(async () => {
         if (!sentryState.active) return;
         const start = performance.now();
         let isLoss = false;
 
         // --- GHOST PI FORENSIC POLL (SILENT FAILOVER) ---
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 400); // 400ms timeout
-            // Target IP of the future Raspberry Pi data drop
-            const piRes = await fetch('http://10.0.0.99:8080/telemetry', { signal: controller.signal });
-            clearTimeout(timeoutId);
-            
-            if (piRes.ok) {
-                const piData = await piRes.json();
-                if (piData.threat_level === 'CRITICAL') logToSentry(sentryState.seq, `[PI] ALERT: ${piData.threat_type}`);
+        if (_PI_ENABLED) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 400); // 400ms timeout
+                // Target IP of the future Raspberry Pi data drop
+                const piRes = await fetch('http://10.0.0.99:8080/telemetry', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (piRes.ok) {
+                    const piData = await piRes.json();
+                    if (piData.threat_level === 'CRITICAL') logToSentry(sentryState.seq, `[PI] ALERT: ${piData.threat_type}`);
+                }
+            } catch(e) {
+                // Pi offline or not deployed yet. Proceed to heuristic fallback.
             }
-        } catch(e) {
-            // Pi offline or not deployed yet. Proceed to heuristic fallback.
         }
         // ------------------------------------------------
 
         try {
-            const target = window.location.href.split('#')[0] + '?t=' + start;
+            // Task 16: Ping favicon instead of full domain
+            const target = window.location.origin + '/favicon.ico?t=' + start;
             await fetch(target, { method: 'HEAD', cache: 'no-store' });
+            
             const end = performance.now();
             const rawLatency = end - start;
             
@@ -2516,12 +2522,14 @@ const startSentryEngine = () => {
             sentryState.currentLatency = 0;
             sentryState.stabilityScore = Math.max(0, sentryState.stabilityScore - 20);
         }
+        
         updateStatsUI(isLoss);
         const status = isLoss ? "LOSS" : (sentryState.jitter > 20 ? "UNSTABLE" : "OK");
         logToSentry(sentryState.seq++, `PING:${Math.round(sentryState.currentLatency)}ms JIT:${Math.round(sentryState.jitter)}ms [${status}]`);
     }, 1000);
 
     const drawFrame = () => {
+
         if (!sentryState.active) return;
         const { ctx, bufferCtx, width, height, currentLatency, jitter } = sentryState;
 
@@ -4603,6 +4611,10 @@ const _confirmOperatorId = async () => {
         } else {
             showToast('VAULT ACTIVE // READY', 'success');
         }
+
+        // Task 14: Mobile view reset to avoid stale detail pane after namespace switch
+        if (currentState.isMobile) setMobileView('list');
+
     } catch (e) {
         showToast('VAULT ERROR — GUEST MODE ACTIVE', 'error');
         await _initGuestSession();
