@@ -4716,43 +4716,6 @@ const _applyOperatorName = (name) => {
             resolve();
         }
     });
-            
-            const statusLine = document.createElement('div');
-            statusLine.className = 'text-green-500 font-mono text-[10px] tracking-widest mt-4 opacity-0 transition-opacity duration-300';
-            statusLine.style.textShadow = '0 0 8px rgba(34,197,94,0.8)';
-            statusLine.textContent = 'VAULT RECALLED // NAMESPACE RESTORED';
-            detailEmpty.appendChild(statusLine);
-            
-            setTimeout(() => statusLine.style.opacity = '1', 150);
-
-            // 3. THE HANG (Extended to 1200ms to allow visual confirmation)
-            setTimeout(() => {
-                detailEmpty.classList.add('anim-descend');
-                
-                // 4. THE EMERGENCE (Fires instantly alongside the descent)
-                if (leftPane) {
-                    leftPane.classList.add('anim-emerge');
-                    leftPane.style.opacity = '1'; 
-                }
-
-                // 5. CLEANUP: Reduced to 500ms to match the newly accelerated CSS timings
-                setTimeout(() => {
-                    if (leftPane) leftPane.classList.remove('anim-emerge');
-                    detailEmpty.classList.remove('anim-descend', 'vault-morph-active');
-                    
-                    detailEmpty.innerHTML = `
-                        <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']" style="letter-spacing: normal; color: ''; text-shadow: ''; transition: none;">SRC-D2 V5.1</span>
-                        <p class="text-lg neon-cyan" style="opacity: 1; transition: none;">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
-                        <p class="text-sm mt-2 opacity-70" style="opacity: 1; transition: none;">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>`;
-                    resolve();
-                }, 500);
-
-            }, 1200); 
-        } else {
-            if (leftPane) leftPane.style.opacity = '1';
-            resolve();
-        }
-    });
 
     /* ── WIRE OPERATOR MODAL ─────────────────────────────────────────────── */
     const opBleBtn = document.getElementById('op-ble-scan-btn');
