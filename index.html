@@ -1419,36 +1419,49 @@ DOMElements.exportForm.onsubmit = async (e) => {
             $('#detail-edit').onclick = () => openDataModal(type, id);
             $('#detail-delete').onclick = () => deleteItem(id, type);
             
-            // SMART IMPORT: Attachment button allows ALL files
-            $('#detail-attach').onclick = () => { 
-                currentState.attachmentContext = { id, type }; 
-                DOMElements.importFileInput.setAttribute('accept', '*/*');
-                DOMElements.importFileInput.click(); 
-            };
-            
-            $$('.view-att').forEach(b => b.onclick = (e) => handleViewAttachment(id, type, e.target.dataset.idx));
-            $$('.edit-att').forEach(b => b.onclick = (e) => openAttachmentEditModal(id, type, e.target.dataset.idx));
-            $$('.del-att').forEach(b => b.onclick = (e) => handleDeleteAttachment(id, type, e.target.dataset.idx));
-            
-            if(currentState.isMobile) setMobileView('detail');
+        // SMART IMPORT: Attachment button allows ALL files
+        $('#detail-attach').onclick = () => { 
+            currentState.attachmentContext = { id, type }; 
+            DOMElements.importFileInput.setAttribute('accept', '*/*');
+            DOMElements.importFileInput.click(); 
         };
+        
+        DOMElements.detailView.querySelectorAll('.view-att').forEach(b => b.onclick = (e) => handleViewAttachment(id, type, e.target.dataset.idx));
+        DOMElements.detailView.querySelectorAll('.edit-att').forEach(b => b.onclick = (e) => openAttachmentEditModal(id, type, e.target.dataset.idx));
+        DOMElements.detailView.querySelectorAll('.del-att').forEach(b => b.onclick = (e) => handleDeleteAttachment(id, type, e.target.dataset.idx));
+        
+        if(currentState.isMobile) setMobileView('detail');
+    };
 
-        const deleteItem = (id, type) => {
-            // SECURITY: escapeHtml applied to confirmation dialog
-            confirmAction(`Confirm deletion of ${type.toUpperCase()} ID: <b>${escapeHtml(id)}</b>?`, 'CONFIRM DELETION', async () => {
-                const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
-                let list = (await getFromLocalStorage(key)).filter(i => i.id !== id);
-                await saveToLocalStorage(key, list);
-                if (type === 'project') currentState.projects = list; else currentState.incidents = list;
-                renderList(type==='project'?DOMElements.projectList:DOMElements.incidentList, list, type);
-                if (currentState.selectedItem?.id === id) {
-                    DOMElements.detailView.innerHTML = DOMElements.detailEmpty.outerHTML;
-                    currentState.selectedItem = null;
-                    if (typeof window.updateSlingButton === 'function') window.updateSlingButton();
-                }
-                showToast('Entry deleted.', 'error');
-            });
-        };
+const deleteItem = (id, type) => {
+    confirmAction(`Confirm deletion of ${type.toUpperCase()} ID: <b>${escapeHtml(id)}</b>?`, 'CONFIRM DELETION', async () => {
+        const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
+        let list = await getFromLocalStorage(key);
+        
+        // --- NEW: Sweep IndexedDB Orphans ---
+        const itemToDelete = list.find(i => i.id === id);
+        if (itemToDelete && itemToDelete.attachments) {
+            for (const att of itemToDelete.attachments) {
+                if (att.id) await deleteAttachmentBlob(att.id);
+            }
+        }
+        // ------------------------------------
+
+        list = list.filter(i => i.id !== id);
+        await saveToLocalStorage(key, list);
+        
+        if (type === 'project') currentState.projects = list; else currentState.incidents = list;
+        renderList(type==='project'?DOMElements.projectList:DOMElements.incidentList, list, type);
+        
+        if (currentState.selectedItem?.id === id) {
+            DOMElements.detailView.innerHTML = DOMElements.detailEmpty.outerHTML;
+            currentState.selectedItem = null;
+            if (typeof window.updateSlingButton === 'function') window.updateSlingButton();
+        }
+        showToast('Entry deleted.', 'error');
+    });
+};
+
 
         const openDataModal = (type, id = null) => {
             setModalOpen(true);
@@ -4662,20 +4675,23 @@ const initPeaceOperator = async () => {
     _closeOperatorModal();
     
     // Unified Storage Retrieval using the Helper
-    const networkId = window.location.hostname || 'default_net';
-    const storedAuth = await getFromLocalStorage(`net_auth_${networkId}`, null);
-    
-    // Fallback: If no glyph provided, check local storage for this network
-    if (!glyph && storedAuth && storedAuth.name === name) {
-        glyph = storedAuth.glyph;
-    }
+const networkId = window.location.hostname || 'default_net';
+const storedAuthStr = localStorage.getItem(`net_auth_${networkId}`);
+let storedAuth = null;
+try { if (storedAuthStr) storedAuth = JSON.parse(storedAuthStr); } catch(e){}
 
-    if (name && glyph) {
-        // Persist session state securely
-        await saveToLocalStorage(`net_auth_${networkId}`, { name, glyph });
+// Fallback: If no glyph provided, check local storage for this network
+if (!glyph && storedAuth && storedAuth.name === name) {
+    glyph = storedAuth.glyph;
+}
+
+
+        if (name && glyph) {
+        // Persist session state securely (Bypass wrapper to force persistent storage)
+        localStorage.setItem(`net_auth_${networkId}`, JSON.stringify({ name, glyph }));
         localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
         localStorage.setItem('srcd2_session_glyph', glyph);
-        
+
         _applyOperatorName(name);
         try {
             const passkey = `${name}::${glyph}`;
