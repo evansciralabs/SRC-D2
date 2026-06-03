@@ -4585,11 +4585,15 @@ const initPeaceOperator = async () => {
             } catch(e) {}
 
             if (registry[device.id]) {
-                const mappedCallsign = registry[device.id];
-                document.getElementById('unlock-input').value = mappedCallsign;
+                const authData = registry[device.id];
+                // FIX: Construct the compound string "CALLSIGN:GLYPH" that _handleUnlock expects
+                const payloadString = `${authData.cs}:${authData.gl}`;
+                
+                document.getElementById('unlock-input').value = authData.cs; // Visual feedback
                 if (typeof showToast === 'function') showToast(`HARDWARE VERIFIED: ${device.name || 'WHITE FLAG'}`, 'success');
-                // Automatically execute the unlock sequence using the mapped callsign
-                _handleUnlock(mappedCallsign);
+                
+                // Pass the combined string payload to the unlock handler
+                _handleUnlock(payloadString);
             } else {
                 if (typeof showToast === 'function') showToast('HARDWARE KEY UNRECOGNIZED', 'error');
             }
@@ -4625,15 +4629,14 @@ const initPeaceOperator = async () => {
 
     // The Cryptographic Gatekeeper
     const _verifyNetworkAuth = async (callsign, providedGlyph) => {
-        const authKey = `srcd2_auth_${callsign}`;
-        const authConfig = await getFromLocalStorage(authKey, null);
+        const authConfig = await getFromLocalStorage('srcd2_auth_config', null);
         const activeNetID = await _refreshNetworkFingerprint();
-
+        
         // SCENARIO A: No Glyph has ever been bound to this Callsign.
         if (!authConfig) {
             if (providedGlyph) {
                 const hash = await _hashGlyph(providedGlyph);
-                await saveToLocalStorage(authKey, {
+                await saveToLocalStorage('srcd2_auth_config', {
                     glyphHash: hash,
                     approvedNets: [activeNetID]
                 });
@@ -4654,7 +4657,7 @@ const initPeaceOperator = async () => {
             const hash = await _hashGlyph(providedGlyph);
             if (hash === authConfig.glyphHash) {
                 authConfig.approvedNets.push(activeNetID);
-                await saveToLocalStorage(authKey, authConfig);
+                await saveToLocalStorage('srcd2_auth_config', authConfig);
                 showToast("NEW NETWORK APPROVED & LOGGED", "success");
                 return true;
             } else {
