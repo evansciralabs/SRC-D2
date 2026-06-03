@@ -1047,11 +1047,26 @@
             
             // v4 envelope — AES-GCM encrypted
             if (outer._srcd2_sig === 'PHANTOM' && outer._v === 4 && outer.payload) {
-                const decryptedString = await _decryptFromStorage(outer.payload);
+                let decryptedString = await _decryptFromStorage(outer.payload);
+                
                 if (decryptedString === outer.payload) {
-                    throw new Error("KEY_MISMATCH: Cannot unlock file data. Verify Callsign.");
+                    // Decryption failed with active Operator key. 
+                    // Fallback: Temporarily swap to the deterministic Guest Key to see if this is a Guest export.
+                    const originalKey = _sessionCryptoKey;
+                    try {
+                        _sessionCryptoKey = await _deriveKey('GUEST_PHANTOM_KEY_VOLATILE');
+                        decryptedString = await _decryptFromStorage(outer.payload);
+                    } finally {
+                        _sessionCryptoKey = originalKey; // Always restore the operator's key
+                    }
+                    
+                    if (decryptedString === outer.payload) {
+                        throw new Error("KEY_MISMATCH: Cannot unlock file data. Verify Callsign.");
+                    }
                 }
                 const parsed = JSON.parse(decryptedString);
+
+                // ENFORCE NETWORK/GLYPH BINDING ON IMPORT
 
                 // ENFORCE NETWORK/GLYPH BINDING ON IMPORT
                 if (parsed._authCheck) {
@@ -4686,7 +4701,7 @@ const initPeaceOperator = async () => {
                 _activeStorage = localStorage; 
                 _activeNamespace = name; 
                 
-                // 2. Execute Gatekeeper (Glyph is passed, but only checked if necessary)
+                // 2. EXECUTE GATEKEEPER
                 await _verifyNetworkAuth(name, glyph);
 
                 // 3. Update UI and persist active operator state
@@ -4746,11 +4761,15 @@ const initPeaceOperator = async () => {
         if (e.key === 'Escape') _closeOperatorModal();
     });
 
-    // ── ON LOAD — silent guest boot ──────────────────────────────────────
-    // Dashboard loads directly into guest session — no prompt, no friction.
-    // User enters their callsign via METRICS_SUMMARY.LOG when they choose to.
-    // _confirmOperatorId handles vault recall when callsign is entered.
-    (async () => { await _initGuestSession(); })();
+    // ── ON LOAD — evaluate returning operator vs guest boot ───────────────
+    (async () => { 
+        const existingOperator = localStorage.getItem(STORAGE_KEYS.OPERATOR_NAME);
+        if (existingOperator) {
+            _showUnlockModal();
+        } else {
+            await _initGuestSession(); 
+        }
+    })();
 
     /* --- EXTERNAL DOCUMENT BRIDGE --- */
     const openExternalDoc = (url, title) => {
