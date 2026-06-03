@@ -4585,8 +4585,8 @@ const _applyOperatorName = (name) => {
     };
 
     /* ── LAYER 1: CALLSIGN VAULT RECALL ─────────────────────────────────── */
-const _normalizeCallsign = (raw) => raw.trim().normalize('NFC');
-
+const _normalizeCallsign = (raw) => raw.trim().normalize('NFC').toUpperCase();
+        
 const _confirmOperatorId = async () => {
     const name = _normalizeCallsign(_operatorInput.value);
     const glyph = _operatorGlyphInput.value.trim();
