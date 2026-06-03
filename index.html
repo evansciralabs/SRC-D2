@@ -2004,6 +2004,10 @@ const deleteItem = (id, type) => {
         /* --- INIT --- */
         // Centralised data loader — called after auth track is resolved
 const _loadDashboard = async () => {
+    const testKey = getNsKey(STORAGE_KEYS.PROJECTS);
+    const testVal = _activeStorage.getItem(testKey);
+    showToast(`NS: ${_activeNamespace} | KEY: ${testKey} | HAS DATA: ${!!testVal}`, 'info', 6000);
+    
     currentState.projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
     currentState.incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
     showToast(`LOADED: ${currentState.projects.length}P ${currentState.incidents.length}I`, 'info');
