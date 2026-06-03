@@ -4612,29 +4612,31 @@ const initPeaceOperator = async () => {
         }
     };
 
-const _confirmOperatorId = async () => {
+    const _confirmOperatorId = async () => {
     const nameInput = document.getElementById('operator-name-input');
     const glyphInput = document.getElementById('operator-glyph-input');
     
     const name = nameInput.value.trim().toUpperCase();
     let glyph = glyphInput.value.trim();
     
-    // Clear inputs immediately for security
+    // Clear DOM inputs immediately
     nameInput.value = '';
     glyphInput.value = '';
     
     _closeOperatorModal();
     
-    // Fallback: If no glyph provided, check local storage for this network
+    // Unified Storage Retrieval using the Helper
     const networkId = window.location.hostname || 'default_net';
-    const storedAuth = JSON.parse(localStorage.getItem(`srcd2_net_auth_${networkId}`));
+    const storedAuth = await getFromLocalStorage(`net_auth_${networkId}`, null);
     
+    // Fallback: If no glyph provided, check local storage for this network
     if (!glyph && storedAuth && storedAuth.name === name) {
         glyph = storedAuth.glyph;
     }
 
     if (name && glyph) {
-        // Persist session state
+        // Persist session state securely
+        await saveToLocalStorage(`net_auth_${networkId}`, { name, glyph });
         localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
         localStorage.setItem('srcd2_session_glyph', glyph);
         
