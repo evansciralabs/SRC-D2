@@ -4585,8 +4585,10 @@ const _applyOperatorName = (name) => {
     };
 
     /* ── LAYER 1: CALLSIGN VAULT RECALL ─────────────────────────────────── */
+const _normalizeCallsign = (raw) => raw.trim().normalize('NFC');
+
 const _confirmOperatorId = async () => {
-    const name = _operatorInput.value.trim().toUpperCase();
+    const name = _normalizeCallsign(_operatorInput.value);
     const glyph = _operatorGlyphInput.value.trim();
     _operatorInput.value = '';
     _operatorGlyphInput.value = '';
@@ -4691,7 +4693,7 @@ const _confirmOperatorId = async () => {
         if (paste.includes(':')) {
             e.preventDefault();
             const [cs, gl] = paste.split(':');
-            _operatorInput.value = cs.trim();
+            _operatorInput.value = cs.trim().normalize('NFC');
             _operatorGlyphInput.value = gl.trim();
             showToast('CREDENTIALS PARSED', 'info');
         }
