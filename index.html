@@ -1033,9 +1033,15 @@ const _refreshNetworkFingerprint = async () => {
                 msg = `Import Success (MERGE): ${pResult.addedCount + iResult.addedCount} Added, ${pResult.updatedCount + iResult.updatedCount} Updated.`;
             }
 
-            await saveToLocalStorage(STORAGE_KEYS.PROJECTS, finalProjects);
-            await saveToLocalStorage(STORAGE_KEYS.INCIDENTS, finalIncidents);
+            const pSaved = await saveToLocalStorage(STORAGE_KEYS.PROJECTS, finalProjects);
+            const iSaved = await saveToLocalStorage(STORAGE_KEYS.INCIDENTS, finalIncidents);
             await saveScratchpadToSessionStorage(finalScratchpad);
+            
+            // CRITICAL FIX: Abort RAM update if storage quota is exceeded
+            if (!pSaved || !iSaved) {
+                showToast('CRITICAL: STORAGE QUOTA EXCEEDED. IMPORT FAILED.', 'error', 6000);
+                return; 
+            }
             
             currentState.projects = finalProjects;
             currentState.incidents = finalIncidents;
@@ -1457,9 +1463,9 @@ DOMElements.exportForm.onsubmit = async (e) => {
             DOMElements.importFileInput.click(); 
         };
         
-        DOMElements.detailView.querySelectorAll('.view-att').forEach(b => b.onclick = (e) => handleViewAttachment(id, type, e.target.dataset.idx));
-        DOMElements.detailView.querySelectorAll('.edit-att').forEach(b => b.onclick = (e) => openAttachmentEditModal(id, type, e.target.dataset.idx));
-        DOMElements.detailView.querySelectorAll('.del-att').forEach(b => b.onclick = (e) => handleDeleteAttachment(id, type, e.target.dataset.idx));
+        DOMElements.detailView.querySelectorAll('.view-att').forEach(b => b.onclick = function() { handleViewAttachment(id, type, parseInt(this.dataset.idx, 10)); });
+        DOMElements.detailView.querySelectorAll('.edit-att').forEach(b => b.onclick = function() { openAttachmentEditModal(id, type, parseInt(this.dataset.idx, 10)); });
+        DOMElements.detailView.querySelectorAll('.del-att').forEach(b => b.onclick = function() { handleDeleteAttachment(id, type, parseInt(this.dataset.idx, 10)); });
         
         if(currentState.isMobile) setMobileView('detail');
     };
@@ -1705,10 +1711,16 @@ const deleteItem = (id, type) => {
                 item.attachments.splice(idx, 1);
                 const key = type === 'project' ? STORAGE_KEYS.PROJECTS : STORAGE_KEYS.INCIDENTS;
                 let list = (await getFromLocalStorage(key)).map(i => i.id===id ? item : i);
-                await saveToLocalStorage(key, list);
+                
+                const saved = await saveToLocalStorage(key, list);
+                if (!saved) {
+                    showToast('DELETION FAILED: STORAGE ERROR.', 'error');
+                    return;
+                }
+                
                 if(type==='project') currentState.projects = list; else currentState.incidents = list;
                 renderDetail(id, type);
-                showToast('Attachment deleted.', 'error');
+                showToast('Attachment deleted.', 'success');
             });
         };
 
@@ -4466,8 +4478,13 @@ const initPeaceOperator = async () => {
         const combined = new Uint8Array(iv.byteLength + cipherBuf.byteLength);
         combined.set(iv, 0);
         combined.set(new Uint8Array(cipherBuf), iv.byteLength);
+        
+        // OPTIMIZATION: Chunked conversion prevents memory lockup on large saves
         let b = '';
-        for (let i = 0; i < combined.byteLength; i++) b += String.fromCharCode(combined[i]);
+        const chunk = 8192;
+        for (let i = 0; i < combined.byteLength; i += chunk) {
+            b += String.fromCharCode.apply(null, combined.subarray(i, i + chunk));
+        }
         return _STORAGE_CRYPTO_PREFIX + btoa(b);
     };
 
