@@ -25,11 +25,11 @@ body.ghost-mode .btn-midnight-purple,body.ghost-mode .glow-border-cyan,body.ghos
     100% { transform: scale(0.5); filter: blur(10px); opacity: 0; }
 }
 @keyframes data-emerge {
-    0% { transform: scale(0.9) translateY(20px); filter: blur(8px); opacity: 0; }
+    0% { transform: scale(0.9) translateY(40px); filter: blur(8px); opacity: 0; }
     100% { transform: scale(1) translateY(0); filter: blur(0px); opacity: 1; }
 }
-.anim-descend { animation: vault-descend 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
-.anim-emerge { animation: data-emerge 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+.anim-descend { animation: vault-descend 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.anim-emerge { animation: data-emerge 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; }
 
         /* VΞILPØINT STYLES */
 .veil-container{display:flex;align-items:center;gap:10px;padding:4px 10px;background:rgba(5,10,20,.8);border:1px solid #1e293b;border-radius:4px;cursor:pointer;transition:all .3s ease}.veil-container:hover{border-color:#0ff;background:rgba(0,255,255,.05)}.veil-eye{width:12px;height:12px;background:#000;border:1px solid #475569;transform:rotate(45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 0 5px rgba(0,0,0,0.8);transition:all .2s ease}.veil-pupil{width:4px;height:4px;background:#334155;border-radius:50%;transition:all .1s cubic-bezier(.4,0,.2,1);transform:rotate(-45deg)}.veil-eye.active{border-color:#0ff;box-shadow:0 0 10px #0ff,inset 0 0 4px #0ff}.veil-eye.active .veil-pupil{background:#fff;box-shadow:0 0 5px #fff;transform:rotate(-45deg) scale(1.4)}.veil-eye.danger{border-color:#f00;box-shadow:0 0 15px #f00,inset 0 0 5px #f00;animation:veil-glare .1s infinite alternate}.veil-eye.danger .veil-pupil{background:#f00;width:8px;height:2px;border-radius:0;transform:rotate(-45deg)}@keyframes veil-glare{from{opacity:1}to{opacity:.7}}.veil-text{font-family:'Michroma',sans-serif;font-size:10px;letter-spacing:2px;color:#475569;transition:color .3s ease}.veil-container:hover .veil-text{color:#94a3b8}.veil-eye.active~.veil-text{color:#0ff;text-shadow:0 0 5px #0ff}.veil-eye.danger~.veil-text{color:#f00;text-shadow:0 0 8px #f00}.tech-tag-container{position:absolute;top:100%;right:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px;pointer-events:none;padding-top:8px;z-index:50}.tech-tag{font-family:'Space Mono',monospace;font-size:10px;padding:4px 8px;background:rgba(5,10,25,.95);border-left:2px solid #0ff;color:#0ff;box-shadow:0 2px 5px rgba(0,0,0,0.5);opacity:0;transform:translateX(10px);animation:slide-in-fade 3s forwards}.tech-tag.danger{border-left-color:#f00;color:#f33}@keyframes slide-in-fade{0%{opacity:0;transform:translateX(10px)}10%{opacity:1;transform:translateX(0)}80%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(0)}}
@@ -4682,17 +4682,17 @@ const _applyOperatorName = (name) => {
             
             setTimeout(() => statusLine.style.opacity = '1', 150);
 
-            // 3. THE HANG (Trimmed to 600ms for snappiness)
+            // 3. THE HANG (Extended to 1200ms to allow visual confirmation)
             setTimeout(() => {
                 detailEmpty.classList.add('anim-descend');
                 
-                // 4. THE EMERGENCE (Fires instantly alongside the descent to eliminate lag)
+                // 4. THE EMERGENCE (Fires instantly alongside the descent)
                 if (leftPane) {
                     leftPane.classList.add('anim-emerge');
                     leftPane.style.opacity = '1'; 
                 }
 
-                // 5. CLEANUP: Reset DOM for standard operation
+                // 5. CLEANUP: Reduced to 500ms to match the newly accelerated CSS timings
                 setTimeout(() => {
                     if (leftPane) leftPane.classList.remove('anim-emerge');
                     detailEmpty.classList.remove('anim-descend', 'vault-morph-active');
@@ -4702,9 +4702,9 @@ const _applyOperatorName = (name) => {
                         <p class="text-lg neon-cyan" style="opacity: 1; transition: none;">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
                         <p class="text-sm mt-2 opacity-70" style="opacity: 1; transition: none;">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>`;
                     resolve();
-                }, 800); // Safely covers the animation duration
+                }, 500);
 
-            }, 600); 
+            }, 1200); 
         } else {
             if (leftPane) leftPane.style.opacity = '1';
             resolve();
