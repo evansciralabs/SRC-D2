@@ -1086,11 +1086,10 @@ const _refreshNetworkFingerprint = async () => {
                 
                 if (decryptedString === outer.payload) {
                 // Decryption failed with active Operator key. 
-                // Fallback: Temporarily swap to the volatile Guest Key to see if this is a Guest export.
+                // Fallback: Temporarily swap to the static Guest Key to check for legacy/clear files.
                 const originalKey = _sessionCryptoKey;
                 try {
-                    const guestPass = sessionStorage.getItem('srcd2_guest_volatile') || 'GUEST_PHANTOM_KEY_VOLATILE';
-                    _sessionCryptoKey = await _deriveKey(guestPass);
+                    _sessionCryptoKey = await _deriveKey('GUEST_PHANTOM_KEY_VOLATILE');
                     decryptedString = await _decryptFromStorage(outer.payload);
                 } finally {
                     _sessionCryptoKey = originalKey; // Always restore the operator's key
@@ -4546,14 +4545,13 @@ const _applyOperatorName = (name) => {
         _activeStorage = sessionStorage;
         _activeNamespace = 'GUEST';
         
-        // Task 4: Generate or retrieve volatile guest passphrase
-        let guestPass = sessionStorage.getItem('srcd2_guest_volatile');
-        if (!guestPass) {
-            guestPass = 'GUEST_' + generateId();
-            sessionStorage.setItem('srcd2_guest_volatile', guestPass);
-        }
-        
-        _sessionCryptoKey = await _deriveKey(guestPass);
+        // TRUE VOLATILITY: Force-wipe session storage to prevent PWA background persistence
+        Object.keys(sessionStorage).forEach(key => {
+            if (key.startsWith('srcd2_')) sessionStorage.removeItem(key);
+        });
+
+        // Restore static key so v4.8 exports and legacy "clear files" decrypt properly
+        _sessionCryptoKey = await _deriveKey('GUEST_PHANTOM_KEY_VOLATILE');
         await _loadDashboard();
     };
 
