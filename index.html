@@ -865,11 +865,9 @@ const _refreshNetworkFingerprint = async () => {
             try {
                 const stored = _activeStorage.getItem(getNsKey(key));
                 if (!stored) return defaultVal;
-                const plain = await _decryptFromStorage(stored);
-                // null means decrypt failed (wrong key) — treat as no data
-                if (plain === null) return defaultVal;
-                return JSON.parse(plain) ?? defaultVal;
-            } catch { return defaultVal; }
+const plain = await _decryptFromStorage(stored);
+if (!plain) return defaultVal;
+return JSON.parse(plain) ?? defaultVal;            } catch { return defaultVal; }
         };
 
         const saveToLocalStorage = async (key, data) => {
@@ -4532,10 +4530,9 @@ const initPeaceOperator = async () => {
                 );
                 const decrypted = new TextDecoder().decode(plainBuf);
                 return await _maybeDecompress(decrypted);
-            } catch {
-                // KEY MISMATCH — return null so callers fall back to defaultVal cleanly
-                return null;
-            }
+} catch {
+    return stored;
+}
         };
 
     // Encrypted localStorage wrappers — drop-in replacements
