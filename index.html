@@ -4575,13 +4575,6 @@ const initPeaceOperator = async () => {
         }
     };
 
-    // ── GHOST KEY — ephemeral AES key for guest track ───────────────────
-    const _generateEphemeralKey = async () => {
-        return await crypto.subtle.generateKey(
-            { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
-        );
-    };
-
     // ── VAULT RESTORE ANIMATION ─────────────────────────────────────────────
         const _vaultFadeIn = (callsign) => new Promise((resolve) => {
             const stale = document.getElementById('vault-restore-overlay');
