@@ -2435,28 +2435,33 @@ const openNetModal = () => {
         document.getElementById('btn-fetch-ip').onclick = fetchPublicIP;
         document.getElementById('btn-export-log').onclick = exportSentryLog;
         document.getElementById('ns-prov-btn').onclick = () => {
-            // The full array of system glyphs
+            // Guard: Deny provisioning for Guest users
+            if (_activeNamespace === 'GUEST') {
+                if (typeof showToast === 'function') showToast("CALLSIGN REQUIRED TO PROVISION GLYPH", "error");
+                return;
+            }
+
             const glyphs = ['★', '☆', '✦', '✧', '✩', '✪', '✫', '✬', '✭', '✮', '✯', '✰', '✵', '✶', '✷', '✸', '✹', '❂', '✴', '✲', '✱', '✳', '⬢', '⬣', '⬡', '⎔', '⌬', '⏣'];
             const glyph = glyphs[Math.floor(Math.random() * glyphs.length)];
             const out = document.getElementById('ns-prov-out');
             
-            // Reset visibility states to ensure the generated glyph is displayed
+            // Reset visibility states
             out.style.transition = 'none';
             out.style.opacity = '1';
             out.style.transform = 'scale(1) translateZ(0)';
-            out.style.cursor = 'default';
+            out.style.cursor = 'pointer';
             out.innerText = glyph;
             
-            // Auto-populate the operator modal input
-            const glyphInput = document.getElementById('operator-glyph-input');
-            if (glyphInput) {
-                glyphInput.value = glyph;
-                if (typeof showToast === 'function') {
-                    showToast("GLYPH MAPPED TO OPERATOR BUFFER", "success");
-                }
-            } else {
-                console.warn("Operator Modal not initialized; glyph captured in telemetry only.");
-            }
+            // Action: Click the glyph to copy the payload and trigger the fade animation
+            out.onclick = () => {
+                const payload = `${_activeNamespace}:${glyph}`;
+                navigator.clipboard.writeText(payload).then(() => {
+                    out.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                    out.style.opacity = '0';
+                    out.style.transform = 'scale(1.5) translateZ(0)';
+                    out.onclick = null; // Unbind to prevent duplicate firing
+                });
+            };
         };
 
     }
@@ -4555,107 +4560,103 @@ const _applyOperatorName = (name) => {
     /* ── LAYER 2: NETWORK/GLYPH CHECK ───────────────────────────────────── */
     const _checkNetworkGlyph = async (callsign, providedGlyph) => {
         const cfgKey = `srcd2_net_cfg_${callsign}`;
-        const nodeID = _currentNetworkID;
+        const nodeID = await _refreshNetworkFingerprint(); // Evaluate current dynamic network state
 
         let cfg = null;
         try {
             const raw = localStorage.getItem(cfgKey);
-            if (raw) {
-                try { cfg = JSON.parse(raw); } catch {}
-            }
+            if (raw) cfg = JSON.parse(raw);
         } catch {}
 
-        // No glyph ever bound — Layer 1 only, always pass
+        // 1. Initial Glyph Binding (Setting the lock)
         if (!cfg) {
             if (providedGlyph) {
-                // First-time glyph bind
                 const hash = await _hashGlyph(providedGlyph);
-                const newCfg = { glyphHash: hash, approvedNets: [nodeID] };
-                localStorage.setItem(cfgKey, JSON.stringify(newCfg));
-                showToast('GLYPH BOUND // NETWORK APPROVED', 'success');
+                cfg = { glyphHash: hash, approvedNets: [nodeID] };
+                localStorage.setItem(cfgKey, JSON.stringify(cfg));
+                showToast('GLYPH BOUND // NETWORK SECURED', 'success');
             }
-            return { pass: true };
+            return { pass: true }; // Allows Layer 1 entry to set up the dashboard initially
         }
 
-        // Glyph bound — check if this network is approved
+        // 2. Config Exists - Check if Network is Approved
         if (cfg.approvedNets && cfg.approvedNets.includes(nodeID)) {
-            return { pass: true }; // known network, no glyph needed
+            return { pass: true }; // On an allowed network, standard callsign entry works
         }
 
-        // Unknown network — glyph required
-        if (!providedGlyph) {
-            return { pass: false, reason: 'NEW_NETWORK' };
-        }
+        // 3. Unknown Network - Glyph is MANDATORY for silent fail evaluation
+        if (!providedGlyph) return { pass: false, silent: true };
 
+        // 4. Unknown Network + Glyph Provided - Verify Integrity
         const hash = await _hashGlyph(providedGlyph);
-        if (hash !== cfg.glyphHash) {
-            return { pass: false, reason: 'INVALID_GLYPH' };
-        }
+        if (hash !== cfg.glyphHash) return { pass: false, silent: true }; // Honeypot trap
 
-        // Glyph matched — whitelist this network
+        // 5. Valid Glyph on Unknown Network - Add to Approved Routing
         cfg.approvedNets.push(nodeID);
         localStorage.setItem(cfgKey, JSON.stringify(cfg));
-        showToast('NEW NETWORK APPROVED', 'success');
+        showToast('NEW NETWORK ADDED TO APPROVED ROUTING', 'success');
         return { pass: true };
     };
 
     /* ── LAYER 1: CALLSIGN VAULT RECALL ─────────────────────────────────── */
-const _normalizeCallsign = (raw) => raw.trim().normalize('NFC').toUpperCase();
-        
-const _confirmOperatorId = async () => {
-    const name = _normalizeCallsign(_operatorInput.value);
-    const glyph = _operatorGlyphInput.value.trim();
-    _operatorInput.value = '';
-    _operatorGlyphInput.value = '';
-    _closeOperatorModal();
+    const _normalizeCallsign = (raw) => raw.trim().normalize('NFC').toUpperCase();
+            
+    const _confirmOperatorId = async () => {
+        const name = _normalizeCallsign(_operatorInput.value);
+        const glyph = _operatorGlyphInput.value.trim();
+        _operatorInput.value = '';
+        _operatorGlyphInput.value = '';
+        _closeOperatorModal();
 
-    if (!name) {
-        localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
-        _applyOperatorName('');
-        await _initGuestSession();
-        showToast('GUEST MODE ACTIVE', 'info');
-        return;
-    }
-
-    try {
-        // Layer 2 check first — only if glyph config exists
-        const netResult = await _checkNetworkGlyph(name, glyph);
-        if (!netResult.pass) {
-            if (netResult.reason === 'NEW_NETWORK') {
-                showToast('NEW NETWORK DETECTED — ENTER CALLSIGN + GLYPH TO APPROVE', 'error');
-            } else {
-                showToast('INVALID GLYPH — ACCESS DENIED', 'error');
-            }
+        if (!name) {
+            localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
+            _applyOperatorName('');
+            await _initGuestSession();
+            showToast('GUEST MODE ACTIVE', 'info');
             return;
         }
 
-        // Layer 1 — derive key, switch namespace, recall vault
         try {
-            _sessionCryptoKey = await _deriveKey(name);
+            // Layer 2 Honeypot Gatekeeper
+            const netResult = await _checkNetworkGlyph(name, glyph);
+            if (!netResult.pass) {
+                // SILENT FAIL: Boot to Guest Mode without alerting the intruder
+                localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
+                _applyOperatorName('');
+                await _initGuestSession();
+                
+                // Only show a generic info toast if it wasn't explicitly flagged as a silent security trap
+                if (!netResult.silent) showToast('GUEST MODE ACTIVE', 'info');
+                return;
+            }
+
+            // Layer 1 Vault Decryption
+            try {
+                _sessionCryptoKey = await _deriveKey(name);
+            } catch (e) {
+                await _initGuestSession(); // Silent fail on decryption error
+                return;
+            }
+            
+            _activeStorage = localStorage;
+            _activeNamespace = name;
+            localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+            _applyOperatorName(name);
+            await _loadDashboard();
+
+            const hasData = currentState.projects.length > 0 || currentState.incidents.length > 0;
+            if (hasData) {
+                await _vaultFadeIn(name);
+            } else {
+                showToast('VAULT ACTIVE // READY', 'success');
+            }
+
+            if (currentState.isMobile) setMobileView('list');
+
         } catch (e) {
-            showToast(`KEY DERIVE FAILED: ${e.message}`, 'error'); return;
+            await _initGuestSession(); // Catch-all silent fail
         }
-        _activeStorage = localStorage;
-        _activeNamespace = name;
-        localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-        _applyOperatorName(name);
-        await _loadDashboard();
-
-        const hasData = currentState.projects.length > 0 || currentState.incidents.length > 0;
-        if (hasData) {
-            await _vaultFadeIn(name);
-        } else {
-            showToast('VAULT ACTIVE // READY', 'success');
-        }
-
-        // Task 14: Mobile view reset to avoid stale detail pane after namespace switch
-        if (currentState.isMobile) setMobileView('list');
-
-    } catch (e) {
-        showToast('VAULT ERROR — GUEST MODE ACTIVE', 'error');
-        await _initGuestSession();
-    }
-};
+    };
 
     /* ── VAULT RESTORE ANIMATION ─────────────────────────────────────────── */
     const _vaultFadeIn = (callsign) => new Promise((resolve) => {
