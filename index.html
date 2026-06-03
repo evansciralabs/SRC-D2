@@ -4572,7 +4572,7 @@ const initPeaceOperator = async () => {
                 _activeNamespace = name; 
                 
                 // EXECUTE GATEKEEPER
-                await _verifyNetworkAuth(glyph);
+                await _verifyNetworkAuth(name, glyph);
 
                 _applyOperatorName(name);
                 localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
