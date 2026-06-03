@@ -862,13 +862,13 @@ const _refreshNetworkFingerprint = async () => {
         const getNsKey = (key) => key === STORAGE_KEYS.OPERATOR_NAME ? key : `${key}_${_activeNamespace}`;
 
         const getFromLocalStorage = async (key, defaultVal = []) => {
-            try {
-                const stored = _activeStorage.getItem(getNsKey(key));
-                if (!stored) return defaultVal;
-const plain = await _decryptFromStorage(stored);
-if (!plain) return defaultVal;
-return JSON.parse(plain) ?? defaultVal;            } catch { return defaultVal; }
-        };
+    try {
+        const stored = _activeStorage.getItem(getNsKey(key));
+        if (!stored) return defaultVal;
+        const plain = await _decryptFromStorage(stored);
+        return JSON.parse(plain) || defaultVal;
+    } catch { return defaultVal; }
+};
 
         const saveToLocalStorage = async (key, data) => {
             try {
@@ -2003,12 +2003,13 @@ const deleteItem = (id, type) => {
 
         /* --- INIT --- */
         // Centralised data loader — called after auth track is resolved
-        const _loadDashboard = async () => {
-            currentState.projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
-            currentState.incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
-            renderList(DOMElements.projectList, currentState.projects, 'project');
-            renderList(DOMElements.incidentList, currentState.incidents, 'incident');
-        };
+const _loadDashboard = async () => {
+    currentState.projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
+    currentState.incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
+    showToast(`LOADED: ${currentState.projects.length}P ${currentState.incidents.length}I`, 'info');
+    renderList(DOMElements.projectList, currentState.projects, 'project');
+    renderList(DOMElements.incidentList, currentState.incidents, 'incident');
+};
 
         const initApp = async () => {
             await openDatabase();
@@ -4513,14 +4514,14 @@ const initPeaceOperator = async () => {
         setModalOpen(false);
     };
 
-    const _applyOperatorName = (name) => {
-        if (name) {
-            _operatorDisplay.textContent = '> [OPERATOR]';
-            _operatorDisplay.classList.remove('hidden');
-        } else {
-            _operatorDisplay.classList.add('hidden');
-        }
-    };
+const _applyOperatorName = (name) => {
+    if (name) {
+        _operatorDisplay.textContent = '> ' + name;
+        _operatorDisplay.classList.remove('hidden');
+    } else {
+        _operatorDisplay.classList.add('hidden');
+    }
+};
 
     /* ── LAYER 0: GUEST SESSION ─────────────────────────────────────────── */
     const _initGuestSession = async () => {
@@ -4580,52 +4581,56 @@ const initPeaceOperator = async () => {
     };
 
     /* ── LAYER 1: CALLSIGN VAULT RECALL ─────────────────────────────────── */
-    const _confirmOperatorId = async () => {
-        const name = _operatorInput.value.trim().toUpperCase();
-        const glyph = _operatorGlyphInput.value.trim();
-        _operatorInput.value = '';
-        _operatorGlyphInput.value = '';
-        _closeOperatorModal();
+const _confirmOperatorId = async () => {
+    const name = _operatorInput.value.trim().toUpperCase();
+    const glyph = _operatorGlyphInput.value.trim();
+    _operatorInput.value = '';
+    _operatorGlyphInput.value = '';
+    _closeOperatorModal();
 
-        if (!name) {
-            localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
-            _applyOperatorName('');
-            await _initGuestSession();
-            showToast('GUEST MODE ACTIVE', 'info');
+    if (!name) {
+        localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
+        _applyOperatorName('');
+        await _initGuestSession();
+        showToast('GUEST MODE ACTIVE', 'info');
+        return;
+    }
+
+    try {
+        // Layer 2 check first — only if glyph config exists
+        const netResult = await _checkNetworkGlyph(name, glyph);
+        if (!netResult.pass) {
+            if (netResult.reason === 'NEW_NETWORK') {
+                showToast('NEW NETWORK DETECTED — ENTER CALLSIGN + GLYPH TO APPROVE', 'error');
+            } else {
+                showToast('INVALID GLYPH — ACCESS DENIED', 'error');
+            }
             return;
         }
 
+        // Layer 1 — derive key, switch namespace, recall vault
         try {
-            // Layer 2 check first — only if glyph config exists
-            const netResult = await _checkNetworkGlyph(name, glyph);
-            if (!netResult.pass) {
-                if (netResult.reason === 'NEW_NETWORK') {
-                    showToast('NEW NETWORK DETECTED — ENTER CALLSIGN + GLYPH TO APPROVE', 'error');
-                } else {
-                    showToast('INVALID GLYPH — ACCESS DENIED', 'error');
-                }
-                return; // stay in guest, don't recall
-            }
-
-            // Layer 1 — derive key, switch namespace, recall vault
             _sessionCryptoKey = await _deriveKey(name);
-            _activeStorage = localStorage;
-            _activeNamespace = name;
-            localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-            _applyOperatorName(name);
-            await _loadDashboard();
-
-            const hasData = currentState.projects.length > 0 || currentState.incidents.length > 0;
-            if (hasData) {
-                await _vaultFadeIn(name);
-            } else {
-                showToast('VAULT ACTIVE // READY', 'success');
-            }
         } catch (e) {
-            showToast('VAULT ERROR — GUEST MODE ACTIVE', 'error');
-            await _initGuestSession();
+            showToast(`KEY DERIVE FAILED: ${e.message}`, 'error'); return;
         }
-    };
+        _activeStorage = localStorage;
+        _activeNamespace = name;
+        localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+        _applyOperatorName(name);
+        await _loadDashboard();
+
+        const hasData = currentState.projects.length > 0 || currentState.incidents.length > 0;
+        if (hasData) {
+            await _vaultFadeIn(name);
+        } else {
+            showToast('VAULT ACTIVE // READY', 'success');
+        }
+    } catch (e) {
+        showToast('VAULT ERROR — GUEST MODE ACTIVE', 'error');
+        await _initGuestSession();
+    }
+};
 
     /* ── VAULT RESTORE ANIMATION ─────────────────────────────────────────── */
     const _vaultFadeIn = (callsign) => new Promise((resolve) => {
