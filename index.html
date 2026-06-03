@@ -2160,8 +2160,7 @@ const deleteItem = (id, type) => {
 
             if(currentState.isMobile) setMobileView('list');
             
-// ── BOOT SEQUENCE ──
-await _initGuestSession();
+// Boot handled by operator module below initApp
             
             console.log("%c WEYU-UTANI CORP ", "background: #000; color: #FFF000; font-size: 20px; font-weight: bold;");
             console.log("SYSTEM: SRC-D2 // PEACE_OPERATOR");
@@ -4403,20 +4402,17 @@ const initPeaceOperator = async () => {
     };
 
 
-    /* ── OPERATOR ID MODULE ─────────────────────────────────────────────────
-       Completely separate from file encryption (btoa/base64uri).
-       Passphrase → PBKDF2 → AES-GCM key stored only in sessionStorage.
-       localStorage reads/writes transparently encrypt/decrypt with this key.
-       Tab close = key gone = localStorage locked.
+/* ── OPERATOR ID MODULE ─────────────────────────────────────────────────
+       LAYER 0 — Guest: sessionStorage + ephemeral key, wipes on tab close
+       LAYER 1 — Callsign: localStorage + PBKDF2 key, isolated namespace, vault recall
+       LAYER 2 — Glyph: network-bound glyph tied to callsign, blocks unknown networks
     ── */
 
-    // Session-scoped crypto key — never persisted to disk
     let _sessionCryptoKey = null;
 
-
-    const _SALT = 'SRC-D2-PHANTOM-SALT-V1'; // fixed salt; key strength comes from passphrase
+    const _SALT = 'SRC-D2-PHANTOM-SALT-V1';
     const _STORAGE_CRYPTO_PREFIX = 'srcd2_enc_';
-    const _STORAGE_GZ_PREFIX = 'srcd2_gz_'; // marks compressed-then-encrypted payload
+    const _STORAGE_GZ_PREFIX = 'srcd2_gz_';
 
     const _deriveKey = async (passphrase) => {
         const enc = new TextEncoder();
@@ -4432,7 +4428,6 @@ const initPeaceOperator = async () => {
         );
     };
 
-    // Compress a string → base64 gzip bytes
     const _compress = async (str) => {
         try {
             const stream = new CompressionStream('gzip');
@@ -4441,16 +4436,12 @@ const initPeaceOperator = async () => {
             writer.close();
             const buf = await new Response(stream.readable).arrayBuffer();
             const bytes = new Uint8Array(buf);
-            let binaryStr = '';
-            for (let i = 0; i < bytes.byteLength; i++) binaryStr += String.fromCharCode(bytes[i]);
-            return btoa(binaryStr);
-        } catch (e) {
-            // CompressionStream unavailable — return plain string
-            return str;
-        }
+            let b = '';
+            for (let i = 0; i < bytes.byteLength; i++) b += String.fromCharCode(bytes[i]);
+            return btoa(b);
+        } catch { return str; }
     };
 
-    // Decompress base64 gzip bytes → string
     const _decompress = async (b64) => {
         try {
             const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -4460,87 +4451,59 @@ const initPeaceOperator = async () => {
             writer.close();
             const buf = await new Response(stream.readable).arrayBuffer();
             return new TextDecoder().decode(buf);
-        } catch (e) {
-            // Decompression failed — return as-is (legacy uncompressed data)
-            return b64;
-        }
+        } catch { return b64; }
     };
 
     const _encryptForStorage = async (plaintext) => {
-        // Step 1: compress — smaller payload benefits both storage and encryption
         const compressed = await _compress(plaintext);
         const isCompressed = compressed !== plaintext;
-        // Step 2: encrypt if session key present
         if (!_sessionCryptoKey) {
-            // No key — store compressed with gz prefix if compression worked,
-            // otherwise plain (CompressionStream unavailable)
             return isCompressed ? _STORAGE_GZ_PREFIX + compressed : plaintext;
         }
         const enc = new TextEncoder();
         const iv = crypto.getRandomValues(new Uint8Array(12));
-        // Encrypt the compressed payload
         const input = isCompressed ? _STORAGE_GZ_PREFIX + compressed : plaintext;
         const cipherBuf = await crypto.subtle.encrypt(
             { name: 'AES-GCM', iv }, _sessionCryptoKey, enc.encode(input)
         );
-        // Pack IV + ciphertext as base64 string with enc marker
         const combined = new Uint8Array(iv.byteLength + cipherBuf.byteLength);
         combined.set(iv, 0);
         combined.set(new Uint8Array(cipherBuf), iv.byteLength);
-        // Loop instead of spread — avoids V8 call stack limit on large payloads
-        let binaryStr = '';
-        for (let i = 0; i < combined.byteLength; i++) binaryStr += String.fromCharCode(combined[i]);
-        return _STORAGE_CRYPTO_PREFIX + btoa(binaryStr);
+        let b = '';
+        for (let i = 0; i < combined.byteLength; i++) b += String.fromCharCode(combined[i]);
+        return _STORAGE_CRYPTO_PREFIX + btoa(b);
     };
 
-        const _decryptFromStorage = async (stored) => {
-            if (!stored) return null;
-
-            const _maybeDecompress = async (val) => {
-                if (val && val.startsWith(_STORAGE_GZ_PREFIX)) {
-                    return await _decompress(val.slice(_STORAGE_GZ_PREFIX.length));
-                }
-                return val;
-            };
-
-            // Compressed-only (no session key in use)
-            if (stored.startsWith(_STORAGE_GZ_PREFIX)) {
-                return await _maybeDecompress(stored);
+    const _decryptFromStorage = async (stored) => {
+        if (!stored) return stored;
+        const _maybeDecompress = async (val) => {
+            if (val && val.startsWith(_STORAGE_GZ_PREFIX)) {
+                return await _decompress(val.slice(_STORAGE_GZ_PREFIX.length));
             }
-
-            // Not encrypted — if it looks like plain JSON, accept it (legacy import)
-            if (!_sessionCryptoKey || !stored.startsWith(_STORAGE_CRYPTO_PREFIX)) {
-                if (stored.startsWith('{') || stored.startsWith('[')) return stored;
-                return null; // Can't read without key — signal caller to use defaultVal
-            }
-
-            try {
-                const combined = Uint8Array.from(
-                    atob(stored.slice(_STORAGE_CRYPTO_PREFIX.length)), c => c.charCodeAt(0)
-                );
-                const iv        = combined.slice(0, 12);
-                const cipherBuf = combined.slice(12);
-                const plainBuf  = await crypto.subtle.decrypt(
-                    { name: 'AES-GCM', iv }, _sessionCryptoKey, cipherBuf
-                );
-                const decrypted = new TextDecoder().decode(plainBuf);
-                return await _maybeDecompress(decrypted);
-} catch {
-    return stored;
-}
+            return val;
         };
-
-    // Encrypted localStorage wrappers — drop-in replacements
-    // saveToLocalStorageSecure / getFromLocalStorageSecure consolidated into core storage functions above.
+        if (stored.startsWith(_STORAGE_GZ_PREFIX)) return await _maybeDecompress(stored);
+        if (!_sessionCryptoKey || !stored.startsWith(_STORAGE_CRYPTO_PREFIX)) return stored;
+        try {
+            const combined = Uint8Array.from(atob(stored.slice(_STORAGE_CRYPTO_PREFIX.length)), c => c.charCodeAt(0));
+            const iv = combined.slice(0, 12);
+            const cipherBuf = combined.slice(12);
+            const plainBuf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, _sessionCryptoKey, cipherBuf);
+            const decrypted = new TextDecoder().decode(plainBuf);
+            return await _maybeDecompress(decrypted);
+        } catch { return stored; }
+    };
 
     /* ── OPERATOR ID UI ─────────────────────────────────────────────────── */
     const _operatorModal = document.getElementById('operator-modal');
     const _operatorInput = document.getElementById('operator-name-input');
+    const _operatorGlyphInput = document.getElementById('operator-glyph-input');
     const _operatorDisplay = document.getElementById('operator-name-display');
     const _metricsLabel = document.getElementById('metrics-label');
 
     const _openOperatorModal = () => {
-        _operatorInput.value = ''; // never pre-fill — user must type callsign explicitly
+        _operatorInput.value = '';
+        _operatorGlyphInput.value = '';
         _operatorModal.classList.remove('hidden');
         setModalOpen(true);
     };
@@ -4552,335 +4515,182 @@ const initPeaceOperator = async () => {
 
     const _applyOperatorName = (name) => {
         if (name) {
-            _operatorDisplay.textContent = '> ' + name;
+            _operatorDisplay.textContent = '> [OPERATOR]';
             _operatorDisplay.classList.remove('hidden');
         } else {
             _operatorDisplay.classList.add('hidden');
         }
     };
 
-    // ── VAULT RESTORE ANIMATION ─────────────────────────────────────────────
-        const _vaultFadeIn = (callsign) => new Promise((resolve) => {
-            const stale = document.getElementById('vault-restore-overlay');
-            if (stale) stale.remove();
-
-            const overlay = document.createElement('div');
-            overlay.id = 'vault-restore-overlay';
-            overlay.innerHTML = `
-                <div class="vault-grid-bg"></div>
-                <div class="vault-scanline"></div>
-                <div class="vault-callsign-line" id="vcl-name">[ ${callsign} ]</div>
-                <div class="vault-status-line" id="vcl-status">VAULT RECALLED // NAMESPACE RESTORED</div>
-            `;
-            document.body.appendChild(overlay);
-
-            requestAnimationFrame(() => {
-                overlay.classList.add('phase-blackout');
-                setTimeout(() => {
-                    document.getElementById('vcl-name').classList.add('vcl-visible');
-                    setTimeout(() => document.getElementById('vcl-status').classList.add('vcl-visible'), 200);
-
-                    setTimeout(() => {
-                        const dash = document.getElementById('dashboard-container');
-                        if (dash) {
-                            dash.classList.remove('vault-entering');
-                            void dash.offsetWidth;
-                            dash.classList.add('vault-entering');
-                        }
-                        overlay.classList.remove('phase-blackout');
-                        overlay.classList.add('phase-reveal');
-                        setTimeout(() => { overlay.remove(); resolve(); }, 950);
-                    }, 720);
-                }, 160);
-            });
-        });  
-        
-        const _initGuestSession = async () => {
-            _activeStorage   = sessionStorage;
-            _activeNamespace = 'GUEST';
-            // Deterministic ephemeral key — evaporates naturally when tab closes
-            _sessionCryptoKey = await _deriveKey('GUEST_PHANTOM_KEY_VOLATILE');
-            // Do NOT wipe — preserve same-tab work across modal opens/closes
-            await _loadDashboard();
-        };
-
-    // ── UNLOCK MODAL LOGIC ───────────────────────────────────────────────
-    const _showUnlockModal = () => {
-        const modal = document.getElementById('unlock-modal');
-        const input = document.getElementById('unlock-input');
-        modal.classList.remove('hidden');
-        // Lock everything beneath — inert blocks all interaction on the dashboard
-        const dashboard = document.getElementById('dashboard-container');
-        if (dashboard) dashboard.setAttribute('inert', '');
-        // Also disable FAB layers that sit above normal z-index stack
-        ['fab-menu-container', 'survival-fab', 'ghost-fab-trigger'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.pointerEvents = 'none';
-        });
-        setModalOpen(true);
-        setTimeout(() => input.focus(), 150);
-    };
-
-    const _hideUnlockModal = () => {
-        document.getElementById('unlock-modal').classList.add('hidden');
-        // Restore dashboard interaction
-        const dashboard = document.getElementById('dashboard-container');
-        if (dashboard) dashboard.removeAttribute('inert');
-        // Restore FAB layers
-        ['fab-menu-container', 'survival-fab', 'ghost-fab-trigger'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.pointerEvents = '';
-        });
-        setModalOpen(false);
-    };
-
-const _handleUnlock = async (inputVal) => {
-    _hideUnlockModal();
-
-    const trimmed = (inputVal || '').trim();
-    if (!trimmed) {
-        await _initGuestSession();
-        return;
-    }
-
-    let name  = trimmed.toUpperCase();
-    let glyph = '';
-    if (name.includes(':')) {
-        const parts = name.split(':');
-        name  = parts[0].trim();
-        glyph = parts[1].trim();
-    }
-
-    try {
-        _sessionCryptoKey = await _deriveKey(name);
-        _activeStorage    = localStorage;
-        _activeNamespace  = name;
-        localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-        if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
-        _applyOperatorName(name);
-
-        const existing = await getFromLocalStorage(STORAGE_KEYS.PROJECTS, []);
-        const hasData  = existing.length > 0;
-
+    /* ── LAYER 0: GUEST SESSION ─────────────────────────────────────────── */
+    const _initGuestSession = async () => {
+        _activeStorage = sessionStorage;
+        _activeNamespace = 'GUEST';
+        _sessionCryptoKey = await crypto.subtle.generateKey(
+            { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
+        );
         await _loadDashboard();
+    };
 
-        if (hasData) {
-            await _vaultFadeIn(name);
-        } else {
-            showToast('SESSION ACTIVE // [REDACTED]', 'success');
+    /* ── LAYER 2: NETWORK/GLYPH CHECK ───────────────────────────────────── */
+    const _checkNetworkGlyph = async (callsign, providedGlyph) => {
+        const cfgKey = `srcd2_net_cfg_${callsign}`;
+        const nodeID = _currentNetworkID;
+
+        let cfg = null;
+        try {
+            const raw = localStorage.getItem(cfgKey);
+            if (raw) {
+                try { cfg = JSON.parse(raw); } catch {}
+            }
+        } catch {}
+
+        // No glyph ever bound — Layer 1 only, always pass
+        if (!cfg) {
+            if (providedGlyph) {
+                // First-time glyph bind
+                const hash = await _hashGlyph(providedGlyph);
+                const newCfg = { glyphHash: hash, approvedNets: [nodeID] };
+                localStorage.setItem(cfgKey, JSON.stringify(newCfg));
+                showToast('GLYPH BOUND // NETWORK APPROVED', 'success');
+            }
+            return { pass: true };
         }
 
-        document.getElementById('unlock-input').value = '';
-    } catch (e) {
-        showToast(`AUTH FAIL: ${e.message}`, 'error');
-        await _initGuestSession();
-    }
-};
+        // Glyph bound — check if this network is approved
+        if (cfg.approvedNets && cfg.approvedNets.includes(nodeID)) {
+            return { pass: true }; // known network, no glyph needed
+        }
 
-    const _handleBleUnlock = async () => {
+        // Unknown network — glyph required
+        if (!providedGlyph) {
+            return { pass: false, reason: 'NEW_NETWORK' };
+        }
+
+        const hash = await _hashGlyph(providedGlyph);
+        if (hash !== cfg.glyphHash) {
+            return { pass: false, reason: 'INVALID_GLYPH' };
+        }
+
+        // Glyph matched — whitelist this network
+        cfg.approvedNets.push(nodeID);
+        localStorage.setItem(cfgKey, JSON.stringify(cfg));
+        showToast('NEW NETWORK APPROVED', 'success');
+        return { pass: true };
+    };
+
+    /* ── LAYER 1: CALLSIGN VAULT RECALL ─────────────────────────────────── */
+    const _confirmOperatorId = async () => {
+        const name = _operatorInput.value.trim().toUpperCase();
+        const glyph = _operatorGlyphInput.value.trim();
+        _operatorInput.value = '';
+        _operatorGlyphInput.value = '';
+        _closeOperatorModal();
+
+        if (!name) {
+            localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
+            _applyOperatorName('');
+            await _initGuestSession();
+            showToast('GUEST MODE ACTIVE', 'info');
+            return;
+        }
+
         try {
-            const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
-            let registry = {};
-            try {
-                const stored = localStorage.getItem('srcd2_whiteflag_ble');
-                if (stored) registry = JSON.parse(stored);
-            } catch(e) {}
+            // Layer 2 check first — only if glyph config exists
+            const netResult = await _checkNetworkGlyph(name, glyph);
+            if (!netResult.pass) {
+                if (netResult.reason === 'NEW_NETWORK') {
+                    showToast('NEW NETWORK DETECTED — ENTER CALLSIGN + GLYPH TO APPROVE', 'error');
+                } else {
+                    showToast('INVALID GLYPH — ACCESS DENIED', 'error');
+                }
+                return; // stay in guest, don't recall
+            }
 
-            if (registry[device.id]) {
-                const authData = registry[device.id];
-                // FIX: Construct the compound string "CALLSIGN:GLYPH" that _handleUnlock expects
-                const payloadString = `${authData.cs}:${authData.gl}`;
-                
-                document.getElementById('unlock-input').value = authData.cs; // Visual feedback
-                if (typeof showToast === 'function') showToast(`HARDWARE VERIFIED: ${device.name || 'WHITE FLAG'}`, 'success');
-                
-                // Pass the combined string payload to the unlock handler
-                _handleUnlock(payloadString);
+            // Layer 1 — derive key, switch namespace, recall vault
+            _sessionCryptoKey = await _deriveKey(name);
+            _activeStorage = localStorage;
+            _activeNamespace = name;
+            localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+            _applyOperatorName(name);
+            await _loadDashboard();
+
+            const hasData = currentState.projects.length > 0 || currentState.incidents.length > 0;
+            if (hasData) {
+                await _vaultFadeIn(name);
             } else {
-                if (typeof showToast === 'function') showToast('HARDWARE KEY UNRECOGNIZED', 'error');
+                showToast('VAULT ACTIVE // READY', 'success');
             }
         } catch (e) {
-            console.log("BLE Scan Aborted or Blocked.");
+            showToast('VAULT ERROR — GUEST MODE ACTIVE', 'error');
+            await _initGuestSession();
         }
     };
 
-    // Wire unlock modal buttons
-    document.getElementById('unlock-ble-btn').onclick = _handleBleUnlock;
-    document.getElementById('unlock-confirm-btn').onclick = () => {
-        _handleUnlock(document.getElementById('unlock-input').value);
-    };
-    document.getElementById('unlock-skip-btn').onclick = () => _handleUnlock('');
-    document.getElementById('unlock-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') _handleUnlock(document.getElementById('unlock-input').value);
-        if (e.key === 'Escape') _handleUnlock('');
+    /* ── VAULT RESTORE ANIMATION ─────────────────────────────────────────── */
+    const _vaultFadeIn = (callsign) => new Promise((resolve) => {
+        const stale = document.getElementById('vault-restore-overlay');
+        if (stale) stale.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'vault-restore-overlay';
+        overlay.innerHTML = `
+            <div class="vault-grid-bg"></div>
+            <div class="vault-scanline"></div>
+            <div class="vault-callsign-line" id="vcl-name">[ OPERATOR ]</div>
+            <div class="vault-status-line" id="vcl-status">VAULT RECALLED // NAMESPACE RESTORED</div>
+        `;
+        document.body.appendChild(overlay);
+        requestAnimationFrame(() => {
+            overlay.classList.add('phase-blackout');
+            setTimeout(() => {
+                document.getElementById('vcl-name').classList.add('vcl-visible');
+                setTimeout(() => document.getElementById('vcl-status').classList.add('vcl-visible'), 200);
+                setTimeout(() => {
+                    const dash = document.getElementById('dashboard-container');
+                    if (dash) {
+                        dash.classList.remove('vault-entering');
+                        void dash.offsetWidth;
+                        dash.classList.add('vault-entering');
+                    }
+                    overlay.classList.remove('phase-blackout');
+                    overlay.classList.add('phase-reveal');
+                    setTimeout(() => { overlay.remove(); resolve(); }, 950);
+                }, 720);
+            }, 160);
+        });
     });
 
-    // ── MID-SESSION CALLSIGN TOGGLE (METRICS_SUMMARY.LOG click) ─────────
-    
-    // Smooth Paste Parsing
+    /* ── WIRE OPERATOR MODAL ─────────────────────────────────────────────── */
+    _metricsLabel.addEventListener('click', _openOperatorModal);
+    document.getElementById('operator-modal-close').onclick = _closeOperatorModal;
+    document.getElementById('operator-modal-confirm').onclick = _confirmOperatorId;
+    document.getElementById('operator-modal-clear').onclick = () => {
+        _operatorInput.value = '';
+        _operatorGlyphInput.value = '';
+        _confirmOperatorId();
+    };
+    _operatorInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') _confirmOperatorId();
+        if (e.key === 'Escape') _closeOperatorModal();
+    });
+    _operatorGlyphInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') _confirmOperatorId();
+        if (e.key === 'Escape') _closeOperatorModal();
+    });
     document.getElementById('operator-name-input').addEventListener('paste', (e) => {
         const paste = (e.clipboardData || window.clipboardData).getData('text');
         if (paste.includes(':')) {
             e.preventDefault();
             const [cs, gl] = paste.split(':');
-            document.getElementById('operator-name-input').value = cs.trim();
-            document.getElementById('operator-glyph-input').value = gl.trim();
-            showToast("CREDENTIALS PARSED", "info");
+            _operatorInput.value = cs.trim();
+            _operatorGlyphInput.value = gl.trim();
+            showToast('CREDENTIALS PARSED', 'info');
         }
     });
 
-        // The Cryptographic Gatekeeper
-        const _verifyNetworkAuth = async (callsign, providedGlyph) => {
-            // Per-callsign config so multiple operators on same device don't collide
-            const configStorageKey = `srcd2_net_cfg_${callsign}`;
-            const activeNetID      = await _refreshNetworkFingerprint();
-
-            // Auth config lives in raw localStorage (not namespaced/session-scoped)
-            // so it survives tab closes and is not tied to a specific session key.
-            let authConfig = null;
-            try {
-                const rawCfg = localStorage.getItem(configStorageKey);
-                if (rawCfg) {
-                    // Try decrypting with current session key first
-                    const dec = await _decryptFromStorage(rawCfg);
-                    if (dec) {
-                        authConfig = JSON.parse(dec);
-                    } else {
-                        // Fallback: try plain JSON (pre-patch format)
-                        try { authConfig = JSON.parse(rawCfg); } catch {}
-                    }
-                }
-            } catch { authConfig = null; }
-
-            // SCENARIO A: No glyph config ever bound for this callsign
-            if (!authConfig) {
-                if (providedGlyph) {
-                    // First-time glyph bind
-                    const hash   = await _hashGlyph(providedGlyph);
-                    const config = { glyphHash: hash, approvedNets: [activeNetID] };
-                    // Store encrypted with current key
-                    const enc = await _encryptForStorage(JSON.stringify(config));
-                    localStorage.setItem(configStorageKey, enc);
-                    showToast('GLYPH BOUND // NETWORK WHITELISTED', 'success');
-                }
-                return true; // No protection active — always grant
-            }
-
-            // SCENARIO B: Config exists — is this network already approved?
-            if (authConfig.approvedNets && authConfig.approvedNets.includes(activeNetID)) {
-                return true; // Known network — callsign alone is enough
-            }
-
-            // SCENARIO C: Unknown network — glyph required
-            if (!providedGlyph) {
-                throw new Error('UNRECOGNIZED NETWORK. ENTER CALLSIGN + GLYPH.');
-            }
-
-            const hash = await _hashGlyph(providedGlyph);
-            if (hash !== authConfig.glyphHash) {
-                throw new Error('INVALID GLYPH. ACCESS DENIED.');
-            }
-
-            // Glyph matched — whitelist this network and save
-            authConfig.approvedNets.push(activeNetID);
-            const enc = await _encryptForStorage(JSON.stringify(authConfig));
-            localStorage.setItem(configStorageKey, enc);
-            showToast('NEW NETWORK APPROVED & LOGGED', 'success');
-            return true;
-        };
-
-        const _confirmOperatorId = async () => {
-            const nameInput  = document.getElementById('operator-name-input');
-            const glyphInput = document.getElementById('operator-glyph-input');
-
-            const name  = nameInput.value.trim().toUpperCase();
-            const glyph = glyphInput.value.trim();
-
-            // Clear inputs immediately
-            nameInput.value  = '';
-            glyphInput.value = '';
-            _closeOperatorModal();
-
-            if (!name) {
-                localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
-                _applyOperatorName('');
-                await _initGuestSession();
-                showToast('CALLSIGN REQUIRED — GUEST MODE ACTIVE', 'error');
-                return;
-            }
-
-            try {
-                // 1. Derive vault key
-                _sessionCryptoKey = await _deriveKey(name);
-                _activeStorage    = localStorage;
-                _activeNamespace  = name;
-
-                // 2. Network gating
-                await _verifyNetworkAuth(name, glyph);
-
-                // 3. Persist
-                localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-                if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
-                _applyOperatorName(name);
-
-                // 4. Check for existing vault data
-                const existing = await getFromLocalStorage(STORAGE_KEYS.PROJECTS, []);
-                const hasData  = existing.length > 0;
-
-                // 5. Load
-                await _loadDashboard();
-
-                // 6. Animate if restoring data
-                if (hasData) {
-                    await _vaultFadeIn(name);
-                } else {
-                    showToast(`OPERATOR: ${name} // VAULT READY`, 'success');
-                }
-            } catch (e) {
-                showToast(`AUTH FAIL: ${e.message}`, 'error');
-                await _initGuestSession();
-            }
-        };
-
-    // BLE Auto-Sync Function
-    document.getElementById('op-ble-scan-btn').onclick = async () => {
-        try {
-            const device = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
-            let registry = {};
-            try { registry = JSON.parse(localStorage.getItem('srcd2_whiteflag_ble')) || {}; } catch(e){}
-
-            if (registry[device.id]) {
-                const authData = registry[device.id];
-                document.getElementById('operator-name-input').value = authData.cs;
-                document.getElementById('operator-glyph-input').value = authData.gl;
-                if(typeof showToast === 'function') showToast(`HW STREAM ACTIVE: ${device.name || 'WHITE FLAG'}`, 'success');
-                _confirmOperatorId(); // Auto-execute
-            } else {
-                if(typeof showToast === 'function') showToast('HARDWARE KEY UNRECOGNIZED', 'error');
-            }
-        } catch (e) { console.log("BLE Scan Aborted."); }
-    };
-
-    // Wire operator modal events
-    _metricsLabel.addEventListener('click', _openOperatorModal);
-    document.getElementById('operator-modal-close').onclick = _closeOperatorModal;
-    document.getElementById('operator-modal-confirm').onclick = _confirmOperatorId;
-    document.getElementById('operator-modal-clear').onclick = () => {
-        document.getElementById('operator-name-input').value = '';
-        document.getElementById('operator-glyph-input').value = '';
-        _confirmOperatorId();
-    };
-    
-    // Support enter key from either input
-    document.getElementById('operator-name-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') _confirmOperatorId();
-        if (e.key === 'Escape') _closeOperatorModal();
-    });
-    document.getElementById('operator-glyph-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') _confirmOperatorId();
-        if (e.key === 'Escape') _closeOperatorModal();
-    }); 
-
+    /* ── BOOT: LAYER 0 ALWAYS ────────────────────────────────────────────── */
+    (async () => { await _initGuestSession(); })();
+        
     /* --- EXTERNAL DOCUMENT BRIDGE --- */
     const openExternalDoc = (url, title) => {
         // Dismiss operator modal first
