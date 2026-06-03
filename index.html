@@ -534,32 +534,6 @@
     
     <div id="adr-toast-container"></div>
 
-    <!-- MODAL: SESSION UNLOCK (shown on load when callsign exists) -->
-    <div id="unlock-modal" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-sm" style="z-index:10000;">
-        <div class="modal-content bg-dark-navy p-6 w-11/12 md:w-96 rounded-lg glow-border-cyan flex flex-col gap-4 shadow-[0_0_40px_rgba(0,255,255,0.15)]">
-            <div class="flex flex-col gap-1 flex-shrink-0">
-                <h2 class="text-lg font-['Michroma'] neon-cyan tracking-widest">SESSION_UNLOCK</h2>
-                <p class="text-[10px] font-mono text-gray-500 tracking-widest leading-tight">ENCRYPTED MEMORY LAYER DETECTED.<br>ENTER CALLSIGN TO DERIVE SESSION KEY AND RESTORE ACCESS.</p>
-            </div>
-            <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-mono neon-cyan tracking-widest">CALLSIGN:</label>
-                <input id="unlock-input"
-                    class="w-full bg-transparent border-b border-cyan-500 text-cyan-400 font-mono text-sm py-1 px-0 outline-none tracking-widest placeholder-gray-700 focus:border-green-500 transition-colors"
-                    placeholder="CALLSIGN..."
-                    maxlength="32"
-                    autocomplete="off"
-                    spellcheck="false" />
-            </div>
-<div class="flex flex-col gap-2 w-full">
-    <div class="flex gap-2 justify-end w-full">
-        <button id="unlock-confirm-btn" class="glyph-btn text-xs px-4 py-2 glow-btn-green rounded flex-1">[ UNLOCK ]</button>
-        <button id="unlock-skip-btn" class="glyph-btn text-xs px-4 py-2 glow-btn-red rounded flex-1">[ WIPE GUEST ]</button>
-    </div>
-    <button id="unlock-ble-btn" class="glyph-btn text-xs px-3 py-2 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-900/50 rounded w-full transition-all" title="Unlock via Bluetooth White Flag">[ ⚲ SCAN KEY ]</button>
-</div>
-        </div>
-    </div>
-
     <!-- MODAL: METRICS / OPERATOR / CONSOLE MODULE -->
     <div id="operator-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md transition-opacity">
         <div class="modal-content bg-dark-navy w-11/12 md:w-[480px] rounded-lg glow-border-cyan flex flex-col shadow-[0_0_40px_rgba(0,255,255,0.12)] overflow-hidden">
@@ -1083,11 +1057,6 @@ const _refreshNetworkFingerprint = async () => {
         // Both are transparently decoded by srcd2Decrypt.
         // ───────────────────────────────────────────────────────────────────────────
         const srcd2Encrypt = async (dataObj) => {
-            // Inject Network/Glyph Authorization into the export
-            const authConfig = await getFromLocalStorage('srcd2_auth_config', null);
-            if (authConfig) {
-                dataObj._authCheck = authConfig;
-            }
             const raw = JSON.stringify(dataObj);
             const encryptedPayload = await _encryptForStorage(raw);
             return JSON.stringify({ _srcd2_sig: 'PHANTOM', _v: 4, payload: encryptedPayload });
@@ -1101,15 +1070,16 @@ const _refreshNetworkFingerprint = async () => {
                 let decryptedString = await _decryptFromStorage(outer.payload);
                 
                 if (decryptedString === outer.payload) {
-                    // Decryption failed with active Operator key. 
-                    // Fallback: Temporarily swap to the deterministic Guest Key to see if this is a Guest export.
-                    const originalKey = _sessionCryptoKey;
-                    try {
-                        _sessionCryptoKey = await _deriveKey('GUEST_PHANTOM_KEY_VOLATILE');
-                        decryptedString = await _decryptFromStorage(outer.payload);
-                    } finally {
-                        _sessionCryptoKey = originalKey; // Always restore the operator's key
-                    }
+                // Decryption failed with active Operator key. 
+                // Fallback: Temporarily swap to the volatile Guest Key to see if this is a Guest export.
+                const originalKey = _sessionCryptoKey;
+                try {
+                    const guestPass = sessionStorage.getItem('srcd2_guest_volatile') || 'GUEST_PHANTOM_KEY_VOLATILE';
+                    _sessionCryptoKey = await _deriveKey(guestPass);
+                    decryptedString = await _decryptFromStorage(outer.payload);
+                } finally {
+                    _sessionCryptoKey = originalKey; // Always restore the operator's key
+                }
                     
                     if (decryptedString === outer.payload) {
                         throw new Error("KEY_MISMATCH: Cannot unlock file data. Verify Callsign.");
@@ -1117,22 +1087,8 @@ const _refreshNetworkFingerprint = async () => {
                 }
                 const parsed = JSON.parse(decryptedString);
 
-                // ENFORCE NETWORK/GLYPH BINDING ON IMPORT
-
-                // ENFORCE NETWORK/GLYPH BINDING ON IMPORT
-                if (parsed._authCheck) {
-                    const isApproved = parsed._authCheck.approvedNets.includes(_currentNetworkID);
-                    if (!isApproved) {
-                        const sessionGlyph = localStorage.getItem('srcd2_session_glyph');
-                        if (!sessionGlyph) throw new Error("EXPORT LOCKED. GLYPH REQUIRED FOR NEW NETWORK.");
-                        
-                        const hash = await _hashGlyph(sessionGlyph);
-                        if (hash !== parsed._authCheck.glyphHash) throw new Error("EXPORT LOCKED. INVALID GLYPH.");
-                    }
-                    delete parsed._authCheck; // Clean the payload before loading
-                }
-                return parsed;
-            }
+                return parsed; // <-- REQUIRED: Return the parsed payload
+            } // <-- REQUIRED: Close the v4 envelope block
 
             // v3 envelope — compressed + encoded
             if (outer._srcd2_sig === 'PHANTOM' && outer.payload && outer.gz) {
@@ -2002,15 +1958,13 @@ const deleteItem = (id, type) => {
         };
 
         /* --- INIT --- */
-        // Centralised data loader — called after auth track is resolved
+// Centralised data loader — called after auth track is resolved
 const _loadDashboard = async () => {
-    const testKey = getNsKey(STORAGE_KEYS.PROJECTS);
-    const testVal = _activeStorage.getItem(testKey);
-    showToast(`NS: ${_activeNamespace} | KEY: ${testKey} | HAS DATA: ${!!testVal}`, 'info', 6000);
+    window._slingLastFileContent = null; // Task 7: Clear stale sling buffer on namespace switch
     
     currentState.projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
     currentState.incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
-    showToast(`LOADED: ${currentState.projects.length}P ${currentState.incidents.length}I`, 'info');
+    
     renderList(DOMElements.projectList, currentState.projects, 'project');
     renderList(DOMElements.incidentList, currentState.incidents, 'incident');
 };
@@ -3231,8 +3185,8 @@ const generatePromptPayload = () => {
     const domain = document.getElementById('pe-domain').value;
     const inputBuffer = document.getElementById('pe-input').value;
     
-    // Fetch active operator ID, default to GUEST if not set
-    const activeCallsign = localStorage.getItem('srcd2_operator_name') || 'GUEST_OPERATOR';
+    // Fetch active operator ID directly from the active namespace state
+    const activeCallsign = _activeNamespace !== 'GUEST' ? _activeNamespace : 'GUEST_OPERATOR';
     
     let payload = `>>> SYSTEM_HANDSHAKE: SECURE // PROTOCOL: PHANTOM_CREW\n`;
     payload += `>>> COMMANDER: ${activeCallsign} [LEAD ARCHITECT]\n`;
@@ -4531,9 +4485,15 @@ const _applyOperatorName = (name) => {
     const _initGuestSession = async () => {
         _activeStorage = sessionStorage;
         _activeNamespace = 'GUEST';
-        _sessionCryptoKey = await crypto.subtle.generateKey(
-            { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
-        );
+        
+        // Task 4: Generate or retrieve volatile guest passphrase
+        let guestPass = sessionStorage.getItem('srcd2_guest_volatile');
+        if (!guestPass) {
+            guestPass = 'GUEST_' + generateId();
+            sessionStorage.setItem('srcd2_guest_volatile', guestPass);
+        }
+        
+        _sessionCryptoKey = await _deriveKey(guestPass);
         await _loadDashboard();
     };
 
@@ -4647,7 +4607,7 @@ const _confirmOperatorId = async () => {
         overlay.innerHTML = `
             <div class="vault-grid-bg"></div>
             <div class="vault-scanline"></div>
-            <div class="vault-callsign-line" id="vcl-name">[ OPERATOR ]</div>
+            <div class="vault-callsign-line" id="vcl-name">[ ${callsign} ]</div>
             <div class="vault-status-line" id="vcl-status">VAULT RECALLED // NAMESPACE RESTORED</div>
         `;
         document.body.appendChild(overlay);
@@ -4693,7 +4653,7 @@ const _confirmOperatorId = async () => {
         if (paste.includes(':')) {
             e.preventDefault();
             const [cs, gl] = paste.split(':');
-            _operatorInput.value = cs.trim().normalize('NFC');
+            _operatorInput.value = cs.trim().normalize('NFC').toUpperCase(); // Task 2 applied
             _operatorGlyphInput.value = gl.trim();
             showToast('CREDENTIALS PARSED', 'info');
         }
