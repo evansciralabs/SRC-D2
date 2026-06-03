@@ -627,19 +627,9 @@
         }
 
         // Live Network Fingerprint
-        const _refreshNetworkFingerprint = async () => {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 2000);
-                const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
-                clearTimeout(timeoutId);
-                const data = await res.json();
-                _currentNetworkID = `IP-${data.ip}`;
-            } catch (e) {
-                // Offline fallback remains NODE- ID
-            }
-            return _currentNetworkID;
-        };
+const _refreshNetworkFingerprint = async () => {
+    return _currentNetworkID;
+};
 
         
         /* --- APP STATE --- */
@@ -4672,9 +4662,9 @@ const initPeaceOperator = async () => {
 
             try {
                 // 1. Derive vault key from callsign
-                _sessionCryptoKey = await _deriveKey(name);
-                _activeStorage    = localStorage;
-                _activeNamespace  = name;
+_sessionCryptoKey = await _deriveKey(name);
+_activeStorage    = localStorage;
+_activeNamespace  = name;
 
                 // 2. Network gating (glyph only needed for new networks)
                 await _verifyNetworkAuth(name, glyph);
@@ -4684,12 +4674,12 @@ const initPeaceOperator = async () => {
                 if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
                 _applyOperatorName(name);
 
-                // 4. Check if there's real data to restore (decides if animation plays)
-                const existing = await getFromLocalStorage(STORAGE_KEYS.PROJECTS, []);
-                const hasData  = existing.length > 0;
+// 4. Check if there's real data to restore
+const existing = await getFromLocalStorage(STORAGE_KEYS.PROJECTS, []);
+const hasData  = existing.length > 0;
 
-                // 5. Load dashboard
-                await _loadDashboard();
+// 5. Load dashboard
+await _loadDashboard();
 
                 // 6. Animate only when restoring a real vault
                 if (hasData) {
