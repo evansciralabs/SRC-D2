@@ -4642,58 +4642,48 @@ const initPeaceOperator = async () => {
         setModalOpen(false);
     };
 
-        const _handleUnlock = async (inputVal) => {
-            _hideUnlockModal();
+const _handleUnlock = async (inputVal) => {
+    _hideUnlockModal();
 
-            const trimmed = (inputVal || '').trim();
-            if (!trimmed) {
-                await _initGuestSession();
-                return;
-            }
+    const trimmed = (inputVal || '').trim();
+    if (!trimmed) {
+        await _initGuestSession();
+        return;
+    }
 
-            let name  = trimmed.toUpperCase();
-            let glyph = '';
-            // Support compound paste "CALLSIGN:GLYPH" in the unlock field
-            if (name.includes(':')) {
-                const parts = name.split(':');
-                name  = parts[0].trim();
-                glyph = parts[1].trim();
-            }
+    let name  = trimmed.toUpperCase();
+    let glyph = '';
+    if (name.includes(':')) {
+        const parts = name.split(':');
+        name  = parts[0].trim();
+        glyph = parts[1].trim();
+    }
 
-            try {
-                // 1. Derive vault key from callsign
-_sessionCryptoKey = await _deriveKey(name);
-_activeStorage    = localStorage;
-_activeNamespace  = name;
+    try {
+        _sessionCryptoKey = await _deriveKey(name);
+        _activeStorage    = localStorage;
+        _activeNamespace  = name;
+        localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+        if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
+        _applyOperatorName(name);
 
-                // 2. Network gating (glyph only needed for new networks)
-                await _verifyNetworkAuth(name, glyph);
+        const existing = await getFromLocalStorage(STORAGE_KEYS.PROJECTS, []);
+        const hasData  = existing.length > 0;
 
-                // 3. Persist state
-                localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-                if (glyph) localStorage.setItem('srcd2_session_glyph', glyph);
-                _applyOperatorName(name);
+        await _loadDashboard();
 
-// 4. Check if there's real data to restore
-const existing = await getFromLocalStorage(STORAGE_KEYS.PROJECTS, []);
-const hasData  = existing.length > 0;
+        if (hasData) {
+            await _vaultFadeIn(name);
+        } else {
+            showToast('SESSION ACTIVE // [REDACTED]', 'success');
+        }
 
-// 5. Load dashboard
-await _loadDashboard();
-
-                // 6. Animate only when restoring a real vault
-                if (hasData) {
-                    await _vaultFadeIn(name);
-                } else {
-                    showToast(`SESSION ACTIVE // ${name}`, 'success');
-                }
-
-                document.getElementById('unlock-input').value = '';
-            } catch (e) {
-                showToast(`AUTH FAIL: ${e.message}`, 'error');
-                await _initGuestSession();
-            }
-        };
+        document.getElementById('unlock-input').value = '';
+    } catch (e) {
+        showToast(`AUTH FAIL: ${e.message}`, 'error');
+        await _initGuestSession();
+    }
+};
 
     const _handleBleUnlock = async () => {
         try {
