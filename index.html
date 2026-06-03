@@ -1961,9 +1961,6 @@ const deleteItem = (id, type) => {
 
         const initApp = async () => {
             await openDatabase();
-            // Render empty lists immediately — _loadDashboard fills them after auth
-            renderList(DOMElements.projectList, [], 'project');
-            renderList(DOMElements.incidentList, [], 'incident');
 
             // Global Click-Outside-to-Close Listener
             document.body.addEventListener('click', (e) => {
@@ -2111,6 +2108,14 @@ const deleteItem = (id, type) => {
             });
 
             if(currentState.isMobile) setMobileView('list');
+            
+            // ── BOOT SEQUENCE ──
+            const existingOperator = localStorage.getItem(STORAGE_KEYS.OPERATOR_NAME);
+            if (existingOperator) {
+                _showUnlockModal();
+            } else {
+                await _initGuestSession(); 
+            }
             
             console.log("%c WEYU-UTANI CORP ", "background: #000; color: #FFF000; font-size: 20px; font-weight: bold;");
             console.log("SYSTEM: SRC-D2 // PEACE_OPERATOR");
@@ -4759,17 +4764,7 @@ const initPeaceOperator = async () => {
     document.getElementById('operator-glyph-input').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') _confirmOperatorId();
         if (e.key === 'Escape') _closeOperatorModal();
-    });
-
-    // ── ON LOAD — evaluate returning operator vs guest boot ───────────────
-    (async () => { 
-        const existingOperator = localStorage.getItem(STORAGE_KEYS.OPERATOR_NAME);
-        if (existingOperator) {
-            _showUnlockModal();
-        } else {
-            await _initGuestSession(); 
-        }
-    })();
+    }); 
 
     /* --- EXTERNAL DOCUMENT BRIDGE --- */
     const openExternalDoc = (url, title) => {
