@@ -1042,7 +1042,12 @@ const _refreshNetworkFingerprint = async () => {
             
             renderList(DOMElements.projectList, currentState.projects, 'project');
             renderList(DOMElements.incidentList, currentState.incidents, 'incident');
-            DOMElements.detailView.innerHTML = DOMElements.detailEmpty.outerHTML;
+            DOMElements.detailView.innerHTML = `
+                <div class="h-full flex flex-col justify-center items-center text-center p-8">
+                    <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V5.1</span>
+                    <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
+                    <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>
+                </div>`;
             currentState.selectedItem = null;
             if (typeof window.updateSlingButton === 'function') window.updateSlingButton();
             
@@ -1480,7 +1485,12 @@ const deleteItem = (id, type) => {
         renderList(type==='project'?DOMElements.projectList:DOMElements.incidentList, list, type);
         
         if (currentState.selectedItem?.id === id) {
-            DOMElements.detailView.innerHTML = DOMElements.detailEmpty.outerHTML;
+            DOMElements.detailView.innerHTML = `
+                <div class="h-full flex flex-col justify-center items-center text-center p-8">
+                    <span class="text-6xl mb-4 neon-cyan opacity-50 font-['Michroma']">SRC-D2 V5.1</span>
+                    <p class="text-lg neon-cyan">SELECT AN ENTRY OR INITIATE NEW PROTOCOL.</p>
+                    <p class="text-sm mt-2 opacity-70">DATA PERSISTENCE: LOCAL CACHE + INDEXEDDB</p>
+                </div>`;
             currentState.selectedItem = null;
             if (typeof window.updateSlingButton === 'function') window.updateSlingButton();
         }
@@ -3302,6 +3312,15 @@ else injectSurvivalMenu();
 let peaceCtx, envAnalyser, voiceAnalyser, peaceSource, peaceAnimId, peaceGain, envPreamp;
 let peaceStream = null; 
 let peaceMode = 'ENV_ANALYZER'; 
+
+// Suspend AudioContext on background to save battery/CPU
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        if (peaceCtx && peaceCtx.state === 'running') peaceCtx.suspend();
+    } else {
+        if (peaceCtx && peaceCtx.state === 'suspended') peaceCtx.resume();
+    }
+});
 
 const ISO_BANDS = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000];
 let eqGains = new Array(31).fill(0); 
