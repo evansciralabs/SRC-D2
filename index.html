@@ -4680,68 +4680,58 @@ const _applyOperatorName = (name) => {
     };
 
 /* ── VAULT RESTORE OVERLAY ─────────────────────────── */
-const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
+    const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
     const stale = document.getElementById('vault-restore-overlay');
     if (stale) stale.remove();
 
-    // STEP 1: Load data FIRST, before any visual starts.
-    // This keeps the paint thread clean — no crypto stalls mid-animation.
-    (async () => {
-        if (loadDataCallback) await loadDataCallback();
+    const overlay = document.createElement('div');
+    overlay.id = 'vault-restore-overlay';
+    overlay.innerHTML = `
+        <div class="vault-grid-bg"></div>
+        <div class="vault-scanline"></div>
+        <div class="vault-callsign-line" id="vcl-name">[ ${callsign} ]</div>
+        <div class="vault-status-line" id="vcl-status">VAULT RECALLED // NAMESPACE RESTORED</div>
+    `;
+    document.body.appendChild(overlay);
 
-        const overlay = document.createElement('div');
-        overlay.id = 'vault-restore-overlay';
-        overlay.innerHTML = `
-            <div class="vault-grid-bg"></div>
-            <div class="vault-scanline"></div>
-            <div class="vault-callsign-line" id="vcl-name">[ ${callsign} ]</div>
-            <div class="vault-status-line" id="vcl-status">VAULT RECALLED // NAMESPACE RESTORED</div>
-        `;
-        document.body.appendChild(overlay);
+    // Kick off data load immediately — runs concurrently with the blackout fade.
+    // Decrypt + renderList is fast enough to finish within the 260ms blackout window.
+    const dataReady = loadDataCallback ? loadDataCallback() : Promise.resolve();
 
-        // STEP 2: Double rAF — first frame paints element at opacity:0,
-        // second frame triggers the CSS transition to opacity:1.
-        // Without this, the browser batches both into one frame and skips the transition.
+    // Double rAF: frame 1 paints overlay at opacity:0,
+    // frame 2 adds phase-blackout so the CSS transition actually fires.
+    requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                overlay.classList.add('phase-blackout');
+            overlay.classList.add('phase-blackout');
 
-                // STEP 3: Wait for blackout to complete (250ms matches CSS transition)
-                // then reveal callsign. Everything from here is pure CSS transitions —
-                // no stalls possible.
+            // Wait for blackout AND data load — whichever takes longer.
+            // In practice data wins easily; this just future-proofs slow devices.
+            const BLACKOUT_MS = 260;
+            Promise.all([
+                dataReady,
+                new Promise(r => setTimeout(r, BLACKOUT_MS))
+            ]).then(() => {
+                const nameEl = document.getElementById('vcl-name');
+                const statusEl = document.getElementById('vcl-status');
+                if (nameEl) nameEl.classList.add('vcl-visible');
                 setTimeout(() => {
-                    const nameEl = document.getElementById('vcl-name');
-                    const statusEl = document.getElementById('vcl-status');
-                    if (nameEl) nameEl.classList.add('vcl-visible');
+                    if (statusEl) statusEl.classList.add('vcl-visible');
+                }, 150);
 
-                    // Status follows 150ms after name — staggered, not simultaneous
-                    setTimeout(() => {
-                        if (statusEl) statusEl.classList.add('vcl-visible');
-                    }, 150);
-
-                    // STEP 4: Begin dashboard rise AFTER overlay starts fading.
-                    // Delay matches the callsign read time. Dashboard rise starts
-                    // exactly when overlay begins its fade-out so they crossfade cleanly.
-                    setTimeout(() => {
-                        const dash = document.getElementById('dashboard-container');
-                        if (dash) {
-                            dash.classList.remove('vault-entering');
-                            void dash.offsetWidth; // force reflow to restart animation
-                            dash.classList.add('vault-entering');
-                        }
-
-                        // STEP 5: Begin overlay fade-out simultaneously with dashboard rise
-                        overlay.classList.remove('phase-blackout');
-                        overlay.classList.add('phase-reveal');
-
-                        // STEP 6: Remove overlay after fade completes
-                        setTimeout(() => { overlay.remove(); resolve(); }, 600);
-                    }, 420);
-
-                }, 260); // matches phase-blackout transition duration (0.25s + 10ms margin)
+                setTimeout(() => {
+                    const dash = document.getElementById('dashboard-container');
+                    if (dash) {
+                        dash.classList.remove('vault-entering');
+                        void dash.offsetWidth;
+                        dash.classList.add('vault-entering');
+                    }
+                    overlay.classList.remove('phase-blackout');
+                    overlay.classList.add('phase-reveal');
+                    setTimeout(() => { overlay.remove(); resolve(); }, 600);
+                }, 420);
             });
         });
-    })();
+    });
 });
 
     /* ── WIRE OPERATOR MODAL ─────────────────────────────────────────────── */
