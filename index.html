@@ -19,7 +19,8 @@ body.ghost-mode .btn-midnight-purple,body.ghost-mode .glow-border-cyan,body.ghos
     display: flex; align-items: center; justify-content: center; flex-direction: column;
     background: #000; opacity: 0;
 }
-#vault-restore-overlay.phase-blackout { opacity: 1; transition: opacity 0.15s ease-in; }
+    
+#vault-restore-overlay.phase-blackout { opacity: 1; transition: opacity 0.35s ease-in; }
 #vault-restore-overlay.phase-reveal   { opacity: 0; transition: opacity 0.9s ease-out; }
 
 .vault-callsign-line {
@@ -4673,43 +4674,44 @@ const _applyOperatorName = (name) => {
 
     /* ── VAULT RESTORE OVERLAY ─────────────────────────── */
     const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
-        const stale = document.getElementById('vault-restore-overlay');
-        if (stale) stale.remove();
-        const overlay = document.createElement('div');
-        overlay.id = 'vault-restore-overlay';
-        overlay.innerHTML = `
-            <div class="vault-grid-bg"></div>
-            <div class="vault-scanline"></div>
-            <div class="vault-callsign-line" id="vcl-name">[ ${callsign} ]</div>
-            <div class="vault-status-line" id="vcl-status">VAULT RECALLED // NAMESPACE RESTORED</div>
-        `;
-        document.body.appendChild(overlay);
+    const stale = document.getElementById('vault-restore-overlay');
+    if (stale) stale.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'vault-restore-overlay';
+    overlay.innerHTML = `
+        <div class="vault-grid-bg"></div>
+        <div class="vault-scanline"></div>
+        <div class="vault-callsign-line" id="vcl-name">[ ${callsign} ]</div>
+        <div class="vault-status-line" id="vcl-status">VAULT RECALLED // NAMESPACE RESTORED</div>
+    `;
+    document.body.appendChild(overlay);
+    
+    requestAnimationFrame(() => {
+        overlay.classList.add('phase-blackout');
         
-        requestAnimationFrame(() => {
-            overlay.classList.add('phase-blackout');
+        // Wait for the blackout fade to complete (350ms), THEN load data behind it
+        setTimeout(async () => {
+            if (loadDataCallback) await loadDataCallback();
             
-            // 160ms wait: The screen is now completely black. 
-            setTimeout(async () => {
-                
-                // LOAD DATA NOW: The DOM updates invisibly behind the black overlay
-                if (loadDataCallback) await loadDataCallback(); 
-                
-                document.getElementById('vcl-name').classList.add('vcl-visible');
-                setTimeout(() => document.getElementById('vcl-status').classList.add('vcl-visible'), 200);
-                setTimeout(() => {
-                    const dash = document.getElementById('dashboard-container');
-                    if (dash) {
-                        dash.classList.remove('vault-entering');
-                        void dash.offsetWidth;
-                        dash.classList.add('vault-entering'); // Triggers your vault-rise animation
-                    }
-                    overlay.classList.remove('phase-blackout');
-                    overlay.classList.add('phase-reveal');
-                    setTimeout(() => { overlay.remove(); resolve(); }, 950);
-                }, 720);
-            }, 160);
-        });
+            // Callsign fades in with breathing room
+            document.getElementById('vcl-name').classList.add('vcl-visible');
+            setTimeout(() => document.getElementById('vcl-status').classList.add('vcl-visible'), 300);
+            
+            // Hold on callsign longer before rising
+            setTimeout(() => {
+                const dash = document.getElementById('dashboard-container');
+                if (dash) {
+                    dash.classList.remove('vault-entering');
+                    void dash.offsetWidth;
+                    dash.classList.add('vault-entering');
+                }
+                overlay.classList.remove('phase-blackout');
+                overlay.classList.add('phase-reveal');
+                setTimeout(() => { overlay.remove(); resolve(); }, 950);
+            }, 900);  // was 720 — callsign now lingers ~600ms longer before dashboard rises
+        }, 380);  // was 160 — now waits for the full blackout fade
     });
+});
 
     /* ── WIRE OPERATOR MODAL ─────────────────────────────────────────────── */
     const opBleBtn = document.getElementById('op-ble-scan-btn');
