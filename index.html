@@ -2353,7 +2353,7 @@ const injectSurvivalMenu = () => {
             const payload = await _buildSrcdPayload(activeTabKey, spContent, prefix, false);
             // Wire into the attachment label modal exactly like a manual attach
             currentState.attachmentContext = { id: lastProjectId, type: 'project', fileName: filename, mimeType: 'application/json-srcd' };
-            currentState.attachmentFileContent = payload;
+            currentState.attachmentFileContent = { kind: 'inline', data: payload };
             DOMElements.attachmentLabelInput.value = filename;
             DOMElements.attachmentLabelModal.classList.remove('hidden');
             setModalOpen(true);
@@ -4562,7 +4562,9 @@ const _applyOperatorName = (name) => {
         });
 
         // Restore static key so v4.8 exports and legacy "clear files" decrypt properly
-        _sessionCryptoKey = await _deriveKey('GUEST_PHANTOM_KEY_VOLATILE');
+        _sessionCryptoKey = await crypto.subtle.generateKey(
+            { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
+        );
         await _loadDashboard();
     };
 
