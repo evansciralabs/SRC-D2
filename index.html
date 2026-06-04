@@ -4654,25 +4654,27 @@ const _applyOperatorName = (name) => {
                 return;
             }
             
-            _activeStorage = localStorage;
-            _activeNamespace = name;
-            localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-            _applyOperatorName(name);
-            
-            if (currentState.isMobile) setMobileView('list');
+_activeStorage = localStorage;
+_activeNamespace = name;
+localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
 
-            // Check for data BEFORE loading the dashboard
-            const projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
-            const incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
-            const hasData = projects.length > 0 || incidents.length > 0;
-            
-            if (hasData) {
-                // Pass _loadDashboard so it executes invisibly behind the blackout
-                await _vaultFadeIn(name, _loadDashboard);
-            } else {
-                await _loadDashboard();
-                showToast('VAULT ACTIVE // READY', 'success');
-            }
+if (currentState.isMobile) setMobileView('list');
+
+// Check for data BEFORE loading the dashboard
+const projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
+const incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
+const hasData = projects.length > 0 || incidents.length > 0;
+
+if (hasData) {
+    await _vaultFadeIn(name, async () => {
+        await _loadDashboard();
+        _applyOperatorName(name);
+    });
+} else {
+    await _loadDashboard();
+    _applyOperatorName(name);
+    showToast('VAULT ACTIVE // READY', 'success');
+}
 
         } catch (e) {
             await _initGuestSession(); // Catch-all silent fail
