@@ -2230,14 +2230,12 @@ const _loadDashboard = async () => {
             console.log("%c WEYU-UTANI CORP ", "background: #000; color: #FFF000; font-size: 20px; font-weight: bold;");
             console.log("SYSTEM: SRC-D2 // PEACE_OPERATOR");
             console.log("STATUS: READY");
+
+            // Arm idle pulse
+            document.getElementById('dashboard-container').classList.add('pulse-idle');
         };
 
-        console.log("STATUS: READY");
-
-// Arm idle pulse
-        document.getElementById('dashboard-container').classList.add('pulse-idle');
         document.addEventListener('DOMContentLoaded', initApp);
-
 /* ======================================================
    MODULE: WHITE HAT SURVIVAL TOOLKIT [CONSOLIDATED v2]
    ====================================================== */
