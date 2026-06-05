@@ -4658,31 +4658,33 @@ _activeStorage = localStorage;
 _activeNamespace = name;
 localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
 
-if (currentState.isMobile) setMobileView('list');
-
 // Check for data BEFORE loading the dashboard
 const projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
 const incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
 const hasData = projects.length > 0 || incidents.length > 0;
 
+// Close operator modal NOW — vault overlay will cover the transition
+_closeOperatorModal();
+
 if (hasData) {
     await _vaultFadeIn(name, async () => {
         await _loadDashboard();
         _applyOperatorName(name);
+        if (currentState.isMobile) setMobileView('list');
     });
 } else {
     await _loadDashboard();
     _applyOperatorName(name);
+    if (currentState.isMobile) setMobileView('list');
     showToast('VAULT ACTIVE // READY', 'success');
 }
-
         } catch (e) {
             await _initGuestSession(); // Catch-all silent fail
         }
     };
 
 /* ── VAULT RESTORE OVERLAY ─────────────────────────── */
-    const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
+const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
     const stale = document.getElementById('vault-restore-overlay');
     if (stale) stale.remove();
 
@@ -4696,30 +4698,31 @@ if (hasData) {
     `;
     document.body.appendChild(overlay);
 
-    // Kick off data load immediately — runs concurrently with the blackout fade.
-    // Decrypt + renderList is fast enough to finish within the 260ms blackout window.
-    const dataReady = loadDataCallback ? loadDataCallback() : Promise.resolve();
-
-    // Double rAF: frame 1 paints overlay at opacity:0,
-    // frame 2 adds phase-blackout so the CSS transition actually fires.
+    // Phase 1: Instant blackout covers everything (modal, guest state, all of it)
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             overlay.classList.add('phase-blackout');
 
-            // Wait for blackout AND data load — whichever takes longer.
-            // In practice data wins easily; this just future-proofs slow devices.
-            const BLACKOUT_MS = 260;
+            // Kick data load during blackout — fast enough to finish before reveal
+            const dataReady = loadDataCallback ? loadDataCallback() : Promise.resolve();
+
+            // Hold blackout long enough for data + a deliberate dramatic pause
+            const BLACKOUT_MS = 380;
             Promise.all([
                 dataReady,
                 new Promise(r => setTimeout(r, BLACKOUT_MS))
             ]).then(() => {
+                // Phase 2: Callsign reveal while still blacked out
                 const nameEl = document.getElementById('vcl-name');
                 const statusEl = document.getElementById('vcl-status');
                 if (nameEl) nameEl.classList.add('vcl-visible');
+
                 setTimeout(() => {
                     if (statusEl) statusEl.classList.add('vcl-visible');
                 }, 150);
 
+                // Phase 3: After callsign has been seen, fade the overlay out
+                // revealing the fully-loaded dashboard underneath
                 setTimeout(() => {
                     const dash = document.getElementById('dashboard-container');
                     if (dash) {
@@ -4729,8 +4732,12 @@ if (hasData) {
                     }
                     overlay.classList.remove('phase-blackout');
                     overlay.classList.add('phase-reveal');
-                    setTimeout(() => { overlay.remove(); resolve(); }, 600);
-                }, 420);
+
+                    setTimeout(() => {
+                        overlay.remove();
+                        resolve();
+                    }, 600);
+                }, 520); // callsign visible for ~370ms before fade starts
             });
         });
     });
