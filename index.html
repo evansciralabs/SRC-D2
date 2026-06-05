@@ -4675,68 +4675,70 @@ const _applyOperatorName = (name) => {
     const _normalizeCallsign = (raw) => raw.trim().normalize('NFC').toUpperCase();
             
     const _confirmOperatorId = async () => {
-        const name = _normalizeCallsign(_operatorInput.value);
-        const glyph = _operatorGlyphInput.value.trim();
-        _operatorInput.value = '';
-        _operatorGlyphInput.value = '';
-        _closeOperatorModal();
+    const name = _normalizeCallsign(_operatorInput.value);
+    const glyph = _operatorGlyphInput.value.trim();
+    _operatorInput.value = '';
+    _operatorGlyphInput.value = '';
 
-        if (!name) {
+    if (!name) {
+        _closeOperatorModal();
+        localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
+        _applyOperatorName('');
+        await _initGuestSession();
+        showToast('GUEST MODE ACTIVE', 'info');
+        return;
+    }
+
+    try {
+        const netResult = await _checkNetworkGlyph(name, glyph);
+        if (!netResult.pass) {
+            _closeOperatorModal();
             localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
             _applyOperatorName('');
             await _initGuestSession();
-            showToast('GUEST MODE ACTIVE', 'info');
+            if (!netResult.silent) showToast('GUEST MODE ACTIVE', 'info');
             return;
         }
 
         try {
-            // Layer 2 Honeypot Gatekeeper
-            const netResult = await _checkNetworkGlyph(name, glyph);
-            if (!netResult.pass) {
-                localStorage.removeItem(STORAGE_KEYS.OPERATOR_NAME);
-                _applyOperatorName('');
-                await _initGuestSession();
-                if (!netResult.silent) showToast('GUEST MODE ACTIVE', 'info');
-                return;
-            }
-
-            // Layer 1 Vault Decryption
-            try {
-                _sessionCryptoKey = await _deriveKey(name);
-            } catch (e) {
-                await _initGuestSession(); 
-                return;
-            }
-            
-_activeStorage = localStorage;
-_activeNamespace = name;
-localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
-
-// Check for data BEFORE loading the dashboard
-const projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
-const incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
-const hasData = projects.length > 0 || incidents.length > 0;
-
-// Close operator modal NOW — vault overlay will cover the transition
-_closeOperatorModal();
-
-if (hasData) {
-    await _vaultFadeIn(name, async () => {
-        await _loadDashboard();
-        _applyOperatorName(name);
-        if (currentState.isMobile) setMobileView('list');
-    });
-} else {
-    await _loadDashboard();
-    _applyOperatorName(name);
-    if (currentState.isMobile) setMobileView('list');
-    showToast('VAULT ACTIVE // READY', 'success');
-}
+            _sessionCryptoKey = await _deriveKey(name);
         } catch (e) {
-            await _initGuestSession(); // Catch-all silent fail
+            _closeOperatorModal();
+            await _initGuestSession();
+            return;
         }
-    };
 
+        _activeStorage = localStorage;
+        _activeNamespace = name;
+        localStorage.setItem(STORAGE_KEYS.OPERATOR_NAME, name);
+
+        const projects = await getFromLocalStorage(STORAGE_KEYS.PROJECTS);
+        const incidents = await getFromLocalStorage(STORAGE_KEYS.INCIDENTS);
+        const hasData = projects.length > 0 || incidents.length > 0;
+
+        if (hasData) {
+            // Blackout fires BEFORE modal closes — operator modal disappears
+            // under the overlay, never visible to the user
+            await _vaultFadeIn(name, async () => {
+                _closeOperatorModal();
+                await _loadDashboard();
+                _applyOperatorName(name);
+                if (currentState.isMobile) setMobileView('list');
+            });
+        } else {
+            _closeOperatorModal();
+            await _loadDashboard();
+            _applyOperatorName(name);
+            if (currentState.isMobile) setMobileView('list');
+            showToast('VAULT ACTIVE // READY', 'success');
+        }
+
+    } catch (e) {
+        _closeOperatorModal();
+        await _initGuestSession();
+    }
+};
+        
 /* ── VAULT RESTORE OVERLAY ─────────────────────────── */
 const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
     const stale = document.getElementById('vault-restore-overlay');
