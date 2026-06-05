@@ -4754,51 +4754,45 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
     `;
     document.body.appendChild(overlay);
 
-    // Phase 1: Instant blackout covers everything (modal, guest state, all of it)
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             overlay.classList.add('phase-blackout');
 
-            // Kick data load during blackout — fast enough to finish before reveal
-            const dataReady = loadDataCallback ? loadDataCallback() : Promise.resolve();
+            // Wait for blackout to actually paint before touching anything
+            setTimeout(() => {
+                const dataReady = loadDataCallback ? loadDataCallback() : Promise.resolve();
+                const timer = new Promise(r => setTimeout(r, BLACKOUT_MS));
 
-            // Hold blackout long enough for data + a deliberate dramatic pause
-            const BLACKOUT_MS = 380;
-            Promise.all([
-                dataReady,
-                new Promise(r => setTimeout(r, BLACKOUT_MS))
-            ]).then(() => {
-                // Phase 2: Callsign reveal while still blacked out
-                const nameEl = document.getElementById('vcl-name');
-                const statusEl = document.getElementById('vcl-status');
-                if (nameEl) nameEl.classList.add('vcl-visible');
-
-                setTimeout(() => {
-                    if (statusEl) statusEl.classList.add('vcl-visible');
-                }, 150);
-
-                // Phase 3: After callsign has been seen, fade the overlay out
-                // revealing the fully-loaded dashboard underneath
-                setTimeout(() => {
-                    const dash = document.getElementById('dashboard-container');
-                    if (dash) {
-                        dash.classList.remove('vault-entering');
-                        void dash.offsetWidth;
-                        dash.classList.add('vault-entering');
-                    }
-                    overlay.classList.remove('phase-blackout');
-                    overlay.classList.add('phase-reveal');
+                Promise.all([dataReady, timer]).then(() => {
+                    const nameEl = document.getElementById('vcl-name');
+                    const statusEl = document.getElementById('vcl-status');
+                    if (nameEl) nameEl.classList.add('vcl-visible');
 
                     setTimeout(() => {
-                        overlay.remove();
-                        resolve();
-                    }, 600);
-                }, 520); // callsign visible for ~370ms before fade starts
-            });
+                        if (statusEl) statusEl.classList.add('vcl-visible');
+                    }, 150);
+
+                    setTimeout(() => {
+                        const dash = document.getElementById('dashboard-container');
+                        if (dash) {
+                            dash.classList.remove('vault-entering');
+                            void dash.offsetWidth;
+                            dash.classList.add('vault-entering');
+                        }
+                        overlay.classList.remove('phase-blackout');
+                        overlay.classList.add('phase-reveal');
+
+                        setTimeout(() => {
+                            overlay.remove();
+                            resolve();
+                        }, 600);
+                    }, 520);
+                });
+            }, 50); // blackout paint confirmed before callback fires
         });
     });
 });
-
+        
     /* ── WIRE OPERATOR MODAL ─────────────────────────────────────────────── */
     const opBleBtn = document.getElementById('op-ble-scan-btn');
     if (opBleBtn) {
