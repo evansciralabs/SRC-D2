@@ -17,13 +17,20 @@ body.ghost-mode .btn-midnight-purple,body.ghost-mode .glow-border-cyan,body.ghos
     0%, 100% { box-shadow: 0 0 8px rgba(0,255,255,0.15), inset 0 0 8px rgba(0,255,255,0.05); }
     50%       { box-shadow: 0 0 18px rgba(0,255,255,0.35), inset 0 0 12px rgba(0,255,255,0.1); }
 }
-@keyframes pulse-active {
-    0%, 100% { box-shadow: 0 0 12px rgba(0,255,0,0.2), inset 0 0 8px rgba(0,255,0,0.08); }
-    50%       { box-shadow: 0 0 30px rgba(0,255,0,0.6), inset 0 0 20px rgba(0,255,0,0.15); }
-}
-@keyframes pulse-critical {
-    0%, 100% { box-shadow: 0 0 12px rgba(255,51,51,0.2), inset 0 0 8px rgba(255,51,51,0.08); }
-    50%       { box-shadow: 0 0 30px rgba(255,51,51,0.6), inset 0 0 20px rgba(255,51,51,0.15); }
+
+@media (max-width: 768px) {
+    @keyframes pulse-idle {
+        0%, 100% { box-shadow: 0 0 5px rgba(0,255,255,0.25), inset 0 0 5px rgba(0,255,255,0.1); }
+        50%       { box-shadow: 0 0 12px rgba(0,255,255,0.55), inset 0 0 8px rgba(0,255,255,0.2); }
+    }
+    @keyframes pulse-active {
+        0%, 100% { box-shadow: 0 0 8px rgba(0,255,0,0.3), inset 0 0 5px rgba(0,255,0,0.12); }
+        50%       { box-shadow: 0 0 20px rgba(0,255,0,0.7), inset 0 0 12px rgba(0,255,0,0.2); }
+    }
+    @keyframes pulse-critical {
+        0%, 100% { box-shadow: 0 0 8px rgba(255,51,51,0.3), inset 0 0 5px rgba(255,51,51,0.12); }
+        50%       { box-shadow: 0 0 20px rgba(255,51,51,0.7), inset 0 0 12px rgba(255,51,51,0.2); }
+    }
 }
 
 #dashboard-container.pulse-idle     { animation: pulse-idle     5s ease-in-out infinite; }
@@ -97,8 +104,11 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
     animation: vault-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes vault-rise {
-    from { opacity:0; transform:translateY(10px); filter:brightness(0.3) saturate(0); }
-    to   { opacity:1; transform:translateY(0);    filter:brightness(1)   saturate(1); }
+    0%   { opacity:0; transform:translateY(10px); filter:brightness(0.3) saturate(0); }
+    15%  { opacity:0.8; transform:translateY(6px); filter:brightness(1.4) saturate(0.2) hue-rotate(20deg); }
+    30%  { opacity:0.9; transform:translateY(4px) translateX(-2px); filter:brightness(1.2) saturate(0.5) hue-rotate(-10deg); }
+    45%  { opacity:0.95; transform:translateY(2px) translateX(1px); filter:brightness(1.1) saturate(0.8); }
+    100% { opacity:1; transform:translateY(0) translateX(0); filter:brightness(1) saturate(1); }
 }
 
         /* VΞILPØINT STYLES */
@@ -585,7 +595,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
                 <span class="text-[9px] font-['Space_Mono'] neon-cyan tracking-widest flex-shrink-0">ID:</span>
                 <input id="operator-name-input" class="flex-grow bg-transparent border-b border-cyan-500/30 text-green-400 font-['Space_Mono'] text-[10px] py-0.5 px-0 outline-none tracking-widest uppercase placeholder-gray-600 focus:border-cyan-500 transition-colors" placeholder="CALLSIGN" autocomplete="off" spellcheck="false" />
                 <input id="operator-glyph-input" class="w-12 bg-transparent border-b border-purple-500/30 text-purple-400 font-['Space_Mono'] text-[10px] py-0.5 px-0 outline-none text-center placeholder-gray-600 focus:border-purple-500 transition-colors" placeholder="GLYPH" autocomplete="off" spellcheck="false" />
-                <button id="operator-modal-confirm" class="glyph-btn text-[9px] neon-green border border-green-500/50 hover:border-green-400 hover:text-white rounded px-2 py-0.5 flex-shrink-0 transition-colors">⌁</button>
+                <button id="operator-modal-confirm" class="glyph-btn text-[9px] neon-green border border-green-500/50 hover:border-green-400 hover:text-white rounded px-2 py-0.5 flex-shrink-0 transition-colors" id="operator-modal-confirm">⌁</button>
                 <button id="operator-modal-clear" class="glyph-btn text-[9px] text-red-500 border border-red-500/50 hover:border-red-400 hover:text-white rounded px-2 py-0.5 flex-shrink-0 transition-colors" style="text-shadow:var(--text-glow-red)">⌫</button>
             </div>
 
@@ -4764,13 +4774,24 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
                 const timer = new Promise(r => setTimeout(r, BLACKOUT_MS));
 
                 Promise.all([dataReady, timer]).then(() => {
-                    const nameEl = document.getElementById('vcl-name');
-                    const statusEl = document.getElementById('vcl-status');
-                    if (nameEl) nameEl.classList.add('vcl-visible');
+    const nameEl = document.getElementById('vcl-name');
+    const statusEl = document.getElementById('vcl-status');
 
-                    setTimeout(() => {
-                        if (statusEl) statusEl.classList.add('vcl-visible');
-                    }, 150);
+    if (nameEl) {
+        const fullText = `[ ${callsign} ]`;
+        nameEl.textContent = '';
+        nameEl.classList.add('vcl-visible');
+        let i = 0;
+        const typeInterval = setInterval(() => {
+            nameEl.textContent += fullText[i];
+            i++;
+            if (i >= fullText.length) clearInterval(typeInterval);
+        }, 35);
+    }
+
+    setTimeout(() => {
+        if (statusEl) statusEl.classList.add('vcl-visible');
+    }, 150);
 
                     setTimeout(() => {
                         const dash = document.getElementById('dashboard-container');
@@ -4805,7 +4826,21 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
         
     _metricsLabel.addEventListener('click', _openOperatorModal);
     document.getElementById('operator-modal-close').onclick = _closeOperatorModal;
-    document.getElementById('operator-modal-confirm').onclick = _confirmOperatorId;
+    document.getElementById('operator-modal-confirm').onclick = (e) => {
+    const btn = e.currentTarget;
+    btn.style.transition = 'all 0.15s ease';
+    btn.style.boxShadow = '0 0 12px #0f0, inset 0 0 8px rgba(0,255,0,0.3)';
+    btn.style.borderColor = '#0f0';
+    btn.style.color = '#fff';
+    btn.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        btn.style.transform = '';
+        btn.style.boxShadow = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+    }, 150);
+    _confirmOperatorId();
+};
     document.getElementById('operator-modal-clear').onclick = () => {
         _operatorInput.value = '';
         _operatorGlyphInput.value = '';
