@@ -2148,10 +2148,11 @@ const _loadDashboard = async () => {
 // ── LIVE LINE REFERENCE ─────────────────────────────────────
 DOMElements.scratchpadTextareas.forEach(ta => {
     const updateLine = () => {
-        const lines = ta.value.substring(0, ta.selectionStart).split('\n');
-        document.getElementById('sp-lines').textContent = ta.value.split('\n').length;
-        document.getElementById('sp-chars').textContent = ta.value.length;
-    };
+    const lines = ta.value.substring(0, ta.selectionStart).split('\n');
+    document.getElementById('sp-cur-line').textContent = lines.length;
+    document.getElementById('sp-lines').textContent = ta.value.split('\n').length;
+    document.getElementById('sp-chars').textContent = ta.value.length;
+};
     ta.addEventListener('keyup', updateLine);
     ta.addEventListener('click', updateLine);
     ta.addEventListener('touchend', updateLine);
