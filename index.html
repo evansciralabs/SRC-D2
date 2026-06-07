@@ -2203,7 +2203,8 @@ document.getElementById('scratchpad-modal').addEventListener('click', (e) => {
 
             // Listeners: Analyzer Modal
             DOMElements.analyzerCloseBtn.onclick = () => { 
-                DOMElements.analyzerModal.classList.add('hidden'); 
+                DOMElements.analyzerModal.classList.add('hidden');
+                DOMElements.scratchpadAnalyzeBtn.blur();
             };
             DOMElements.analyzerCopyBtn.onclick = () => {
                 DOMElements.analyzerOutput.select();
