@@ -2284,9 +2284,7 @@ const _updatePuckPosition = (ta) => {
 };
 
 const _updateHandlePositions = (ta) => {
-    const lh = _getLineHeight();
     const stripH = _spStrip.getBoundingClientRect().height;
-    const totalH = ta.scrollHeight;
 
     const startRatio = (ta.selectionStart > 0)
         ? (ta.value.substring(0, ta.selectionStart).split('\n').length - 1) / _getTotalLines()
@@ -2410,8 +2408,8 @@ const _wireHandle = (handleEl, isStart) => {
             const y = ev.touches ? ev.touches[0].clientY : ev.clientY;
             const ta = Array.from(DOMElements.scratchpadTextareas).find(t => !t.classList.contains('hidden'));
             if (!ta) return;
-            const stripH = _spStrip.getBoundingClientRect().height;
-            const ratio = Math.max(0, Math.min(1, y / stripH));
+            const stripRect = _spStrip.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (y - stripRect.top) / stripRect.height));
             const totalLines = _getTotalLines();
             const targetLine = Math.floor(ratio * totalLines);
             const offset = _lineToCharOffset(ta, targetLine);
@@ -2441,8 +2439,29 @@ _wireHandle(_spStartHandle, true);
 _wireHandle(_spEndHandle, false);
 
 // Wire puck events
-_spPuck.addEventListener('mousedown', (e) => { e.preventDefault(); _onPuckStart(e.clientY); });
-_spPuck.addEventListener('touchstart', (e) => { _onPuckStart(e.touches[0].clientY); }, { passive: true });
+_spPuck.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    if (_puckState.mode === 'finetune') {
+        _puckState.mode = 'scroll';
+        _spPuck.classList.remove('selecting');
+        _spStartHandle.classList.remove('visible');
+        _spEndHandle.classList.remove('visible');
+        _spPuckLine.textContent = '1';
+        return;
+    }
+    _onPuckStart(e.clientY);
+});
+_spPuck.addEventListener('touchstart', (e) => {
+    if (_puckState.mode === 'finetune') {
+        _puckState.mode = 'scroll';
+        _spPuck.classList.remove('selecting');
+        _spStartHandle.classList.remove('visible');
+        _spEndHandle.classList.remove('visible');
+        _spPuckLine.textContent = '1';
+        return;
+    }
+    _onPuckStart(e.touches[0].clientY);
+}, { passive: true });
 window.addEventListener('mousemove', (e) => _onPuckMove(e.clientY));
 window.addEventListener('touchmove', (e) => { if (_puckState.isDragging) _onPuckMove(e.touches[0].clientY); }, { passive: true });
 window.addEventListener('mouseup', _onPuckEnd);
@@ -2452,10 +2471,6 @@ window.addEventListener('touchend', _onPuckEnd);
 const _origSpEnterContext = _spEnterContext;
 const _spEnterContextWithPuck = () => {
     _origSpEnterContext();
-    const ta = Array.from(DOMElements.scratchpadTextareas).find(t => !t.classList.contains('hidden'));
-    if (ta) {
-        ta.addEventListener('scroll', () => _updatePuckPosition(ta), { passive: true });
-    }
     _showPuckStrip();
 };
 
