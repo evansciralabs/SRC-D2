@@ -372,8 +372,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
                 <button data-tab="vip" class="scratchpad-tab-btn p-2 text-sm font-bold border-r border-cyan-500 opacity-70 hover:opacity-100">VIP_CONTEXT</button>
                 <span class="flex-grow"></span>
             </div>
-            <div id="scratchpad-content-container" class="flex-grow relative w-full h-full min-h-0 bg-transparent">
-                <textarea id="scratchpad-main" data-tab="main" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-cyan-500/50 focus:border-cyan-500" placeholder="Type large-scale thoughts, drafts, or inline HTML code here..."></textarea>
+            <div id="scratchpad-content-container" class="flex-grow relative w-full h-full min-h-0 bg-transparent overflow-hidden">                <textarea id="scratchpad-main" data-tab="main" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-cyan-500/50 focus:border-cyan-500" placeholder="Type large-scale thoughts, drafts, or inline HTML code here..."></textarea>
                 <textarea id="scratchpad-code" data-tab="code" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-green-500/50 absolute top-0 left-0 hidden focus:border-green-500" placeholder="Paste and sort code snippets, AI outputs, or technical documentation here."></textarea>
                 <textarea id="scratchpad-vip" data-tab="vip" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-yellow-500/50 absolute top-0 left-0 hidden focus:border-yellow-500" placeholder="Reserved space for mission-critical context or polished responses."></textarea>
                 <span class="absolute top-2 right-4 text-xs opacity-50 neon-green pointer-events-none">Autosaved</span>
