@@ -379,16 +379,16 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
                 <textarea id="scratchpad-vip" data-tab="vip" class="scratchpad-textarea w-full h-full p-3 text-sm rounded-none resize-none border-x-2 border-dashed border-yellow-500/50 absolute top-0 left-0 hidden focus:border-yellow-500" placeholder="Reserved space for mission-critical context or polished responses."></textarea>
                 <span class="absolute top-2 right-4 text-xs opacity-50 neon-green pointer-events-none">Autosaved</span>
             </div>
-            <div class="flex justify-between items-center px-3 py-1 bg-black/40 border-x-2 border-b-2 border-dashed border-gray-700/50 rounded-b-lg mb-3 flex-shrink-0 h-10 w-full">
-                <div class="text-[10px] font-['Space_Mono'] text-gray-500 flex space-x-3 items-center">
-                    <span>LINES: <span id="sp-lines" class="text-cyan-400 inline-block w-6 text-right">0</span></span>
-                    <span class="text-gray-700">|</span>
-                    <span>CUR: <span id="sp-cur-line" class="text-yellow-400 inline-block w-6 text-right">1</span></span>
-                    <span class="text-gray-700">|</span>
-                    <span>CHARS: <span id="sp-chars" class="text-cyan-400 inline-block w-10 text-right">0</span></span>
-                </div>
-                <button id="scratchpad-analyze-btn" class="btn-midnight-purple py-0.5 px-3 text-[10px] rounded uppercase flex items-center gap-2" title="Compare MAIN vs CODE HTML IDs"><span>[ ? ] ANALYZE IDs</span></button>
-            </div>
+          <div class="flex justify-between items-center px-3 py-1 bg-black/40 border-x-2 border-b-2 border-dashed border-gray-700/50 rounded-b-lg mb-3 flex-shrink-0 h-10 w-full overflow-hidden">
+              <div class="text-[10px] font-['Space_Mono'] text-gray-500 flex space-x-3 items-center min-w-0 overflow-hidden">
+              <span class="whitespace-nowrap">LINES: <span id="sp-lines" class="text-cyan-400">0</span></span>
+              <span class="text-gray-700">|</span>
+              <span class="whitespace-nowrap">CUR: <span id="sp-cur-line" class="text-yellow-400">1</span></span>
+              <span class="text-gray-700">|</span>
+              <span class="whitespace-nowrap">CHARS: <span id="sp-chars" class="text-cyan-400">0</span></span>
+         </div>
+                <button id="scratchpad-analyze-btn" class="btn-midnight-purple py-0.5 px-3 text-[10px] rounded uppercase flex items-center gap-2 flex-shrink-0 ml-2" title="Compare MAIN vs CODE HTML IDs"><span>[ ? ] ANALYZE IDs</span></button>
+</div>
             <div class="flex justify-end space-x-2 flex-shrink-0">
                 <button id="scratchpad-preview-btn" class="py-1 px-3 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600 glow-border-cyan">[ </> ] PREVIEW HTML</button>
                 <button id="scratchpad-export-btn" class="py-1 px-3 text-xs rounded-lg bg-slate-700 hover:bg-slate-600 glow-border-cyan">[ < ] SAVE AS .srcd</button>
