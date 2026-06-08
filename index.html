@@ -1832,17 +1832,18 @@ const deleteItem = (id, type) => {
 };
 
         const switchTab = (tab) => {
-            currentState.activeScratchpadTab = tab;
-            DOMElements.scratchpadTabs.forEach(b => {
-                const active = b.dataset.tab === tab;
-                b.classList.toggle('active-tab', active);
-                b.classList.toggle('neon-cyan', active);
-                b.classList.toggle('text-white', !active);
-                b.classList.toggle('opacity-70', !active);
-            });
-            DOMElements.scratchpadTextareas.forEach(t => t.classList.toggle('hidden', t.dataset.tab !== tab));
-            updateScratchpadMetrics();
-        };
+    currentState.activeScratchpadTab = tab;
+    DOMElements.scratchpadTabs.forEach(b => {
+        const active = b.dataset.tab === tab;
+        b.classList.toggle('active-tab', active);
+        b.classList.toggle('neon-cyan', active);
+        b.classList.toggle('text-white', !active);
+        b.classList.toggle('opacity-70', !active);
+    });
+    DOMElements.scratchpadTextareas.forEach(t => t.classList.toggle('hidden', t.dataset.tab !== tab));
+    updateScratchpadMetrics();
+    _spEnterContext();
+};
 
         /* --- VΞILPØINT LOGIC (PLATINUM UPGRADE) --- */
         let veilReport = null;
