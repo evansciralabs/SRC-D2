@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>​✵SRC-D2 | [v5.6.3 Peace Operator]</title>
+    <title>​✵SRC-D2 | [v5.6 Peace Operator]</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#050a19">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,6 +11,93 @@
     <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>:root{--primary:#0ff;--secondary:#0f0;--silver:#e0ffff;--dark-bg:#050a19;--mid-bg:#1a2238;--critical:#f33;--warning:#ffd700;--orange-alert:#fb923c;--text-glow-primary:0 0 10px rgba(0,255,255,.8),0 0 20px rgba(0,255,255,.4);--border-glow-primary:0 0 8px #0ff,inset 0 0 8px rgba(0,255,255,.6);--text-glow-secondary:0 0 8px rgba(0,255,0,.8);--border-glow-yellow:0 0 8px rgba(255,215,0,.8),inset 0 0 5px rgba(255,215,0,.4);--border-glow-red:0 0 8px rgba(255,51,51,.8),inset 0 0 5px rgba(255,51,51,.4);--border-glow-green:0 0 8px rgba(0,255,0,.8),inset 0 0 5px rgba(0,255,0,.4);--midnight-purp-bg:#0f0518;--neon-pink:#f0f;--border-glow-pink:0 0 8px rgba(255,0,255,.8),inset 0 0 5px rgba(255,0,255,.4);--text-glow-pink:0 0 5px rgba(255,0,255,.8);--text-glow-red:0 0 10px rgba(255,51,51,.8),0 0 20px rgba(255,51,51,.5)}*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}html{line-height:1.5;-webkit-text-size-adjust:100%;font-family:ui-sans-serif,system-ui,sans-serif}body{margin:0;line-height:inherit}button,input,optgroup,select,textarea{font-family:inherit;font-size:100%;font-weight:inherit;line-height:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button;background-color:transparent;background-image:none}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}h1,h2,h3,h4,h5,h6,p,pre{margin:0}menu,ol,ul{list-style:none;margin:0;padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]{display:none}body.ghost-mode{--primary:#c0c0c0;--secondary:grey;--silver:#666;--dark-bg:#000;--mid-bg:#0a0a0a;--critical:#8b0000;--warning:#a9a9a9;--orange-alert:#804000;--text-glow-primary:none;--border-glow-primary:none;--text-glow-secondary:none;--border-glow-yellow:none;--border-glow-red:none;--border-glow-green:none;--border-glow-pink:none;--text-glow-pink:none;--text-glow-red:none}body.ghost-mode *:not(#vault-restore-overlay):not(#vault-restore-overlay *){text-shadow:none!important;box-shadow:none!important}
 body.ghost-mode .btn-midnight-purple,body.ghost-mode .glow-border-cyan,body.ghost-mode .glow-border-green,body.ghost-mode .glow-btn-green,body.ghost-mode .glow-btn-red,body.ghost-mode .glow-btn-yellow{border-color:#333;box-shadow:none;color:#888}body.ghost-mode .bg-dark-navy,body.ghost-mode .modal-content{background-color:#000!important;border-color:#333!important}
+/* ── GHOST MODE: COMPREHENSIVE COLOR NEUTRALIZATION ───────────────────────
+   The base ghost-mode rules above only override CSS variables and a small
+   set of custom semantic classes (.glow-border-cyan etc). They never
+   touched the hundreds of literal Tailwind utility classes (text-cyan-400,
+   border-yellow-500, bg-purple-900, etc) used throughout every modal, nor
+   the hardcoded hex values used by SDAP and various inline styles. Those
+   surfaces stayed in full neon color regardless of Ghost Mode being on.
+   This block closes that gap by mapping each color FAMILY to a muted,
+   desaturated equivalent consistent with the existing --primary/--secondary/
+   --critical/--warning ghost-mode palette, rather than picking one-off
+   replacement colors per class. */
+
+/* CYAN family → light gray (matches --primary ghost substitute #c0c0c0) */
+body.ghost-mode .text-cyan-100,body.ghost-mode .text-cyan-200,body.ghost-mode .text-cyan-300,
+body.ghost-mode .text-cyan-400,body.ghost-mode .text-cyan-500{color:#c0c0c0!important}
+body.ghost-mode .border-cyan-500,body.ghost-mode .border-cyan-900,
+body.ghost-mode .border-cyan-500\/30,body.ghost-mode .border-cyan-500\/50,
+body.ghost-mode .border-cyan-900\/50,body.ghost-mode .md\:border-cyan-500{border-color:#3a3a3a!important}
+body.ghost-mode .bg-cyan-500,body.ghost-mode .bg-cyan-600,body.ghost-mode .bg-cyan-700,
+body.ghost-mode .bg-cyan-900,body.ghost-mode .bg-cyan-900\/50{background-color:#1a1a1a!important}
+body.ghost-mode .hover\:bg-cyan-600:hover,body.ghost-mode .hover\:bg-cyan-700:hover,
+body.ghost-mode .hover\:bg-cyan-900\/50:hover{background-color:#262626!important}
+body.ghost-mode .hover\:text-cyan-200:hover{color:#d4d4d4!important}
+body.ghost-mode .focus\:border-cyan-500:focus{border-color:#4a4a4a!important}
+
+/* GREEN family → mid gray (matches --secondary ghost substitute: grey) */
+body.ghost-mode .text-green-300,body.ghost-mode .text-green-400,body.ghost-mode .text-green-500{color:#888!important}
+body.ghost-mode .border-green-500,body.ghost-mode .border-green-900,
+body.ghost-mode .border-green-500\/30{border-color:#3a3a3a!important}
+body.ghost-mode .bg-green-500,body.ghost-mode .bg-green-600,body.ghost-mode .bg-green-700,
+body.ghost-mode .bg-green-800,body.ghost-mode .bg-green-900{background-color:#1a1a1a!important}
+body.ghost-mode .hover\:bg-green-600:hover,body.ghost-mode .hover\:bg-green-700:hover,
+body.ghost-mode .hover\:bg-green-900:hover{background-color:#262626!important}
+body.ghost-mode .focus\:border-green-500:focus{border-color:#4a4a4a!important}
+
+/* RED family → dark red (matches --critical ghost substitute #8b0000) —
+   kept slightly distinguishable from pure gray since "critical/danger"
+   still needs to read as distinct even in discreet mode */
+body.ghost-mode .text-red-300,body.ghost-mode .text-red-400,body.ghost-mode .text-red-500{color:#a04040!important}
+body.ghost-mode .border-red-500,body.ghost-mode .border-red-900,
+body.ghost-mode .border-red-500\/30,body.ghost-mode .border-red-500\/50,
+body.ghost-mode .border-red-900\/30{border-color:#5c2020!important}
+body.ghost-mode .bg-red-500,body.ghost-mode .bg-red-600,body.ghost-mode .bg-red-700,
+body.ghost-mode .bg-red-800,body.ghost-mode .bg-red-900,
+body.ghost-mode .bg-red-900\/10,body.ghost-mode .bg-red-900\/50{background-color:#2a1414!important}
+body.ghost-mode .hover\:bg-red-600:hover,body.ghost-mode .hover\:bg-red-700:hover,
+body.ghost-mode .hover\:bg-red-800:hover,body.ghost-mode .hover\:bg-red-900\/20:hover{background-color:#3a1c1c!important}
+body.ghost-mode .hover\:text-red-200:hover{color:#b06060!important}
+
+/* YELLOW family → muted gray-tan (matches --warning ghost substitute #a9a9a9) */
+body.ghost-mode .text-yellow-200,body.ghost-mode .text-yellow-400,body.ghost-mode .text-yellow-500{color:#a9a9a9!important}
+body.ghost-mode .border-yellow-500,body.ghost-mode .border-yellow-900,
+body.ghost-mode .border-yellow-500\/30,body.ghost-mode .border-yellow-500\/50{border-color:#4a4a40!important}
+body.ghost-mode .bg-yellow-400,body.ghost-mode .bg-yellow-700,
+body.ghost-mode .bg-yellow-900\/20,body.ghost-mode .bg-yellow-900\/40{background-color:#2a2a20!important}
+body.ghost-mode .hover\:bg-yellow-600:hover,body.ghost-mode .hover\:bg-yellow-900\/20:hover,
+body.ghost-mode .hover\:bg-yellow-900\/50:hover{background-color:#3a3a30!important}
+body.ghost-mode .hover\:text-yellow-200:hover{color:#bdbdbd!important}
+body.ghost-mode .focus\:border-yellow-500:focus{border-color:#5a5a50!important}
+
+/* PURPLE/PINK family → muted slate (no prior ghost substitute existed —
+   added here for SDAP, Sentinel inspector, and Peace Operator surfaces) */
+body.ghost-mode .text-purple-400,body.ghost-mode .text-purple-500,
+body.ghost-mode .text-pink-400{color:#9a9aa0!important}
+body.ghost-mode .border-purple-500,body.ghost-mode .border-purple-500\/30{border-color:#3a3a40!important}
+body.ghost-mode .bg-purple-700,body.ghost-mode .bg-purple-900{background-color:#1c1c20!important}
+body.ghost-mode .hover\:bg-purple-700:hover,body.ghost-mode .hover\:bg-purple-900:hover{background-color:#26262c!important}
+
+/* ORANGE family → muted brown (matches --orange-alert ghost substitute #804000) */
+body.ghost-mode .text-orange-400{color:#806040!important}
+body.ghost-mode .border-orange-500,body.ghost-mode .border-orange-500\/30{border-color:#4a3a28!important}
+body.ghost-mode .bg-orange-500{background-color:#2a2018!important}
+body.ghost-mode .hover\:bg-orange-900\/50:hover{background-color:#3a2c20!important}
+
+/* SDAP hardcoded hex (#eab308/#facc15/#a16207 gold family) — not part of the
+   Tailwind utility system at all, defined directly in SDAP's own <style>
+   block. These never had any ghost-mode coverage previously. */
+body.ghost-mode .sdap-title,body.ghost-mode #sdap-tab-prompt,
+body.ghost-mode .sdap-close{color:#a9a9a9!important;text-shadow:none!important}
+body.ghost-mode .sdap-container{border-color:#3a3a3a!important;box-shadow:none!important}
+body.ghost-mode .sdap-header{border-bottom-color:#3a3a3a!important}
+body.ghost-mode .sdap-tabs{border-bottom-color:#3a3a3a!important}
+body.ghost-mode .sdap-tab.active{border-bottom-color:#a9a9a9!important}
+body.ghost-mode #sdap-tab-prompt.active{background:#a9a9a9!important;color:#000!important}
+body.ghost-mode .sdap-textarea:focus{border-color:#a9a9a9!important;box-shadow:none!important}
+body.ghost-mode .sdap-btn{background:#2a2a2a!important;border-color:#4a4a4a!important;color:#ccc!important}
+body.ghost-mode .sdap-btn:hover{background:#3a3a3a!important;box-shadow:none!important}
 .scratchpad-textarea.sp-context-mode{font-size:8px;line-height:1.2;cursor:pointer;opacity:0.85;}
 .scratchpad-textarea{font-family:'Space Mono',monospace;line-height:1.4;tab-size:4;color:var(--secondary);background-color:rgba(26,34,56,.8)}body{font-family:'Space Mono',monospace;background-color:var(--dark-bg);color:var(--silver);height:100vh;overflow:hidden;transition:background-color .5s ease,color .5s ease}.glow-text-cyan,.neon-cyan{color:var(--primary);text-shadow:var(--text-glow-primary)}.neon-green{color:var(--secondary);text-shadow:var(--text-glow-secondary)}.bg-dark-navy{background-color:var(--dark-bg)}.bg-mid-blue{background-color:var(--mid-bg)}.glow-border-cyan{border:1px solid var(--primary);box-shadow:var(--border-glow-primary)}.glow-border-green{border:1px solid var(--secondary);box-shadow:var(--border-glow-green)}.glow-btn-yellow{border:1px solid var(--warning);box-shadow:var(--border-glow-yellow);color:#fff}.glow-btn-red{border:1px solid var(--critical);box-shadow:var(--border-glow-red);color:#fff}.glow-btn-green{border:1px solid var(--secondary);box-shadow:var(--border-glow-green);color:#fff}.panel-grid-bg{background-image:linear-gradient(rgba(0,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,255,.03) 1px,transparent 1px);background-size:20px 20px}.glyph-btn{font-family:'Michroma',sans-serif;line-height:1;padding:4px 6px;transition:all .2s ease;background:0 0;border:none;cursor:pointer;border-radius:4px;white-space:nowrap}.glyph-btn:hover{transform:scale(1.1);background-color:rgba(255,255,255,.1);text-shadow:0 0 8px currentColor}.rune-close{text-shadow:var(--text-glow-red);transition:all .2s ease;cursor:pointer;z-index:100}.rune-close:hover{transform:scale(1.2);color:#f99}.btn-midnight-purple{background-color:var(--midnight-purp-bg);color:var(--neon-pink);border:1px solid var(--neon-pink);box-shadow:0 0 5px rgba(255,0,255,.2);transition:all .2s ease;font-family:'Michroma',sans-serif;letter-spacing:.5px;text-shadow:var(--text-glow-pink)}
 .btn-midnight-purple:hover{box-shadow:var(--border-glow-pink);background-color:#1a0b2e;}
@@ -708,6 +795,26 @@ const _refreshNetworkFingerprint = async () => {
         let _operatorLoginGlyph = null; // glyph typed at OPERATOR login, kept for the import-time glyph-lock fallback (input field gets cleared right after confirm)
 
         // SECURITY: HTML Sanitizer to prevent XSS in titles, notes, and labels
+        // GHOST MODE: CSS can never override a JS-set inline style, regardless
+        // of selector specificity or !important — inline style wins unconditionally.
+        // Every place that sets .style.color directly must check ghost mode
+        // itself and substitute the muted equivalent. This centralizes that
+        // mapping in one place (mirroring the CSS family mapping above) rather
+        // than duplicating the check and the color table at every call site.
+        const GHOST_COLOR_MAP = {
+            '#22d3ee': '#c0c0c0', '#06b6d4': '#c0c0c0', '#0ff': '#c0c0c0', '#67e8f9': '#c0c0c0', // cyan family
+            '#22c55e': '#888888', '#0f0': '#888888', '#4ade80': '#888888',                       // green family
+            '#ef4444': '#a04040', '#f00': '#a04040', '#f87171': '#a04040',                       // red family
+            '#facc15': '#a9a9a9', '#eab308': '#a9a9a9',                                          // yellow family
+            '#a855f7': '#9a9aa0', '#a78bfa': '#9a9aa0',                                          // purple family
+            '#6b7280': '#6b7280', '#4b5563': '#4b5563',                                          // neutral gray — unchanged
+            '#fff': '#d4d4d4', '#ffffff': '#d4d4d4'                                               // white → soft gray
+        };
+        const ghostColor = (hex) => {
+            if (!document.body.classList.contains('ghost-mode')) return hex;
+            return GHOST_COLOR_MAP[hex.toLowerCase()] || hex;
+        };
+
         const escapeHtml = (unsafe) => {
             if (typeof unsafe !== 'string') return unsafe;
             return unsafe
@@ -929,7 +1036,7 @@ const _refreshNetworkFingerprint = async () => {
                 if (placeholder && placeholder.textContent === '— awaiting events —') placeholder.remove();
                 const entry = document.createElement('div');
                 const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
-                const color = type === 'success' ? 'color:#4ade80' : type === 'error' ? 'color:#f87171' : type === 'debug' ? 'color:#a78bfa' : 'color:#67e8f9';
+                const color = type === 'success' ? 'color:' + ghostColor('#4ade80') : type === 'error' ? 'color:' + ghostColor('#f87171') : type === 'debug' ? 'color:' + ghostColor('#a78bfa') : 'color:' + ghostColor('#67e8f9');
                 entry.style.cssText = color + ';cursor:pointer;';
                 // Strip HTML tags from message for clean console display
                 const clean = String(message).replace(/<[^>]*>/g, '');
@@ -2266,9 +2373,9 @@ const deleteItem = (id, type) => {
                 eye.classList.remove('active');
                 eye.classList.add('danger');
                 status.textContent = 'THREAT DETECTED';
-                status.style.color = '#f00';
-                status.style.textShadow = '0 0 8px #f00';
-                btn.style.borderColor = '#ef4444';
+                status.style.color = ghostColor('#f00');
+                status.style.textShadow = document.body.classList.contains('ghost-mode') ? 'none' : '0 0 8px #f00';
+                btn.style.borderColor = ghostColor('#ef4444');
                 
                 veilReport = {
                     timestamp: new Date().toISOString(),
@@ -2326,6 +2433,19 @@ const deleteItem = (id, type) => {
             const isGhost = document.body.classList.contains('ghost-mode');
             DOMElements.ghostModeBtn.style.color = isGhost ? '#fff' : '';
             showToast(isGhost ? 'SHADOW WOLF: ACTIVE' : 'SHADOW WOLF: DISENGAGED', isGhost ? 'error' : 'info');
+
+            // CSS-class-based color overrides apply instantly via the cascade
+            // the moment the body class toggles. JS-driven inline styles do
+            // NOT — they only update when something calls the function that
+            // sets them. Without this, the Sentinel LEDs, the Sling Transport
+            // button, and anything else routed through ghostColor() would
+            // stay in whatever color they were last rendered with until an
+            // unrelated event happened to trigger a re-render, making Ghost
+            // Mode's effect on those elements delayed and inconsistent
+            // rather than immediate. Force every ghost-aware render path to
+            // refresh right now.
+            if (typeof _sentinelRenderLEDs === 'function') _sentinelRenderLEDs();
+            if (typeof window.updateSlingButton === 'function') window.updateSlingButton();
         };
 
         // navigator.onLine only reflects whether a network INTERFACE is up
@@ -2769,7 +2889,7 @@ const injectSurvivalMenu = () => {
     const slingBtnEl = document.createElement('button');
     slingBtnEl.id = 'sling-transport-btn';
     slingBtnEl.className = 'hidden w-10 h-10 rounded-full bg-slate-800 shadow-lg flex items-center justify-center transition-all';
-    slingBtnEl.style.cssText = 'border: 1px solid #06b6d4; color: #06b6d4; box-shadow: 0 0 8px rgba(6,182,212,0.4);';
+    slingBtnEl.style.cssText = `border: 1px solid ${ghostColor('#06b6d4')}; color: ${ghostColor('#06b6d4')}; box-shadow: ${document.body.classList.contains('ghost-mode') ? 'none' : '0 0 8px rgba(6,182,212,0.4)'};`;
     slingBtnEl.title = 'Sling Transport';
     document.getElementById('sv-menu-items').appendChild(slingBtnEl);
 
@@ -2781,16 +2901,17 @@ const injectSurvivalMenu = () => {
     window.updateSlingButton = () => {
         const sBtn = document.getElementById('sling-transport-btn');
         if (!sBtn) return;
+        const isGhost = document.body.classList.contains('ghost-mode');
         const isInProject = currentState.selectedItem && currentState.selectedItem.type === 'project';
         if (isInProject) {
             // Green — PULL: project → scratchpad
             sBtn.innerHTML = _slingArrowPull;
-            sBtn.style.cssText = 'border: 1px solid #22c55e; color: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.4);';
+            sBtn.style.cssText = `border: 1px solid ${ghostColor('#22c55e')}; color: ${ghostColor('#22c55e')}; box-shadow: ${isGhost ? 'none' : '0 0 8px rgba(34,197,94,0.4)'};`;
             sBtn.title = 'SLING PULL: Inject last viewed file into scratchpad';
         } else {
             // Cyan/Blue — PUSH: scratchpad → project
             sBtn.innerHTML = _slingArrowPush;
-            sBtn.style.cssText = 'border: 1px solid #06b6d4; color: #06b6d4; box-shadow: 0 0 8px rgba(6,182,212,0.4);';
+            sBtn.style.cssText = `border: 1px solid ${ghostColor('#06b6d4')}; color: ${ghostColor('#06b6d4')}; box-shadow: ${isGhost ? 'none' : '0 0 8px rgba(6,182,212,0.4)'};`;
             sBtn.title = 'SLING PUSH: Attach scratchpad to last viewed project';
         }
     };
@@ -3030,8 +3151,9 @@ const _sentinelRenderLEDs = () => {
     _sentinelSignalMeta.forEach(({ key, label }) => {
         const applicable = _sentinelIsSignalApplicable(key);
         const deviating = activeSignals.has(key);
-        const bg = !applicable ? '#1e293b' : deviating ? '#ef4444' : '#22c55e';
-        const shadow = !applicable ? 'none' : deviating ? '0 0 5px #ef4444' : '0 0 3px #22c55e';
+        const isGhost = document.body.classList.contains('ghost-mode');
+        const bg = ghostColor(!applicable ? '#1e293b' : deviating ? '#ef4444' : '#22c55e');
+        const shadow = isGhost ? 'none' : !applicable ? 'none' : deviating ? '0 0 5px #ef4444' : '0 0 3px #22c55e';
         const titleText = !applicable ? `${label}: N/A in this context`
             : deviating ? `${label}: DEVIATING`
             : `${label}: CLEAR`;
@@ -3652,13 +3774,13 @@ const updateStatsUI = (isLoss) => {
     if (isLoss) {
         warn.classList.remove('hidden');
         latEl.innerText = "---";
-        latEl.style.color = "#ef4444";
+        latEl.style.color = ghostColor("#ef4444");
     } else {
         warn.classList.add('hidden');
         latEl.innerText = Math.round(sentryState.currentLatency) + " ms";
-        if(sentryState.currentLatency < 100) latEl.style.color = "#22d3ee"; 
-        else if(sentryState.currentLatency < 300) latEl.style.color = "#facc15"; 
-        else latEl.style.color = "#ef4444"; 
+        if(sentryState.currentLatency < 100) latEl.style.color = ghostColor("#22d3ee");
+        else if(sentryState.currentLatency < 300) latEl.style.color = ghostColor("#facc15");
+        else latEl.style.color = ghostColor("#ef4444");
     }
 
     jitEl.innerText = `JITTER: ${Math.round(sentryState.jitter)}ms`;
@@ -4915,15 +5037,15 @@ const initPeaceOperator = async () => {
                         ui.threatBar.style.width = (audioState.threatLevel * 100) + "%";
                         ui.threatPct.innerText = Math.round(audioState.threatLevel * 100) + "%";
                         
-                        let stateColor = "text-white", ledColor = "#4b5563";
+                        let stateColor = "text-white", ledColor = ghostColor("#4b5563");
                         if (audioState.threatLevel > 0.8) {
-                            ui.state.innerText = "AGGRESSIVE"; stateColor = "text-red-500"; ledColor = "#ef4444";
+                            ui.state.innerText = "AGGRESSIVE"; stateColor = "text-red-500"; ledColor = ghostColor("#ef4444");
                             ui.threatBar.className = "h-full bg-red-500 w-0 transition-all duration-75";
                         } else if (audioState.threatLevel > 0.4) {
-                            ui.state.innerText = "PROJECTING"; stateColor = "text-yellow-400"; ledColor = "#eab308";
+                            ui.state.innerText = "PROJECTING"; stateColor = "text-yellow-400"; ledColor = ghostColor("#eab308");
                             ui.threatBar.className = "h-full bg-yellow-400 w-0 transition-all duration-75";
                         } else {
-                            ui.state.innerText = "CALM"; stateColor = "text-cyan-400"; ledColor = "#06b6d4";
+                            ui.state.innerText = "CALM"; stateColor = "text-cyan-400"; ledColor = ghostColor("#06b6d4");
                             ui.threatBar.className = "h-full bg-cyan-500 w-0 transition-all duration-75";
                         }
                         ui.state.className = `text-lg font-['Michroma'] ${stateColor}`;
@@ -5053,10 +5175,10 @@ const initPeaceOperator = async () => {
             topBar.classList.add('active');
             bottomBar.classList.add('active');
             
-            if (isStacked) bottomBar.style.color = '#a855f7'; 
-            else if (gain < 0) bottomBar.style.color = '#ef4444'; 
-            else if (gain > 0) bottomBar.style.color = '#22c55e'; 
-            else bottomBar.style.color = '#6b7280'; 
+            if (isStacked) bottomBar.style.color = ghostColor('#a855f7');
+            else if (gain < 0) bottomBar.style.color = ghostColor('#ef4444');
+            else if (gain > 0) bottomBar.style.color = ghostColor('#22c55e');
+            else bottomBar.style.color = ghostColor('#6b7280');
         };
 
         const clearReadout = () => {
@@ -5150,8 +5272,8 @@ const initPeaceOperator = async () => {
                 let simulatedVal = avg * gainFactor;
                 const hPct = Math.min(100, (simulatedVal / 255) * 100 * 1.5); 
                 signalBar.style.height = `${hPct}%`;
-                if (simulatedVal > 240) signalBar.style.backgroundColor = '#ef4444'; 
-                else signalBar.style.backgroundColor = 'rgba(31, 41, 55, 0.5)'; 
+                if (simulatedVal > 240) signalBar.style.backgroundColor = ghostColor('#ef4444');
+                else signalBar.style.backgroundColor = 'rgba(31, 41, 55, 0.5)';
             }
 
             const led = document.getElementById(`eq-led-${b}`);
@@ -6085,10 +6207,11 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
     document.getElementById('operator-modal-close').onclick = _closeOperatorModal;
     document.getElementById('operator-modal-confirm').onclick = (e) => {
     const btn = e.currentTarget;
+    const isGhost = document.body.classList.contains('ghost-mode');
     btn.style.transition = 'all 0.15s ease';
-    btn.style.boxShadow = '0 0 12px #0f0, inset 0 0 8px rgba(0,255,0,0.3)';
-    btn.style.borderColor = '#0f0';
-    btn.style.color = '#fff';
+    btn.style.boxShadow = isGhost ? 'none' : '0 0 12px #0f0, inset 0 0 8px rgba(0,255,0,0.3)';
+    btn.style.borderColor = ghostColor('#0f0');
+    btn.style.color = ghostColor('#fff');
     btn.style.transform = 'scale(0.95)';
     setTimeout(() => {
         btn.style.transform = '';
@@ -6174,7 +6297,7 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
         _operatorGlyphInput.value = symbol; // visible field shows the symbol, never the string
         _operatorGlyphInput.style.transition = 'none';
         _operatorGlyphInput.style.transform = 'scale(1.3)';
-        _operatorGlyphInput.style.color = '#facc15';
+        _operatorGlyphInput.style.color = ghostColor('#facc15');
         requestAnimationFrame(() => {
             _operatorGlyphInput.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
             _operatorGlyphInput.style.transform = 'scale(1)';
