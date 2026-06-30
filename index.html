@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>​✵SRC-D2 | [v5.6.3 Peace Operator]</title>
+    <title>​✵SRC-D2 | [v5.6 Peace Operator]</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#050a19">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -316,8 +316,18 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
                         </div>
                     </div>
 
-                    <!-- Bottom: Status -->
-                    <span id="net-status-text" class="text-[10px] font-mono text-gray-500">[ LINK: OFFLINE ]</span>
+                    <!-- Bottom: Status + inline Sentinel LEDs -->
+                    <div class="flex items-center gap-2">
+                        <span id="net-status-text" class="text-[10px] font-mono text-gray-500">[ LINK: OFFLINE ]</span>
+                        <div class="flex items-center gap-1 ml-1" title="Sentinel signal status — open ⌖ Net Sentry for detail">
+                            <div id="deck-sled-latency"       style="width:5px;height:5px;border-radius:50%;background:#1e293b;transition:background 0.25s ease,box-shadow 0.25s ease;flex-shrink:0;"></div>
+                            <div id="deck-sled-rttFloor"      style="width:5px;height:5px;border-radius:50%;background:#1e293b;transition:background 0.25s ease,box-shadow 0.25s ease;flex-shrink:0;"></div>
+                            <div id="deck-sled-linkFlip"      style="width:5px;height:5px;border-radius:50%;background:#1e293b;transition:background 0.25s ease,box-shadow 0.25s ease;flex-shrink:0;"></div>
+                            <div id="deck-sled-connType"      style="width:5px;height:5px;border-radius:50%;background:#1e293b;transition:background 0.25s ease,box-shadow 0.25s ease;flex-shrink:0;"></div>
+                            <div id="deck-sled-captivePortal" style="width:5px;height:5px;border-radius:50%;background:#1e293b;transition:background 0.25s ease,box-shadow 0.25s ease;flex-shrink:0;"></div>
+                            <div id="deck-sled-tlsFriction"   style="width:5px;height:5px;border-radius:50%;background:#1e293b;transition:background 0.25s ease,box-shadow 0.25s ease;flex-shrink:0;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Right Column: Triangle Formation -->
@@ -2469,6 +2479,7 @@ const _loadDashboard = async () => {
             setInterval(_checkRealConnectivity, 5000); // keep the status honest without the user doing anything
             _sentinelCheckCaptivePortal(); // establish the response-shape baseline at boot
             setInterval(_sentinelCheckCaptivePortal, 300000); // 5 min — portals are a per-network-join event, not a 30s one
+            _sentinelRenderLEDs(); // initialize deck LEDs to correct N/A / clear state at boot
 
             // Listeners: Scratchpad
             DOMElements.scratchpadCloseBtn.onclick = () => { DOMElements.scratchpadModal.classList.add('hidden'); setModalOpen(false); };
@@ -3017,19 +3028,29 @@ const _sentinelRenderLEDs = () => {
             .map(e => e.signal)
     );
     _sentinelSignalMeta.forEach(({ key, label }) => {
-        const led = document.getElementById(`sled-${key}`);
-        if (!led) return;
         const applicable = _sentinelIsSignalApplicable(key);
         const deviating = activeSignals.has(key);
-        led.style.backgroundColor = !applicable ? '#1e293b'
-            : deviating ? '#ef4444'
-            : '#22c55e';
-        led.style.boxShadow = !applicable ? 'none'
-            : deviating ? '0 0 6px #ef4444'
-            : '0 0 4px #22c55e';
-        led.title = !applicable ? `${label}: N/A in this context`
+        const bg = !applicable ? '#1e293b' : deviating ? '#ef4444' : '#22c55e';
+        const shadow = !applicable ? 'none' : deviating ? '0 0 5px #ef4444' : '0 0 3px #22c55e';
+        const titleText = !applicable ? `${label}: N/A in this context`
             : deviating ? `${label}: DEVIATING`
             : `${label}: CLEAR`;
+
+        // Modal LEDs (14px, inside Net Sentry)
+        const led = document.getElementById(`sled-${key}`);
+        if (led) {
+            led.style.backgroundColor = bg;
+            led.style.boxShadow = shadow;
+            led.title = titleText;
+        }
+
+        // Deck LEDs (5px, always-visible in control deck)
+        const deckLed = document.getElementById(`deck-sled-${key}`);
+        if (deckLed) {
+            deckLed.style.backgroundColor = bg;
+            deckLed.style.boxShadow = shadow;
+            deckLed.title = titleText;
+        }
     });
 };
 
