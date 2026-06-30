@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>​✵SRC-D2 | [v5.6.3 Peace Operator]</title>
+    <title>​✵SRC-D2 | [v5.6 Peace Operator]</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#050a19">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1009,7 +1009,15 @@ const _refreshNetworkFingerprint = async () => {
                 const plain = JSON.stringify(data);
                 const stored = await _encryptForStorage(plain);
                 _activeStorage.setItem(getNsKey(STORAGE_KEYS.SCRATCHPAD), stored);
-            } catch (e) { console.error('Scratchpad save error', e); }
+            } catch (e) {
+                if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+                    if (typeof showToast === 'function') {
+                        showToast('⚠️ STORAGE FULL: Scratchpad content not saved. Export your data and clear space.', 'error', 6000);
+                    }
+                } else {
+                    console.error('Scratchpad save error', e);
+                }
+            }
         };
 
         const revokeActiveURLs = () => {
@@ -1985,9 +1993,30 @@ const deleteItem = (id, type) => {
     // re-decrypting on every open was pure redundant cost with no benefit.
     if (!_scratchpadLoadedThisSession) {
         const data = await getScratchpadFromSessionStorage();
-        DOMElements.scratchpadMain.value = data.main;
-        DOMElements.scratchpadCode.value = data.code;
-        DOMElements.scratchpadVip.value = data.vip;
+
+        // For each tab: use the storage value if it has real content.
+        // If storage returns empty but the textarea already has content
+        // from a previous session visible in the DOM (namespace switches
+        // don't clear textareas), prefer the DOM — this can happen when
+        // storage is full and the save silently failed, leaving the DOM
+        // with content that was never actually persisted.
+        const resolvedMain = data.main || DOMElements.scratchpadMain.value || '';
+        const resolvedCode = data.code || DOMElements.scratchpadCode.value || '';
+        const resolvedVip  = data.vip  || DOMElements.scratchpadVip.value  || '';
+
+        DOMElements.scratchpadMain.value = resolvedMain;
+        DOMElements.scratchpadCode.value = resolvedCode;
+        DOMElements.scratchpadVip.value  = resolvedVip;
+
+        // If we recovered content from the DOM that storage didn't have,
+        // tell the user — their storage is likely full and this content
+        // is not actually persisted. The save attempt below will trigger
+        // the quota toast if that's confirmed.
+        const recoveredFromDom = (resolvedMain !== data.main) || (resolvedCode !== data.code) || (resolvedVip !== data.vip);
+        if (recoveredFromDom) {
+            await saveScratchpadToSessionStorage({ main: resolvedMain, code: resolvedCode, vip: resolvedVip });
+        }
+
         _scratchpadLoadedThisSession = true;
     }
     setModalOpen(true);
@@ -3309,13 +3338,19 @@ const openNetModal = () => {
                 </div>
 
                 <!-- SENTINEL LED STRIP: discrete 6-signal indicators along the bottom border -->
-                <div class="flex items-center justify-center gap-3 px-4 py-2 border-t border-cyan-500/10 bg-black/40">
-                    <span class="text-[8px] font-mono text-gray-600 tracking-widest mr-1">SENTINEL</span>
-                    ${['latency','rttFloor','linkFlip','connType','captivePortal','tlsFriction'].map(key => `
-                    <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
-                        <div id="sled-${key}" style="width:8px; height:8px; border-radius:50%; background:#1e293b; transition:background 0.3s, box-shadow 0.3s; cursor:default;"></div>
-                    </div>`).join('')}
-                    <span class="text-[8px] font-mono text-gray-600 tracking-widest ml-1">3/6</span>
+                <div class="flex items-center justify-center gap-4 px-4 py-2 border-t border-cyan-500/10 bg-black/60">
+                    <span class="text-[8px] font-['Michroma'] text-gray-600 tracking-widest">⌖ SENTINEL</span>
+                    <div class="flex items-center gap-3 px-3 border-x border-gray-800">
+                    ${['latency','rttFloor','linkFlip','connType','captivePortal','tlsFriction'].map((key, i) => {
+                        const shorts = ['LAT','RTT','LNK','NET','PRT','TLS'];
+                        return `<div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+                        <div style="width:14px; height:14px; border-radius:50%; background:#0f172a; border:1px solid #1e293b; display:flex; align-items:center; justify-content:center; box-shadow:inset 0 1px 3px rgba(0,0,0,0.8);">
+                            <div id="sled-${key}" style="width:8px; height:8px; border-radius:50%; background:#1e293b; transition:background 0.25s ease, box-shadow 0.25s ease;"></div>
+                        </div>
+                        <span style="font-family:'Space Mono',monospace; font-size:7px; color:#334155; letter-spacing:0.5px;">${shorts[i]}</span>
+                    </div>`;}).join('')}
+                    </div>
+                    <span class="text-[8px] font-mono text-gray-700 tracking-widest">3/6</span>
                 </div>
 
             </div>
