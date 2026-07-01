@@ -106,6 +106,7 @@ body.ghost-mode .sdap-btn{background:#2a2a2a!important;border-color:#4a4a4a!impo
 body.ghost-mode .sdap-btn:hover{background:#3a3a3a!important;box-shadow:none!important}
 body.ghost-mode .sdap-close{border-color:#3a3a3a!important}
 body.ghost-mode .sdap-close:hover{background:rgba(60,60,60,0.3)!important}
+body.ghost-mode .pe-select{border-color:#3a3a40!important;color:#a9a9a9!important;background:#0a0a0a!important}
 body.ghost-mode #sdap-log-display{border-color:#3a3a3a!important}
 body.ghost-mode #pe-export-srcd{background:#0f1e26!important;border-color:#3a4a4a!important;box-shadow:none!important}
 body.ghost-mode #sdap-emergency-btn{background:rgba(40,20,20,0.3)!important;border-color:rgba(80,40,40,0.5)!important;color:#7a5a5a!important}
@@ -504,10 +505,10 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
                     <!-- left side reserved for future controls -->
                 </div>
                 <div class="flex gap-1">
-                    <button id="scratchpad-preview-btn" class="glyph-btn py-1 px-2 text-sm rounded bg-cyan-900/50 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-700/50" title="Preview HTML">⊛</button>
-                    <button id="scratchpad-export-btn" class="glyph-btn py-1 px-2 text-sm rounded bg-slate-800 border border-gray-700 text-gray-300 hover:bg-slate-700" title="Save as .srcd">⇩</button>
-                    <button id="scratchpad-clear-btn" class="glyph-btn py-1 px-2 text-sm rounded bg-red-900/40 border border-red-500/30 text-red-400 hover:bg-red-800/50" title="Clear context buffer">⌫</button>
-                    <button id="scratchpad-close-btn" class="glyph-btn py-1 px-2 text-sm rounded bg-slate-800 border border-gray-700 text-gray-400 hover:bg-slate-700" title="Close scratchpad">✖</button>
+                    <button id="scratchpad-preview-btn" class="glyph-btn w-8 h-8 flex items-center justify-center rounded border border-cyan-500/30 bg-cyan-900/40 text-cyan-400 hover:bg-cyan-700/50" title="Preview HTML">⊛</button>
+                    <button id="scratchpad-export-btn" class="glyph-btn w-8 h-8 flex items-center justify-center rounded border border-gray-700 bg-slate-800 text-gray-300 hover:bg-slate-700" title="Save as .srcd">⇩</button>
+                    <button id="scratchpad-clear-btn" class="glyph-btn w-8 h-8 flex items-center justify-center rounded border border-red-500/30 bg-slate-800 text-red-400 hover:bg-red-900/40" title="Clear context buffer">⌫</button>
+                    <button id="scratchpad-close-btn" class="glyph-btn w-8 h-8 flex items-center justify-center rounded border border-gray-700 bg-slate-800 text-gray-400 hover:bg-slate-700" title="Close scratchpad">✖</button>
                 </div>
             </div>
         </div>
@@ -567,7 +568,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
             <textarea id="data-notes" name="notes" rows="6" class="input-active w-full mb-4 p-2 bg-mid-blue border border-cyan-500 rounded-lg text-sm"></textarea>
             <div class="flex justify-end space-x-2">
                 <button type="button" id="data-cancel-btn" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600" title="Cancel">✕</button>
-                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">[ ✓ ] SAVE ENTRY</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glyph-btn" title="Save entry">⌁</button>
             </div>
         </form>
     </div>
@@ -579,7 +580,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
             <p id="notification-message" class="text-sm mb-4"></p>
             <div id="notification-actions" class="flex justify-end space-x-2">
                 <button id="notification-cancel" class="hidden p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600" title="Cancel">✕</button>
-                <button id="notification-confirm" class="p-2 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600" title="Confirm">✓</button>
+                <button id="notification-confirm" class="p-2 text-xs rounded-lg bg-cyan-700 hover:bg-cyan-600" title="Confirm">⌁</button>
             </div>
         </div>
     </div>
@@ -592,7 +593,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
             <input type="text" id="attachment-label-input" required class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm" placeholder="e.g., 'Initial Threat Report'">
             <div class="flex justify-end space-x-2">
                 <button type="button" id="attachment-label-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600" title="Cancel">✕</button>
-                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">ATTACH &amp; SAVE</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glyph-btn" title="Attach and save">⇩</button>
             </div>
         </form>
     </div>
@@ -608,7 +609,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
             <input type="text" id="attachment-edit-label-input" required class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm">
             <div class="flex justify-end space-x-2">
                 <button type="button" id="attachment-edit-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600" title="Cancel">✕</button>
-                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">SAVE LABEL</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glyph-btn" title="Save label">⌁</button>
             </div>
         </form>
     </div>
@@ -620,7 +621,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
         <input type="text" id="export-filename-input" class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm" placeholder="SRCD2">
         <div class="flex justify-end space-x-2">
             <button type="button" id="export-filename-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600" title="Cancel">✕</button>
-            <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glow-border-cyan">CONFIRM</button>
+            <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glyph-btn" title="Confirm">⌁</button>
         </div>
     </form>
 </div>
@@ -825,9 +826,9 @@ const _refreshNetworkFingerprint = async () => {
         // mapping in one place (mirroring the CSS family mapping above) rather
         // than duplicating the check and the color table at every call site.
         const GHOST_COLOR_MAP = {
-            '#22d3ee': '#c0c0c0', '#06b6d4': '#c0c0c0', '#0ff': '#c0c0c0', '#67e8f9': '#c0c0c0', // cyan family
+            '#22d3ee': '#c0c0c0', '#06b6d4': '#c0c0c0', '#0ff': '#c0c0c0', '#67e8f9': '#c0c0c0', '#0891b2': '#c0c0c0', // cyan family
             '#22c55e': '#888888', '#0f0': '#888888', '#4ade80': '#888888',                       // green family
-            '#ef4444': '#a04040', '#f00': '#a04040', '#f87171': '#a04040',                       // red family
+            '#ef4444': '#7a5a5a', '#f00': '#7a5a5a', '#f87171': '#7a5a5a',                       // red family
             '#facc15': '#a9a9a9', '#eab308': '#a9a9a9',                                          // yellow family
             '#a855f7': '#9a9aa0', '#a78bfa': '#9a9aa0',                                          // purple family
             '#6b7280': '#6b7280', '#4b5563': '#4b5563',                                          // neutral gray — unchanged
@@ -2162,7 +2163,8 @@ const deleteItem = (id, type) => {
     setModalOpen(true);
     DOMElements.scratchpadModal.classList.remove('hidden');
     updateScratchpadMetrics();
-    _spEnterContext();
+    // Context mode is user-toggled only — do NOT apply on open.
+    // All tabs initialize in full readable view regardless of content.
 };
 
         const switchTab = (tab) => {
@@ -2176,7 +2178,8 @@ const deleteItem = (id, type) => {
     });
     DOMElements.scratchpadTextareas.forEach(t => t.classList.toggle('hidden', t.dataset.tab !== tab));
     updateScratchpadMetrics();
-    _spEnterContext();
+    // Do NOT call _spEnterContext() here — tab switches should preserve
+    // whatever view state (full or context) the user has set.
 };
 
         /* --- VΞILPØINT LOGIC (PLATINUM UPGRADE) --- */
@@ -2716,15 +2719,12 @@ const _spEnterFocus = (e) => {
 };
 
 const _spEnterContext = () => {
+    // Context mode = zoomed-out overview state, toggled by tapping
+    // blank areas of the modal. Applied to all textareas equally —
+    // the active one is the one the user will interact with.
+    // NOT applied on initialization; openScratchpad no longer calls this.
     DOMElements.scratchpadTextareas.forEach(t => {
-        // Only apply context-mode to empty textareas — it's an invitation
-        // to type, not a default view state. A tab with real content should
-        // open at full readable size, not zoomed out as if it's empty.
-        if (!t.value.trim()) {
-            t.classList.add('sp-context-mode');
-        } else {
-            t.classList.remove('sp-context-mode');
-        }
+        t.classList.add('sp-context-mode');
     });
 };
 
@@ -3926,7 +3926,7 @@ const openHardwareModal = () => {
                 <div class="bg-black/40 p-2 border border-green-500/30 rounded">
                     <div class="flex justify-between items-center mb-1">
                         <span class="text-xs text-green-400 font-bold">BLE SCAN</span>
-                        <button id="ble-scan-btn" class="glyph-btn text-[10px] bg-green-900 text-white px-2 rounded hover:bg-green-700">[ SCAN ]</button>
+                        <button id="ble-scan-btn" class="glyph-btn text-[10px] bg-green-900 text-white px-2 rounded hover:bg-green-700" title="Scan for BLE devices">[ ⊕ ]</button>
                     </div>
                     <p class="text-[9px] text-gray-600 font-mono mb-2 leading-relaxed">Browser API shows all previously-permitted devices, not just nearby ones. Use the registry below to manage which devices are bound to callsigns.</p>
                     <div id="ble-out" class="min-h-[2rem] font-mono text-[10px] text-gray-400">Waiting for trigger...</div>
@@ -4276,7 +4276,7 @@ const openSdapModal = async () => {
                         </div>
                         <div style="margin-top:0.5rem; text-align:right;">
                             <button id="pe-export-srcd" class="sdap-btn" style="background:#164e63; border-color:#06b6d4; box-shadow:0 0 10px rgba(6,182,212,0.2); width:100%;">
-                                LAUNCH PACKET <span style="opacity:0.7; font-size:10px;">(.SRCD)</span>
+                                ⇱ <span style="opacity:0.7; font-size:10px;">(.SRCD)</span>
                             </button>
                         </div>
                     </div>
@@ -4543,7 +4543,7 @@ const renderPromptPreview = () => {
     const estEl = document.getElementById('pe-token-est');
     if(estEl) {
         estEl.innerText = `TOKENS: ${tokenCount}`;
-        estEl.style.color = tokenCount > 2000 ? "#ef4444" : "#0891b2";
+        estEl.style.color = tokenCount > 2000 ? ghostColor("#ef4444") : ghostColor("#0891b2");
     }
 };
 
