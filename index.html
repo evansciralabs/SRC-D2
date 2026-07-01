@@ -594,7 +594,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
             <input type="text" id="attachment-label-input" required class="input-active w-full mb-4 p-2 bg-dark-navy border border-cyan-500 rounded-lg text-sm" placeholder="e.g., 'Initial Threat Report'">
             <div class="flex justify-end space-x-2">
                 <button type="button" id="attachment-label-cancel" class="p-2 text-xs rounded-lg bg-slate-700 hover:bg-slate-600" title="Cancel">✕</button>
-                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glyph-btn" title="Attach and save">⇩</button>
+                <button type="submit" class="p-2 text-xs rounded-lg bg-green-700 hover:bg-green-600 glyph-btn" title="Attach and save">⌁</button>
             </div>
         </form>
     </div>
@@ -1674,6 +1674,7 @@ DOMElements.exportForm.onsubmit = async (e) => {
                 const lines = text.length > 0 ? text.split(/\r\n|\r|\n/).length : 0;
                 DOMElements.spLines.textContent = lines;
                 DOMElements.spChars.textContent = text.length;
+                document.getElementById('sp-cur-line').textContent = 1; // reset on tab switch/open
             }
         };
 
@@ -2665,14 +2666,19 @@ const _loadDashboard = async () => {
 // ── LIVE LINE REFERENCE ─────────────────────────────────────
 DOMElements.scratchpadTextareas.forEach(ta => {
     const updateLine = () => {
-    const lines = ta.value.substring(0, ta.selectionStart).split('\n');
-    document.getElementById('sp-cur-line').textContent = lines.length;
-    document.getElementById('sp-lines').textContent = ta.value.split('\n').length;
-    document.getElementById('sp-chars').textContent = ta.value.length;
-};
+        // Only update display from the currently visible textarea —
+        // hidden tabs fire events too and would overwrite with stale data.
+        if (ta.classList.contains('hidden')) return;
+        const lines = ta.value.substring(0, ta.selectionStart).split('\n');
+        document.getElementById('sp-cur-line').textContent = lines.length;
+        document.getElementById('sp-lines').textContent = ta.value.split('\n').length;
+        document.getElementById('sp-chars').textContent = ta.value.length;
+    };
     ta.addEventListener('keyup', updateLine);
     ta.addEventListener('click', updateLine);
     ta.addEventListener('touchend', updateLine);
+    // Update metrics after paste so line/char counts reflect pasted content
+    ta.addEventListener('input', updateLine);
 });
 
 DOMElements.scratchpadTextareas.forEach(ta => {
