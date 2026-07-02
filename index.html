@@ -1671,10 +1671,10 @@ DOMElements.exportForm.onsubmit = async (e) => {
             const activeTextarea = Array.from(DOMElements.scratchpadTextareas).find(t => !t.classList.contains('hidden'));
             if (activeTextarea) {
                 const text = activeTextarea.value;
-                const lines = text.length > 0 ? text.split(/\r\n|\r|\n/).length : 0;
-                DOMElements.spLines.textContent = lines;
+                const lineCount = text.length > 0 ? text.split('\n').length : 0;
+                DOMElements.spLines.textContent = lineCount;
                 DOMElements.spChars.textContent = text.length;
-                document.getElementById('sp-cur-line').textContent = 1; // reset on tab switch/open
+                document.getElementById('sp-cur-line').textContent = lineCount > 0 ? 1 : 0;
             }
         };
 
@@ -2167,7 +2167,7 @@ const deleteItem = (id, type) => {
     _spModalJustOpened = true;
     setTimeout(() => { _spModalJustOpened = false; }, 50);
     _spSetFullView(); // open in 8px full overview view
-    updateScratchpadMetrics();
+    requestAnimationFrame(() => updateScratchpadMetrics());
 };
 
         const switchTab = (tab) => {
@@ -2181,7 +2181,7 @@ const deleteItem = (id, type) => {
     });
     DOMElements.scratchpadTextareas.forEach(t => t.classList.toggle('hidden', t.dataset.tab !== tab));
     _spSetFullView(); // incoming tab always starts in 8px full overview view
-    updateScratchpadMetrics();
+    requestAnimationFrame(() => updateScratchpadMetrics());
 };
 
         /* --- VΞILPØINT LOGIC (PLATINUM UPGRADE) --- */
