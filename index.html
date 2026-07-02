@@ -717,7 +717,7 @@ body.ghost-mode #dashboard-container.pulse-critical { animation: none; box-shado
                 <span class="text-[9px] font-['Space_Mono'] neon-cyan tracking-widest flex-shrink-0">ID:</span>
                 <input id="operator-name-input" class="flex-grow bg-transparent border-b border-cyan-500/30 text-green-400 font-['Space_Mono'] text-[10px] py-0.5 px-0 outline-none tracking-widest uppercase placeholder-gray-600 focus:border-cyan-500 transition-colors" placeholder="CALLSIGN" autocomplete="off" spellcheck="false" />
                 <input id="operator-glyph-input" class="w-12 bg-transparent border-b border-purple-500/30 text-purple-400 font-['Space_Mono'] text-[10px] py-0.5 px-0 outline-none text-center placeholder-gray-600 focus:border-purple-500 transition-colors" placeholder="GLYPH" autocomplete="off" spellcheck="false" />
-                <button id="operator-modal-confirm" class="glyph-btn text-[9px] neon-green border border-green-500/50 hover:border-green-400 hover:text-white rounded px-2 py-0.5 flex-shrink-0 transition-colors" id="operator-modal-confirm">⌁</button>
+                <button id="operator-modal-confirm" class="glyph-btn text-[9px] neon-green border border-green-500/50 hover:border-green-400 hover:text-white rounded px-2 py-0.5 flex-shrink-0 transition-colors">⌁</button>
                 <button id="operator-modal-clear" class="glyph-btn text-[9px] text-red-500 border border-red-500/50 hover:border-red-400 hover:text-white rounded px-2 py-0.5 flex-shrink-0 transition-colors" style="text-shadow:var(--text-glow-red)">⌫</button>
             </div>
 
@@ -1061,8 +1061,10 @@ const _refreshNetworkFingerprint = async () => {
                 if (placeholder && placeholder.textContent === '— awaiting events —') placeholder.remove();
                 const entry = document.createElement('div');
                 const ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
-                const color = type === 'success' ? 'color:' + ghostColor('#4ade80') : type === 'error' ? 'color:' + ghostColor('#f87171') : type === 'debug' ? 'color:' + ghostColor('#a78bfa') : 'color:' + ghostColor('#67e8f9');
+                const rawHex = type === 'success' ? '#4ade80' : type === 'error' ? '#f87171' : type === 'debug' ? '#a78bfa' : '#67e8f9';
+                const color = 'color:' + ghostColor(rawHex);
                 entry.style.cssText = color + ';cursor:pointer;';
+                entry.dataset.colorRaw = rawHex; // stamped for ghost mode re-render on toggle
                 // Strip HTML tags from message for clean console display
                 const clean = String(message).replace(/<[^>]*>/g, '');
                 entry.textContent = `[${ts}] ${clean}`;
@@ -1667,14 +1669,30 @@ DOMElements.exportForm.onsubmit = async (e) => {
         };
 
         /* --- METRICS & ANALYZER --- */
+        // Per-textarea metric data attributes — updated on every content change.
+        // Tab switch reads these directly: no find(), no hidden check, no race.
+        const _updateLineAttrs = (ta) => {
+            ta.dataset.metricLines = ta.value.length > 0 ? ta.value.split('\n').length : 0;
+            ta.dataset.metricChars = ta.value.length;
+        };
+        const _writeMetricsFromTab = (tab) => {
+            const ta = tab === 'main' ? DOMElements.scratchpadMain
+                     : tab === 'code' ? DOMElements.scratchpadCode
+                     : DOMElements.scratchpadVip;
+            // Re-derive from the live value first: content set programmatically
+            // (e.g. loaded from storage in openScratchpad) never fires 'input',
+            // so the cached dataset attrs can be stale (0) for hidden tabs.
+            _updateLineAttrs(ta);
+            document.getElementById('sp-lines').textContent = ta.dataset.metricLines || 0;
+            document.getElementById('sp-chars').textContent = ta.dataset.metricChars || 0;
+            document.getElementById('sp-cur-line').textContent = (ta.dataset.metricLines > 0) ? 1 : 0;
+        };
+
         const updateScratchpadMetrics = () => {
             const activeTextarea = Array.from(DOMElements.scratchpadTextareas).find(t => !t.classList.contains('hidden'));
             if (activeTextarea) {
-                const text = activeTextarea.value;
-                const lineCount = text.length > 0 ? text.split('\n').length : 0;
-                DOMElements.spLines.textContent = lineCount;
-                DOMElements.spChars.textContent = text.length;
-                document.getElementById('sp-cur-line').textContent = lineCount > 0 ? 1 : 0;
+                _updateLineAttrs(activeTextarea);
+                _writeMetricsFromTab(activeTextarea.dataset.tab);
             }
         };
 
@@ -2129,6 +2147,45 @@ const deleteItem = (id, type) => {
 
         /* --- SCRATCHPAD LOGIC --- */
         let _scratchpadLoadedThisSession = false;
+        let _scratchpadSaveTimeout; // declared here so switchTab can cancel pending saves on tab switch
+
+        // ── SCRATCHPAD CONTEXT / FOCUS MODE (definitions) ────────────────────
+        // These MUST live at top-level script scope: openScratchpad and switchTab
+        // (also top-level) call _spSetFullView and set _spModalJustOpened. When
+        // these were declared inside initApp, those calls threw ReferenceError,
+        // which silently aborted switchTab before _writeMetricsFromTab ran —
+        // metrics never refreshed on tab switch. Listener wiring stays in initApp.
+        const _getActiveTextarea = () =>
+            Array.from(DOMElements.scratchpadTextareas).find(t => !t.classList.contains('hidden'));
+
+        const _spEnterFocusedDetail = (e) => {
+            e.stopPropagation();
+            const textarea = _getActiveTextarea();
+            if (!textarea) return;
+            if (textarea.classList.contains('sp-context-mode')) {
+                const rect = textarea.getBoundingClientRect();
+                const clickRatio = (e.clientY - rect.top) / rect.height;
+                const totalLines = Math.max(1, textarea.value.split('\n').length);
+                const targetLine = Math.floor(clickRatio * totalLines);
+                textarea.classList.remove('sp-context-mode');
+                requestAnimationFrame(() => {
+                    textarea.scrollTop = targetLine * 14 * 1.4;
+                    textarea.focus();
+                });
+            }
+        };
+
+        const _spEnterOverview = () => {
+            const textarea = _getActiveTextarea();
+            if (textarea) textarea.classList.add('sp-context-mode');
+        };
+
+        const _spSetFullView = () => {
+            DOMElements.scratchpadTextareas.forEach(t => t.classList.add('sp-context-mode'));
+        };
+
+        let _spModalJustOpened = false;
+
         const openScratchpad = async () => {
     // Only decrypt-and-reload from storage on the FIRST open this session.
     // Subsequent opens reuse what's already in the DOM textareas — they're
@@ -2171,6 +2228,7 @@ const deleteItem = (id, type) => {
 };
 
         const switchTab = (tab) => {
+    clearTimeout(_scratchpadSaveTimeout);
     currentState.activeScratchpadTab = tab;
     DOMElements.scratchpadTabs.forEach(b => {
         const active = b.dataset.tab === tab;
@@ -2180,8 +2238,8 @@ const deleteItem = (id, type) => {
         b.classList.toggle('opacity-70', !active);
     });
     DOMElements.scratchpadTextareas.forEach(t => t.classList.toggle('hidden', t.dataset.tab !== tab));
-    _spSetFullView(); // incoming tab always starts in 8px full overview view
-    requestAnimationFrame(() => updateScratchpadMetrics());
+    _spSetFullView();
+    _writeMetricsFromTab(tab);
 };
 
         /* --- VΞILPØINT LOGIC (PLATINUM UPGRADE) --- */
@@ -2480,6 +2538,14 @@ const deleteItem = (id, type) => {
             if (sdapDisplay && typeof formatSdapText === 'function' && typeof sdapLogs !== 'undefined' && typeof activeSdapLog !== 'undefined') {
                 sdapDisplay.innerHTML = formatSdapText(sdapLogs[activeSdapLog] || '');
             }
+            // Re-color operator console entries — each entry has inline style.cssText
+            // set at write time via ghostColor(). Entries written before ghost mode
+            // was toggled retain their original color until explicitly refreshed.
+            const consoleEntries = document.querySelectorAll('#metrics-console-log div[style]');
+            consoleEntries.forEach(entry => {
+                const raw = entry.dataset.colorRaw;
+                if (raw) entry.style.color = ghostColor(raw);
+            });
         };
 
         // navigator.onLine only reflects whether a network INTERFACE is up
@@ -2637,7 +2703,13 @@ const _loadDashboard = async () => {
 
             // Listeners: Scratchpad
             DOMElements.scratchpadCloseBtn.onclick = () => { DOMElements.scratchpadModal.classList.add('hidden'); setModalOpen(false); };
-            DOMElements.scratchpadTabs.forEach(b => b.onclick = (e) => switchTab(e.target.dataset.tab));
+            DOMElements.scratchpadTabs.forEach(b => {
+                b.onclick = () => switchTab(b.dataset.tab);
+                b.addEventListener('touchend', (e) => {
+                    e.preventDefault(); // prevent synthesized click firing twice
+                    switchTab(b.dataset.tab);
+                });
+            });
             
             // Debounce scratchpad saves (400ms)
             // IMPORTANT: reads from the live DOM textareas directly rather
@@ -2649,130 +2721,65 @@ const _loadDashboard = async () => {
             // that unsaved DOM content with the old (empty) storage value.
             // Reading DOM directly means every save always captures real
             // current content for ALL three tabs, regardless of how it arrived.
-            let _scratchpadTimeout;
-            DOMElements.scratchpadTextareas.forEach(t => t.oninput = () => {
-                clearTimeout(_scratchpadTimeout);
-                _scratchpadTimeout = setTimeout(async () => {
-                    const d = {
-                        main: DOMElements.scratchpadMain.value,
-                        code: DOMElements.scratchpadCode.value,
-                        vip: DOMElements.scratchpadVip.value
-                    };
+            DOMElements.scratchpadTextareas.forEach(t => t.oninput = (e) => {
+                clearTimeout(_scratchpadSaveTimeout);
+                _scratchpadSaveTimeout = setTimeout(async () => {
+                    const d = await getScratchpadFromSessionStorage();
+                    d[e.target.dataset.tab] = e.target.value;
                     await saveScratchpadToSessionStorage(d);
                     updateScratchpadMetrics();
                 }, 400);
             });
 
-// ── LIVE LINE REFERENCE ─────────────────────────────────────
-DOMElements.scratchpadTextareas.forEach(ta => {
-    const updateLine = () => {
-        // Only update display from the currently visible textarea —
-        // hidden tabs fire events too and would overwrite with stale data.
-        if (ta.classList.contains('hidden')) return;
-        const lines = ta.value.substring(0, ta.selectionStart).split('\n');
-        document.getElementById('sp-cur-line').textContent = lines.length;
-        document.getElementById('sp-lines').textContent = ta.value.split('\n').length;
-        document.getElementById('sp-chars').textContent = ta.value.length;
-    };
-    ta.addEventListener('keyup', updateLine);
-    ta.addEventListener('click', updateLine);
-    ta.addEventListener('touchend', updateLine);
-    // Update metrics after paste so line/char counts reflect pasted content
-    ta.addEventListener('input', updateLine);
-});
+            // ── LIVE LINE REFERENCE ─────────────────────────────────────
+            // Initialize metric attributes on all textareas
+            DOMElements.scratchpadTextareas.forEach(ta => {
+                _updateLineAttrs(ta);
+                const updateLine = () => {
+                    _updateLineAttrs(ta);
+                    const lines = ta.value.substring(0, ta.selectionStart).split('\n');
+                    document.getElementById('sp-cur-line').textContent = lines.length;
+                    document.getElementById('sp-lines').textContent = ta.dataset.metricLines;
+                    document.getElementById('sp-chars').textContent = ta.dataset.metricChars;
+                };
+                ta.addEventListener('keyup', updateLine);
+                ta.addEventListener('click', updateLine);
+                ta.addEventListener('touchend', () => { if (!ta.classList.contains('hidden')) updateLine(); });
+                ta.addEventListener('input', () => _updateLineAttrs(ta));
+            });
 
-DOMElements.scratchpadTextareas.forEach(ta => {
-    ta.addEventListener('paste', async (e) => {
-        e.preventDefault();
-        const text = (e.clipboardData || window.clipboardData).getData('text');
-        if (!text) return;
+            DOMElements.scratchpadTextareas.forEach(ta => {
+                ta.addEventListener('paste', async (e) => {
+                    e.preventDefault();
+                    const text = (e.clipboardData || window.clipboardData).getData('text');
+                    if (!text) return;
+                    const start = ta.selectionStart ?? ta.value.length;
+                    const end = ta.selectionEnd ?? ta.value.length;
+                    ta.value = ta.value.substring(0, start) + text + ta.value.substring(end);
+                    const pads = await getScratchpadFromSessionStorage();
+                    pads[ta.dataset.tab] = ta.value;
+                    await saveScratchpadToSessionStorage(pads);
+                    updateScratchpadMetrics();
+                    showToast('PASTED INTO CONTEXT BUFFER', 'success', 1500);
+                });
+            });
 
-        // Insert at cursor or append if readOnly blocks selectionStart
-        const start = ta.selectionStart ?? ta.value.length;
-        const end = ta.selectionEnd ?? ta.value.length;
-        ta.value = ta.value.substring(0, start) + text + ta.value.substring(end);
-
-        // Dispatch input event so the debounced save also fires — belt and
-        // suspenders with the explicit save below, covering edge cases where
-        // only one path runs correctly depending on the browser/OS.
-        ta.dispatchEvent(new Event('input', { bubbles: true }));
-
-        // Explicit save reading from live DOM directly, not from storage —
-        // consistent with the oninput debounce fix for the same reason.
-        const d = {
-            main: DOMElements.scratchpadMain.value,
-            code: DOMElements.scratchpadCode.value,
-            vip: DOMElements.scratchpadVip.value
-        };
-        await saveScratchpadToSessionStorage(d);
-        updateScratchpadMetrics();
-        showToast('PASTED INTO CONTEXT BUFFER', 'success', 1500);
-    });
-});
-// ────────────────────────────────────────────────────────────
-      
             // ── SCRATCHPAD CONTEXT / FOCUS MODE ─────────────────────────────────
-// Behavior contract:
-//   - Open: always full view. Never context mode on init.
-//   - Switch tab: always full view on the incoming tab.
-//   - Per-tab independent: context mode tracks per-textarea, not globally.
-//   - Tap textarea in context mode: enter full focus (scroll to tap position).
-//   - Tap blank modal border: enter context/overview mode on ACTIVE tab only.
+            // NOTE: the focus-mode functions (_spSetFullView, _spEnterFocusedDetail,
+            // _spEnterOverview, _getActiveTextarea) and _spModalJustOpened are
+            // declared at top-level script scope next to openScratchpad/switchTab,
+            // because those top-level callers cannot see initApp locals. Only the
+            // listener WIRING lives here.
+            DOMElements.scratchpadTextareas.forEach(t => t.addEventListener('click', _spEnterFocusedDetail));
 
-const _getActiveTextarea = () =>
-    Array.from(DOMElements.scratchpadTextareas).find(t => !t.classList.contains('hidden'));
+            document.getElementById('scratchpad-modal').addEventListener('click', (e) => {
+                if (_spModalJustOpened) return;
+                const isInteractive = e.target.closest('button, input, label, select, textarea, a, [role="button"]');
+                if (isInteractive) return;
+                const clickedTextarea = e.target.closest('.scratchpad-textarea');
+                if (!clickedTextarea) _spEnterOverview();
+            });
 
-// sp-context-mode = 8px FULL OVERVIEW (zoomed out, see all content at once)
-// NO sp-context-mode = FOCUSED DETAIL (normal font, editing mode)
-//
-// Behavior:
-//   - Open: 8px full overview (add class to all tabs)
-//   - Switch tab: 8px full overview on incoming tab (add class)
-//   - Tap textarea: enter focused detail (remove class, scroll to tap position)
-//   - Tap blank modal border: return to 8px full overview (add class, active tab only)
-
-const _spEnterFocusedDetail = (e) => {
-    e.stopPropagation();
-    const textarea = _getActiveTextarea();
-    if (!textarea) return;
-    if (textarea.classList.contains('sp-context-mode')) {
-        const rect = textarea.getBoundingClientRect();
-        const clickRatio = (e.clientY - rect.top) / rect.height;
-        const totalLines = Math.max(1, textarea.value.split('\n').length);
-        const targetLine = Math.floor(clickRatio * totalLines);
-        textarea.classList.remove('sp-context-mode');
-        requestAnimationFrame(() => {
-            textarea.scrollTop = targetLine * 14 * 1.4;
-            textarea.focus();
-        });
-    }
-};
-
-const _spEnterOverview = () => {
-    // Tap blank modal border → condensed overview on active tab only
-    const textarea = _getActiveTextarea();
-    if (textarea) textarea.classList.add('sp-context-mode');
-};
-
-const _spSetFullView = () => {
-    // Add sp-context-mode to ALL textareas → 8px full overview on every tab.
-    // Called on open and tab switch so every tab always initializes in full overview.
-    DOMElements.scratchpadTextareas.forEach(t => t.classList.add('sp-context-mode'));
-};
-
-DOMElements.scratchpadTextareas.forEach(t => t.addEventListener('click', _spEnterFocusedDetail));
-
-let _spModalJustOpened = false;
-
-document.getElementById('scratchpad-modal').addEventListener('click', (e) => {
-    if (_spModalJustOpened) return;
-    const isInteractive = e.target.closest('button, input, label, select, textarea, a, [role="button"]');
-    if (isInteractive) return;
-    const clickedTextarea = e.target.closest('.scratchpad-textarea');
-    if (!clickedTextarea) _spEnterOverview();
-});
-// ────────────────────────────────────────────────────────────────────
-            
             DOMElements.scratchpadPreviewBtn.onclick = handleScratchpadPreview;
             DOMElements.scratchpadAnalyzeBtn.onclick = runIdAnalysis;
             DOMElements.scratchpadExportBtn.onclick = handleScratchpadExport; 
@@ -4226,7 +4233,7 @@ const openSdapModal = async () => {
                     <h2 class="sdap-title">W-Y EVANSCIRA // SDAP-7</h2>
                     <span class="sdap-subtitle">PHANTOM CREW PROTOCOL</span>
                 </div>
-                <button id="sdap-close" class="sdap-close">✖</button>
+                <button id="sdap-close" class="sdap-close rune-close">✖</button>
             </div>
             <div class="sdap-tabs">
                 <button id="sdap-tab-worklog" class="sdap-tab">WORKLOG</button>
