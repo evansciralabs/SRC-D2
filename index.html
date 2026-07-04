@@ -5921,6 +5921,55 @@ const initPeaceOperator = async () => {
         debugToast(`GUEST GLYPH ACTIVATED — ${keys.length} stored item(s) re-encrypted under glyph key. Future saves use this key too.`);
     };
 
+    // ── DEVICE LOCK (callsign-alone namespaces): a REAL per-device secret, ──
+    // not a browser/hardware fingerprint. Fingerprints (canvas, UA, etc.) are
+    // observable/reconstructible by anyone with the device or its output —
+    // they provide no actual secret, just an identifier. This is genuine
+    // random entropy generated once and persisted locally; a namespace with
+    // no glyph bound derives its key as callsign+deviceSecret, so the exact
+    // same callsign on a different device (which has its OWN random secret,
+    // or none at all) derives a DIFFERENT key and simply can't decrypt —
+    // same silent-fail-to-empty behavior as a glyph mismatch, for free,
+    // because getFromLocalStorage already treats any decrypt failure as
+    // "no data" rather than an error.
+    const _DEVICE_SECRET_KEY = 'srcd2_device_secret';
+    const _getOrCreateDeviceSecret = async () => {
+        let secret = localStorage.getItem(_DEVICE_SECRET_KEY);
+        if (!secret) {
+            const bytes = crypto.getRandomValues(new Uint8Array(32));
+            secret = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            localStorage.setItem(_DEVICE_SECRET_KEY, secret);
+            debugToast('DEVICE LOCK — no device secret found, generated one for this device.');
+        }
+        return secret;
+    };
+
+    // Migrates any existing callsign-alone data (encrypted under the old
+    // deriveKey(callsign)-only scheme) to the new device-locked key. Safe to
+    // call every login: once migrated, decrypting under the OLD key fails
+    // (caught by the same plain===stored-and-prefixed check used elsewhere),
+    // so re-running this just finds nothing left to migrate.
+    const _migrateCallsignAloneToDeviceLock = async (callsign, oldKey, newKey) => {
+        const suffix = `_${callsign}`;
+        const keys = Object.keys(localStorage).filter(k =>
+            k.startsWith('srcd2_') && k.endsWith(suffix) &&
+            !k.startsWith('srcd2_net_cfg_') && !k.startsWith('srcd2_devcache_glyph_'));
+        let migrated = 0, skipped = 0;
+        for (const k of keys) {
+            const stored = localStorage.getItem(k);
+            _sessionCryptoKey = oldKey;
+            const plain = await _decryptFromStorage(stored);
+            if (plain === stored && stored.startsWith(_STORAGE_CRYPTO_PREFIX)) {
+                skipped++; // already under a different key — don't double-wrap
+                continue;
+            }
+            _sessionCryptoKey = newKey;
+            localStorage.setItem(k, await _encryptForStorage(plain));
+            migrated++;
+        }
+        if (migrated > 0) debugToast(`DEVICE LOCK — migrated ${migrated} item(s) for "${callsign}" to the device-locked key (${skipped} already migrated/skipped).`);
+    };
+
     // ── OPERATOR GLYPH-LOCK: makes save files portable cross-device. ────────
     // Default operator key = _deriveKey(callsign) alone — fine on the
     // primary device, but means ANY device that ever learns the callsign can
@@ -6231,9 +6280,17 @@ const _applyOperatorName = (name) => {
                 _operatorLoginGlyph = effectiveGlyph; // remembered for import-time fallback, field is about to be cleared
                 debugToast(`CONFIRM — key derived from callsign+glyph (combined, ${glyph ? 'typed' : 'cached on this device'}). Matches the glyph-locked data key for "${name}".`);
             } else {
-                _sessionCryptoKey = await _deriveKey(name);
+                // No glyph bound — DEVICE-LOCKED by default now, via a real
+                // per-device secret (see _getOrCreateDeviceSecret above), not
+                // callsign alone. Existing data from before this fix is
+                // migrated forward transparently.
+                const deviceSecret = await _getOrCreateDeviceSecret();
+                const oldKey = await _deriveKey(name); // legacy pre-devicelock key
+                const newKey = await _deriveKey(`${name}:${deviceSecret}`, _SALT);
+                await _migrateCallsignAloneToDeviceLock(name, oldKey, newKey);
+                _sessionCryptoKey = newKey;
                 _operatorLoginGlyph = glyph || null; // may still be useful if THIS device hasn't recorded the lock yet but the file says it's locked
-                debugToast(`CONFIRM — key derived from callsign alone (no glyph-lock set for "${name}" yet).`);
+                debugToast(`CONFIRM — key derived from callsign + device secret (device-locked; no glyph-lock set for "${name}" yet).`);
             }
         } catch (e) {
             _closeOperatorModal();
