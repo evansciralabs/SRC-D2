@@ -888,44 +888,15 @@ body.ghost-mode .console-frame{--accent-ember:#7a7a7a!important;box-shadow:none!
 @media (max-height:660px){ .srcd-field-deck{ height:126px; } }
 @media (max-height:560px){ .srcd-field-deck{ height:112px; } .srcd-entry-form{ max-height:96dvh; } }
 
-/* SURGICAL OVERRIDE FOR METRICS_SUMMARY.LOG OPERATOR CONSOLE MODAL FRAME */
-
-/* 1. Expand the default structural modal envelope to span the necessary layout verticality */
-.modal, 
-[data-persistence] .modal-box, 
-dialog[open] {
-    height: 520px !important;      /* Tweak this number up or down to adjust your base height */
-    min-height: 480px !important;  /* Tweak this to enforce the absolute minimum baseline */
-    max-height: 80vh !important;   /* Keeps it bounded cleanly relative to your browser screen */
-    display: flex !important;
-    flex-direction: column !important;
-    margin: auto !important;
+/* SURGICAL HEIGHT EXTENSION FOR METRICS_SUMMARY CONSOLE LOG */
+#SRC-D2 .console,
+#SRC-D2 div:has(> .console),
+[data-persistence] pre,
+[data-persistence] code {
+    height: calc(100% + 60px) !important;
+    padding-bottom: 25px !important;
+    box-sizing: border-box !important;
 }
-
-/* 2. Dynamically contract the inner content section to map perfectly within the new viewport boundaries */
-.modal-content, 
-.content-viewer, 
-#SRC-D2 form {
-    flex: 1 1 auto !important;
-    height: calc(100% - 70px) !important; /* Dynamically calculates room for the bottom actions row */
-    overflow-y: hidden !important;        /* STRIP SCROLLBARS: Forces content to scale rather than spill */
-    padding-bottom: 15px !important;
-}
-
-/* 3. Extract the control tray out of the layout overflow and clip it directly to the interface baseline */
-.modal-footer, 
-.button-group, 
-.console-actions-row {
-    margin-top: auto !important;
-    height: 65px !important;              /* Locks down absolute pixel usage for buttons and selectors */
-    position: relative !important;
-    bottom: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-end !important;
-    background: inherit !important;       /* Masks overlay transparency leaks */
-    z-index: 100 !important;
-    }
     
 </style>
 </head>
