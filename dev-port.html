@@ -887,6 +887,46 @@ body.ghost-mode .console-frame{--accent-ember:#7a7a7a!important;box-shadow:none!
 /* short / older screens: shave the deck so the notes box still breathes */
 @media (max-height:660px){ .srcd-field-deck{ height:126px; } }
 @media (max-height:560px){ .srcd-field-deck{ height:112px; } .srcd-entry-form{ max-height:96dvh; } }
+
+/* SURGICAL OVERRIDE FOR METRICS_SUMMARY.LOG OPERATOR CONSOLE MODAL FRAME */
+
+/* 1. Expand the default structural modal envelope to span the necessary layout verticality */
+.modal, 
+[data-persistence] .modal-box, 
+dialog[open] {
+    height: 90vh !important;       /* Allocates exactly 90% of screen height natively */
+    min-height: 680px !important;   /* Establishes safe, expanded physical layout baseline */
+    max-height: 94vh !important;    /* Hard boundary clamp preventing desktop bottom bleed */
+    display: flex !important;
+    flex-direction: column !important;
+    margin: auto !important;
+}
+
+/* 2. Dynamically contract the inner content section to map perfectly within the new viewport boundaries */
+.modal-content, 
+.content-viewer, 
+#SRC-D2 form {
+    flex: 1 1 auto !important;
+    height: calc(100% - 70px) !important; /* Dynamically calculates room for the bottom actions row */
+    overflow-y: hidden !important;        /* STRIP SCROLLBARS: Forces content to scale rather than spill */
+    padding-bottom: 15px !important;
+}
+
+/* 3. Extract the control tray out of the layout overflow and clip it directly to the interface baseline */
+.modal-footer, 
+.button-group, 
+.console-actions-row {
+    margin-top: auto !important;
+    height: 65px !important;              /* Locks down absolute pixel usage for buttons and selectors */
+    position: relative !important;
+    bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    background: inherit !important;       /* Masks overlay transparency leaks */
+    z-index: 100 !important;
+    }
+    
 </style>
 </head>
 <body class="scanline-overlay">
