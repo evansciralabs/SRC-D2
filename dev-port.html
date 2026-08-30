@@ -888,15 +888,30 @@ body.ghost-mode .console-frame{--accent-ember:#7a7a7a!important;box-shadow:none!
 @media (max-height:660px){ .srcd-field-deck{ height:126px; } }
 @media (max-height:560px){ .srcd-field-deck{ height:112px; } .srcd-entry-form{ max-height:96dvh; } }
 
-/* SURGICAL HEIGHT EXTENSION FOR METRICS_SUMMARY CONSOLE LOG */
-#SRC-D2 .console,
-#SRC-D2 div:has(> .console),
-[data-persistence] pre,
-[data-persistence] code {
-    height: calc(100% + 120px) !important;
-    padding-bottom: 25px !important;
-    box-sizing: border-box !important;
+/* SURGICAL SPECIFIC HEIGHT ADJUSTMENT FOR OPERATOR CONSOLE LOG VIEW */
+
+/* 1. Unshackle the content card and give it exactly 3 lines of default height room */
+.modal-content {
+    height: auto !important;
+    min-height: calc(100% + 60px) !important; /* Force-stretches the layout box open */
+    padding-bottom: 35px !important;            /* Protects bottom controls from clipping */
 }
+
+/* 2. Target the specific dark navy background wrapper used by your console log views */
+.bg-dark-navy {
+    min-height: 480px !important;              /* Ensures console text logs display fully by default */
+    padding-bottom: 20px !important;
+}
+
+/* 3. Ensure native action links and select forms are pushed into view */
+.modal-content select, 
+.modal-content button, 
+.modal-content a {
+    margin-bottom: 10px !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
     
 </style>
 </head>
