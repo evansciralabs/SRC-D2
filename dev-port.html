@@ -894,9 +894,9 @@ body.ghost-mode .console-frame{--accent-ember:#7a7a7a!important;box-shadow:none!
 .modal, 
 [data-persistence] .modal-box, 
 dialog[open] {
-    height: 90vh !important;       /* Allocates exactly 90% of screen height natively */
-    min-height: 680px !important;   /* Establishes safe, expanded physical layout baseline */
-    max-height: 94vh !important;    /* Hard boundary clamp preventing desktop bottom bleed */
+    height: 520px !important;      /* Tweak this number up or down to adjust your base height */
+    min-height: 480px !important;  /* Tweak this to enforce the absolute minimum baseline */
+    max-height: 80vh !important;   /* Keeps it bounded cleanly relative to your browser screen */
     display: flex !important;
     flex-direction: column !important;
     margin: auto !important;
