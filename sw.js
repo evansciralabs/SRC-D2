@@ -1,67 +1,121 @@
-const CACHE_NAME = 'src-d2-cache-v6-1'; // Bumped from v6-0: flushes the stale index.html the old SW held
-const URLS_TO_CACHE = [
+// ════════════════════════════════════════════════════════════════
+//  SRC-D2 Service Worker — v6-2 (hardened)
+//  Aggressive offline cache. Atomic install. Never stale on the shell.
+// ════════════════════════════════════════════════════════════════
+
+const CACHE_NAME = 'src-d2-cache-v6-2'; // bumped: flushes every stale v6-0/v6-1 install
+
+// App shell — must precache atomically. If any of these 404s, install
+// correctly fails, because a broken shell is worse than no shell.
+const SHELL = [
     './',
     './index.html',
-    './manifest.json',
-    './privacy.html',
-    './whatsnew.html',
-    './icon-192.png', // Added for offline OS rendering
-    './icon-512.png'  // Added for offline OS rendering
+    './manifest.json'
 ];
 
-// Install Phase: Pre-cache core assets
+// Static assets + docs — precache opportunistically. A missing icon or
+// optional page must NEVER abort the install the way the old all-or-
+// nothing addAll did. allSettled lets each fail or succeed independently.
+const OPTIONAL = [
+    './privacy.html',
+    './whatsnew.html',
+    './icon-192.png',
+    './icon-512.png'
+];
+
+// ── Install ─────────────────────────────────────────────────────
 self.addEventListener('install', event => {
     self.skipWaiting();
     event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => cache.addAll(URLS_TO_CACHE))
+        caches.open(CACHE_NAME).then(async cache => {
+            // Core shell — atomic. One 404 here and install fails, which is
+            // the correct behavior: you do not want a half-installed shell.
+            await cache.addAll(SHELL);
+            // Optional assets — resilient. A missing icon or doc never
+            // aborts the install again.
+            await Promise.allSettled(OPTIONAL.map(u => cache.add(u)));
+        })
     );
 });
 
-// Activate Phase: Clean up legacy caches and claim clients immediately
+// ── Activate ────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
+        caches.keys().then(cacheNames =>
+            Promise.all(
                 cacheNames.map(cacheName => {
-                    if (cacheName !== CACHE_NAME) {
-                        return caches.delete(cacheName);
-                    }
+                    if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
                 })
-            );
-        }).then(() => self.clients.claim())
+            )
+        ).then(() => self.clients.claim())
     );
 });
 
-// Fetch Phase: Network-First for App Shell, Network-Only for APIs
+// ── Fetch ───────────────────────────────────────────────────────
 self.addEventListener('fetch', event => {
-    // 1. Determine if the request is for a cached static asset
-    const requestUrl = new URL(event.request.url);
-    const isAppShell = URLS_TO_CACHE.some(url => {
-        // Handle the root './' mapping
-        const target = url === './' ? './index.html' : url;
-        return requestUrl.pathname.endsWith(target.replace('./', ''));
+    const req = event.request;
+    // Only handle GET; let the browser deal with everything else.
+    if (req.method !== 'GET') return;
+
+    const url = new URL(req.url);
+
+    // Same-origin only — never intercept or cache cross-origin calls.
+    if (url.origin !== self.location.origin) {
+        // Cross-origin (ipify, Piston, Pyodide CDN, fonts): network-only.
+        // Never cached, always live, always subject to the ᚾ killswitch.
+        return; // falls through to the browser's default network handling
+    }
+
+    // Match against the cached list using the pathname tail, so './index.html'
+    // and '/' and '/index.html' all resolve to the same cached entry.
+    const isShell = SHELL.some(s => {
+        const t = s === './' ? '/index.html' : s.replace('./', '/');
+        return url.pathname === t || url.pathname.endsWith(t);
+    });
+    const isOptional = OPTIONAL.some(s => {
+        const t = s.replace('./', '/');
+        return url.pathname === t || url.pathname.endsWith(t);
     });
 
-    if (isAppShell) {
-        // NETWORK-FIRST STRATEGY:
-        // cache:'no-cache' bypasses the browser's HTTP cache too, so a stale
-        // index.html served from the HTTP cache can't sneak through. Try network,
-        // update cache on success, fallback to cache on offline.
+    // 1. APP SHELL — network-first with cache fallback.
+    //    cache:'no-cache' bypasses the browser HTTP cache too, so a stale
+    //    index.html served from the HTTP cache cannot sneak through. Fresh
+    //    when online, served from cache when offline. The app is always
+    //    available AND always current the moment a connection exists.
+    if (isShell) {
         event.respondWith(
-            fetch(event.request, { cache: 'no-cache' })
+            fetch(req, { cache: 'no-cache' })
                 .then(response => {
-                    const responseClone = response.clone();
-                    caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, responseClone);
-                    });
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(req, clone));
                     return response;
                 })
-                .catch(() => caches.match(event.request))
+                .catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
         );
-    } else {
-        // NETWORK-ONLY STRATEGY:
-        // Skip cache entirely for API calls (ipify), BLE streams, Blobs, and Net Sentry
-        event.respondWith(fetch(event.request));
+        return;
     }
+
+    // 2. OPTIONAL CACHED ASSETS — stale-while-revalidate.
+    //    Serve instantly from cache, update in the background. Maximally
+    //    offline-capable for docs/icons, kept current without blocking.
+    if (isOptional) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(async cache => {
+                const cached = await cache.match(req);
+                const network = fetch(req, { cache: 'no-cache' })
+                    .then(response => {
+                        cache.put(req, response.clone());
+                        return response;
+                    })
+                    .catch(() => cached);
+                return cached || network;
+            })
+        );
+        return;
+    }
+
+    // 3. EVERYTHING ELSE SAME-ORIGIN — network-only (same as before).
+    //    The reachability probe path lives here deliberately — it must
+    //    throw when offline so the link-status check reads honestly.
+    event.respondWith(fetch(req, { cache: 'no-cache' }));
 });
