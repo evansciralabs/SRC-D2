@@ -1,4 +1,4 @@
-const CACHE_NAME = 'src-d2-cache-v6-0'; // Aligned with V6.0 update
+const CACHE_NAME = 'src-d2-cache-v6-1'; // Bumped from v6-0: flushes the stale index.html the old SW held
 const URLS_TO_CACHE = [
     './',
     './index.html',
@@ -18,7 +18,7 @@ self.addEventListener('install', event => {
     );
 });
 
-// Activate Phase: Clean up legacy caches
+// Activate Phase: Clean up legacy caches and claim clients immediately
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -29,7 +29,7 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
 });
 
@@ -45,9 +45,11 @@ self.addEventListener('fetch', event => {
 
     if (isAppShell) {
         // NETWORK-FIRST STRATEGY:
-        // Try network first, update cache, fallback to cache on offline
+        // cache:'no-cache' bypasses the browser's HTTP cache too, so a stale
+        // index.html served from the HTTP cache can't sneak through. Try network,
+        // update cache on success, fallback to cache on offline.
         event.respondWith(
-            fetch(event.request)
+            fetch(event.request, { cache: 'no-cache' })
                 .then(response => {
                     const responseClone = response.clone();
                     caches.open(CACHE_NAME).then(cache => {
