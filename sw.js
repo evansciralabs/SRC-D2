@@ -3,7 +3,7 @@
 //  Aggressive offline cache. Atomic install. Never stale on the shell.
 // ════════════════════════════════════════════════════════════════
 
-const CACHE_NAME = 'src-d2-cache-v6-2'; // bumped: flushes every stale v6-0/v6-1 install
+const CACHE_NAME = 'src-d2-cache-v6-3'; // bumped: flushes every stale v6-0/v6-1 install
 
 // App shell — must precache atomically. If any of these 404s, install
 // correctly fails, because a broken shell is worse than no shell.
