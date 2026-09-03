@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-//  SRC-D2 Service Worker — v6-2 (hardened)
+//  SRC-D2 Service Worker — v6-3 (hardened)
 //  Aggressive offline cache. Atomic install. Never stale on the shell.
 // ════════════════════════════════════════════════════════════════
 
