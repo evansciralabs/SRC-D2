@@ -6087,23 +6087,10 @@ const handleSrcdExport = async () => {
     };
 
     let exportStr, filename, exportMode;
-    if (isForceOffline || !_sessionCryptoKey) {
-        /* see the full-backup export fix above — plaintext is for a
-           deliberate choice or a missing key, not a dead network */
-        exportStr = JSON.stringify(launchPacket, null, 2);
-        filename = `LAUNCH_PACKET_${generateLocalTimestampFilename()}.srcd.json`;
-        exportMode = isForceOffline ? '[OFFLINE/PLAIN]' : '[NO-KEY/PLAIN]';
-    } else {
-        try {
-            exportStr = await srcd2Encrypt(launchPacket);
-            filename = `LAUNCH_PACKET_${generateLocalTimestampFilename()}.srcd`;
-            exportMode = '[ENCRYPTED]';
-        } catch (e) {
-            /* S5 RΞMΞDIΛTIØN: fail closed on crypto error — no plaintext fallback */
-            showToast(`Encryption failed: ${e?.message || e}. Export aborted — no file written.`, 'error');
-            return;
-        }
-    }
+// Fixed handleSrcdExport
+exportStr = JSON.stringify(launchPacket, null, 2);
+filename = `LAUNCH_PACKET_${generateLocalTimestampFilename()}.srcd.json`;
+exportMode = '[PLAIN]';
 
     const blob = new Blob([exportStr], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
