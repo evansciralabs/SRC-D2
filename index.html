@@ -6079,18 +6079,15 @@ const renderPromptPreview = () => {
 
 const handleSrcdExport = async () => {
     await validateMatrixState(); // Ensure no empty buffers
-    _enforceGuestExportWarning(async () => {
     const freshPrompt = generatePromptPayload();
     const launchPacket = {
         "PRIME_DIRECTIVE": freshPrompt,
         "meta": { "appId": "SRC-D2-LAUNCH-PACKET", "timestamp": new Date().toISOString() }
     };
 
-    let exportStr, filename, exportMode;
-// Fixed handleSrcdExport
-exportStr = JSON.stringify(launchPacket, null, 2);
-filename = `LAUNCH_PACKET_${generateLocalTimestampFilename()}.srcd.json`;
-exportMode = '[PLAIN]';
+    const exportStr = JSON.stringify(launchPacket, null, 2);
+    const filename = `LAUNCH_PACKET_${generateLocalTimestampFilename()}.srcd.json`;
+    const exportMode = '[PLAIN]';
 
     const blob = new Blob([exportStr], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
@@ -6102,7 +6099,6 @@ exportMode = '[PLAIN]';
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     if(typeof showToast === 'function') showToast(`LAUNCH PACKET DEPLOYED ${exportMode}`, "success");
-    });
 };
 
 const exportSdapTxt = () => {
