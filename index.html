@@ -4138,6 +4138,15 @@ const _loadDashboard = async () => {
        and it already invalidated the open-once guard. The DOM's namespace marker
        is cleared alongside it so a switch cannot recover the previous operator's
        textareas — the two flags describe the same fact and must move together. */
+    /* ═ THΞ TIMΞR IS THΞ THIRD FΛCT ═ these two flags describe the same thing and
+       move together, and a pending debounced save is the same fact again: it was
+       armed by the session that is now ending. Left running, it fires up to 400ms
+       later, reads the NΞW session's storage, and writes the textarea — which still
+       holds the ØLD session's text, because textareas are only cleared on the next
+       scratchpad open. That is the DOM leak rebuilt out of a timer.
+       The window is tight enough that a person switching by hand would rarely hit
+       it, which is exactly why it would have survived testing. */
+    clearTimeout(_scratchpadSaveTimeout);
     _scratchpadDomNs = null;
     _scratchpadLoadedThisSession = false; // force a fresh decrypt-and-load on next scratchpad open — this session/namespace may differ from the last
     
@@ -9562,6 +9571,8 @@ const initPeaceOperator = async () => {
            earlier and went stale in a variable. */
         window.addEventListener('message', (ev) => {
           const d = ev.data;
+          /* the null-origin panel is answered first, by frame reference */
+          if(d && d.src === 'srcd-ad'){ srcdServeCast(ev); return; }
           if(d && (d.cmd === 'design-list-req' || d.cmd === 'design-req')){
             const g3 = _trustGate(ev.origin, d.cmd);
             if(!g3.ok){ debugToast('DESIGN REFUSED — ' + g3.why); return; }
@@ -10469,6 +10480,42 @@ const initPeaceOperator = async () => {
             detail:'rendered ' + SRCD_PROBE_SECONDS + 's clean, peak ' + worst.toFixed(3) };
         };
 
+
+        /* ═══════════ ØMNI CΛST · SΞRVΞD, NØT TRUSTΞD ═══════════
+           Sandboxed without same-origin, so its messages arrive with a null origin and
+           the trust gate refuses them by design. It is served by FRΛMΞ RΞFΞRΞNCΞ
+           instead: if the message came from the window we mounted, it is the panel.
+           The sandbox cannot forge that, and it is strictly NΛRRØWΞR than the gate,
+           because it names one window rather than an origin any document on that host
+           could occupy. Read-only, always: three verbs, none of which writes. */
+        const srcdServeCast = (ev) => {
+          const f = document.getElementById('external-doc-iframe');
+          if(!f || ev.source !== f.contentWindow) return false;
+          if(!TRUST.AD || _toolMounted.url !== TRUST.AD.url) return false;
+          const d = ev.data;
+          if(!d || d.src !== 'srcd-ad') return false;
+          /* a null-origin frame cannot be replied to BY origin either, so '*' is the
+             only target that reaches it — acceptable precisely because everything sent
+             is the operator's own curated data and none of it is a secret. */
+          const reply = (msg) => { try{ ev.source.postMessage(msg, '*'); }catch(_){ } };
+          if(d.cmd === 'library-req'){
+            reply({ src:'srcd-dash', cmd:'track-library',
+              tracks: srcdLoadLibrary().map(e => Object.assign({id:e.id}, srcdResolveEntry(e))) });
+            return true;
+          }
+          if(d.cmd === 'design-list-req'){
+            reply({ src:'srcd-dash', cmd:'design-library',
+              designs: srcdLoadDesigns().map(e => ({ id:e.id, name:e.name, size:e.size,
+                animated:!!e.animated })) });
+            return true;
+          }
+          if(d.cmd === 'authority-req'){
+            reply({ src:'srcd-dash', cmd:'authority', authority: srcdLoadAuthority() });
+            return true;
+          }
+          return false;
+        };
+
         const srcdDesignPanel = () => {
           const lib = srcdLoadDesigns();
           const rows = lib.length ? lib.map((e, n) => `
@@ -10505,8 +10552,8 @@ const initPeaceOperator = async () => {
                 <div id="dsg-note" class="text-[10px] text-amber-400" style="min-height:13px"></div>
                 <div class="flex items-center gap-3 mt-3 pt-3 border-t border-cyan-500/20">
                   <span class="text-[9px] text-cyan-500/35 tracking-wider">${lib.length} design${lib.length===1?'':'s'}</span>
-                  <span id="dsg-space" class="text-[9px] text-cyan-500/35 tracking-wider">\u2014</span>
-                  <button id="dsg-send" class="ml-auto px-4 py-1.5 text-[10px] font-['Michroma'] tracking-widest neon-cyan glow-border-cyan bg-black/50 hover:bg-cyan-900/30">SEND \u2192 SHADEPROOF</button>
+                  <span id="dsg-space" class="ml-auto text-[9px] text-cyan-500/30 tracking-wider">\u2014</span>
+
                 </div>
               </div>
             </div>`;
@@ -10526,27 +10573,11 @@ const initPeaceOperator = async () => {
             if(gone && gone.blobId){ try{ await deleteAttachmentBlob(gone.blobId); }catch(_){ } }
             srcdSaveDesigns(l); srcdDesignPanel();
           });
-          document.getElementById('dsg-send').onclick = async () => {
-            const l = srcdLoadDesigns();
-            if(!l.length){ document.getElementById('dsg-note').textContent='Nothing to send.'; return; }
-            const frame = document.getElementById('external-doc-iframe');
-            if(!frame || !frame.contentWindow || !_toolMounted.url){
-              document.getElementById('dsg-note').textContent =
-                'SHADEPROOF is not mounted. Launch it from the console first.';
-              return;
-            }
-            /* the index only \u2014 bytes follow one at a time when asked, the same way
-               tracks do, because a panel opening should not move megabytes */
-            if(!await srcdVeilCheck(l.map(e => e.name).join('\n'), 'broadcast', 'design library')) return;
-            try{
-              frame.contentWindow.postMessage(
-                { src:'srcd-dash', cmd:'design-library',
-                  designs: l.map(e => ({ id:e.id, name:e.name, size:e.size,
-                    animated:!!e.animated, frames:e.frames||null, fps:e.fps||null })) },
-                _toolOrigin() || '*');
-              showToast('Sent '+l.length+' design'+(l.length===1?'':'s')+' to SHADEPROOF.','success');
-            }catch(_){ showToast('Could not reach SHADEPROOF.','error'); }
-          };
+          /* ═ NØ SΞND BUTTØN ═ the library IS the menu. SHΛDΞPRØØF asks for it when
+             the operator opens the swap options, so a push here would be a second
+             way to do the same thing — and the one that goes stale, because it
+             sends whatever was curated at the moment it was pressed. Curation is
+             the configuration; reading it is the bridge's job. */
           srcdStorageEstimate().then(est => {
             const el = document.getElementById('dsg-space');
             if(el) el.textContent = est ? (est.pct + '% of device budget used')
@@ -10612,9 +10643,9 @@ const initPeaceOperator = async () => {
                 <div class="flex items-center gap-3 mt-3 pt-3 border-t border-cyan-500/20">
                   <button id="lib-add" class="px-4 py-1.5 text-[10px] font-['Michroma'] tracking-widest neon-cyan glow-border-cyan bg-black/50 hover:bg-cyan-900/30">+ CURRENT</button>
                   <span id="lib-count" class="text-[9px] text-cyan-500/35 tracking-wider">${lib.length} curated</span>
-                  <span id="lib-space" class="text-[9px] text-cyan-500/35 tracking-wider">measuring\u2026</span>
+                  <span id="lib-space" class="ml-auto text-[9px] text-cyan-500/30 tracking-wider">measuring\u2026</span>
                   <input type="file" id="lib-pick" accept="audio/*" style="display:none">
-                  <button id="lib-send" class="ml-auto px-4 py-1.5 text-[10px] font-['Michroma'] tracking-widest neon-cyan glow-border-cyan bg-black/50 hover:bg-cyan-900/30">SEND \u2192 SHADEPROOF</button>
+
                 </div>
               </div>
             </div>`;
@@ -10753,29 +10784,11 @@ const initPeaceOperator = async () => {
                   : Math.round(est.quota/1048576) + ' MB') + '  \u00b7  ' + local + ' KB local')
               : (local + ' KB local \u00b7 device budget unknown');
           });
-          document.getElementById('lib-send').onclick = async () => {
-            const l = srcdLoadLibrary();
-            if(!l.length){ document.getElementById('lib-note').textContent = 'Nothing curated to send.'; return; }
-            const frame = document.getElementById('external-doc-iframe');
-            if(!frame || !frame.contentWindow || !_toolMounted.url){
-              document.getElementById('lib-note').textContent =
-                'SHADEPROOF is not mounted. Launch it from the console first.';
-              return;
-            }
-            /* resolved at send time, not at add time — the receiver gets what the
-               record says now, which is the whole point of holding a reference */
-            const payload = l.map(e => Object.assign({id:e.id}, srcdResolveEntry(e)));
-            /* ═ BRØΛDCΛST PØLICY ═ these titles and artist names end up in a
-               marquee on a public video, so they are checked the way a caption is,
-               not the way code is. */
-            if(!await srcdVeilCheck(payload, 'broadcast', 'track library')) return;
-            try{
-              frame.contentWindow.postMessage(
-                { src:'srcd-dash', cmd:'track-library', tracks:payload },
-                _toolOrigin() || '*');
-              showToast('Sent '+payload.length+' track'+(payload.length===1?'':'s')+' to SHADEPROOF.','success');
-            }catch(_){ showToast('Could not reach SHADEPROOF.','error'); }
-          };
+          /* ═ NØ SΞND BUTTØN ═ the library IS the menu. SHΛDΞPRØØF asks for it when
+             the operator opens the swap options, so a push here would be a second
+             way to do the same thing — and the one that goes stale, because it
+             sends whatever was curated at the moment it was pressed. Curation is
+             the configuration; reading it is the bridge's job. */
         };
         const srcdBridgePanel = () => {
           const rows = Object.keys(TRUST).map(key => {
@@ -12318,7 +12331,21 @@ const _applyOperatorName = (name) => {
 
         // TRUE VOLATILITY: Force-wipe session storage to prevent PWA background persistence
         Object.keys(sessionStorage).forEach(key => {
-            if (key.startsWith('srcd2_')) sessionStorage.removeItem(key);
+            /* ═ NØT ΞVΞRY KΞY IS PRΞFIXΞD ═ the override bridge writes through
+             getNsKey('APP_OVERRIDES'), which produces APP_OVERRIDES_GUEST and does
+             not begin with srcd2_ — so a filter on that prefix alone walked past it
+             and left the blob behind. Harmless in content (it is AES-GCM under the
+             old ephemeral key, so it fails into the catch, and it is port config
+             rather than anything the operator wrote) but it contradicts the stated
+             volatility, and stale undecryptable cruft is the kind of thing that
+             makes a later bug much harder to read. Namespaced keys end in the
+             namespace, so both shapes are covered. */
+          /* ═ WIDΞ ΞNØUGH, NØT WIDΞR ═ a first pass matched anything ending in an
+             underscore and capitals, which would also delete another app's keys on
+             this origin — fixing a leak by taking something that was never ours.
+             This is the GUΞST init, so the precise set is: our prefix, or a key
+             namespaced to GUEST, which is the only suffix this session can own. */
+          if (key.startsWith('srcd2_') || key.endsWith('_GUEST')) sessionStorage.removeItem(key);
         });
 
         // Fresh ephemeral session: random key, unrecoverable by design unless
@@ -13050,7 +13077,14 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
             /* not built yet. The row exists so the port is reserved and the glyph
                has somewhere to point; 'close' is the system-wide contract and
                costs nothing. Brand verbs get added when the panel exists. */
-            inbound:   ['close'],
+            /* ═ IT MΛY ΛSK, ΛND IT CØULD NØT BΞ HΞΛRD ΛNYWΛY ═ mounted without
+               allow-same-origin this frame has a NULL origin, and _trustGate matches
+               by origin — so nothing it sends is admitted here. These verbs are listed
+               for one reason: the day the panel genuinely needs a channel back, the
+               change is visible in this table rather than being discovered as a silent
+               refusal. Until then it receives and stages, which is all a panel handling
+               third-party creative should be able to do. */
+            inbound:   ['close', 'library-req', 'design-list-req', 'authority-req'],
         },
     };
 
