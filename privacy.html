@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⌬SRC-D2 | Privacy Protocol</title>
+<style>
+  :root{
+    --primary:#0ff; --secondary:#0f0; --silver:#c0c0c0;
+    --dark-bg:#050a19; --mid-bg:#1a2238; --line:#1e293b;
+    --txt:#cbd5e1; --dim:#64748b; --warn:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:28px 18px 80px;
+    background:var(--dark-bg); color:var(--txt);
+    font-family:'Courier New',monospace; font-size:14px; line-height:1.75;
+    max-width:760px; margin-inline:auto;
+  }
+  h1{
+    font-size:1.5rem; letter-spacing:.18em; color:var(--primary);
+    text-shadow:0 0 10px rgba(0,255,255,.6),0 0 20px rgba(0,255,255,.3);
+    border-bottom:1px solid rgba(0,255,255,.3); padding-bottom:14px; margin-bottom:6px;
+  }
+  .sub{color:var(--dim); font-size:11px; letter-spacing:.2em; margin-bottom:34px}
+  h2{
+    font-size:.95rem; letter-spacing:.14em; color:var(--secondary);
+    margin-top:38px; margin-bottom:10px;
+    text-shadow:0 0 8px rgba(0,255,0,.35);
+  }
+  h3{font-size:.8rem;letter-spacing:.1em;color:var(--silver);margin:22px 0 6px}
+  p{margin:0 0 14px}
+  strong{color:#fff}
+  em{color:var(--primary);font-style:normal}
+  code{background:rgba(0,255,255,.07);padding:1px 5px;color:var(--primary);font-size:.85em}
+  ul{margin:0 0 16px;padding-left:20px}
+  li{margin-bottom:7px}
+  .plate{
+    border:1px solid var(--line); border-left:3px solid var(--primary);
+    background:rgba(26,34,56,.45); padding:14px 16px; margin:18px 0;
+  }
+  .plate.warn{border-left-color:var(--warn)}
+  .plate.warn strong{color:var(--warn)}
+  .k{color:var(--dim);font-size:11px;letter-spacing:.16em;display:block;margin-bottom:5px}
+  footer{
+    margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
+    color:var(--dim);font-size:11px;letter-spacing:.1em;
+  }
+  a{color:var(--primary)}
+</style>
+</head>
+<body>
+
+<h1>SRC-D2 // Privacy Protocol</h1>
+<div class="sub">OPERATOR-FIRST · LOCAL-FIRST · NO TELEMETRY</div>
+
+<p>
+  This document describes what the suite does with your data. It is written to be
+  <strong>checkable</strong>: every claim here corresponds to something in the code,
+  and where a protection is partial or a risk is real, it is named as such rather
+  than smoothed over.
+</p>
+
+<div class="plate">
+  <span class="k">THE SHORT VERSION</span>
+  Nothing leaves your device unless you send it. There is no analytics endpoint, no
+  crash reporter, no account, and no server that holds your work. The suite has
+  nowhere to phone home to.
+</div>
+
+<h2>I. Local Data Persistence (The Vault)</h2>
+<p>
+  Projects, incidents, scratchpad buffers, the track and clip libraries, the design
+  library, saved rigs, captured arrangements and the authority record all live in
+  <code>localStorage</code>, <code>sessionStorage</code> and <code>IndexedDB</code>
+  on the device that created them.
+</p>
+<ul>
+  <li><strong>Guest sessions</strong> use <code>sessionStorage</code> under their own
+      namespace and are gone when the tab closes.</li>
+  <li><strong>Callsign sessions</strong> use <code>localStorage</code> under a
+      namespace derived from the callsign.</li>
+  <li><strong>Audio and design blobs</strong> live in IndexedDB, because a few seconds
+      of audio does not fit in <code>localStorage</code> and never will.</li>
+</ul>
+<p>
+  Clearing your browser's site data erases all of it. There is no copy anywhere else,
+  which is the point and also the risk: <em>if you have not exported it, it is not
+  backed up.</em>
+</p>
+
+<h3>What a library entry actually holds</h3>
+<p>
+  A track entry does not store audio by default. It holds metadata and one of three
+  things: nothing, a <strong>fingerprint</strong> (filename, size and modified time)
+  for re-pointing at a file you pick again, or the <strong>bytes themselves</strong>
+  under a conservative ceiling. The panel says which, per entry, because an entry that
+  only names a track and one that can deliver audio look identical until you try to
+  use one.
+</p>
+
+<h2>II. Hardware &amp; Sensor Processing</h2>
+<p>
+  Where the suite reads a sensor, it reads it locally and does not retain the raw
+  signal. Analysis happens in the page or in a worklet; nothing is uploaded for
+  processing.
+</p>
+
+<h3>Connected instruments (MIDI)</h3>
+<p>
+  DΛTΛ_WΞΛVΞ enumerates MIDI devices through the browser's Web MIDI interface. That
+  returns each device's <strong>manufacturer-supplied name</strong> — "Keystation 88
+  MIDI 1", "LPK25". This is hardware identification rather than personal data, but it
+  is identifying in the sense that a given rig is recognisable across sessions.
+</p>
+<p>
+  Note data is read continuously while a controller is routed, and is used for
+  routing, for the tempo readout, and for capture when a take is armed. There is
+  <strong>no network call anywhere in the MIDI path</strong>.
+</p>
+<p>
+  A saved rig stores those device names in a project. If you share a rig file, the
+  instrument names go with it. Nothing else about the device does.
+</p>
+
+<h3>Bluetooth (BLE Hardware Auditor)</h3>
+<p>
+  Scanning is user-initiated and returns device names and advertised service
+  identifiers. That data stays in the panel and in the local registry you choose to
+  keep. The suite does not connect to a device without an explicit action and does not
+  transmit what it finds.
+</p>
+
+<h2>III. Third-Party Infrastructure &amp; Telemetry</h2>
+<div class="plate">
+  <span class="k">STATED PLAINLY</span>
+  <strong>There is no telemetry.</strong> No usage analytics, no error reporting, no
+  heartbeat, no remote configuration. The suite is a set of local files.
+</div>
+<p>
+  Two features reach the network, both only when you use them, and both announce
+  themselves:
+</p>
+<ul>
+  <li><strong>The Python runtime</strong> in the Ω sandbox downloads Pyodide (~10MB)
+      the first time you run Python. After that it runs offline. The killswitch (ᚾ)
+      blocks it, and the panel says so rather than failing silently.</li>
+  <li><strong>Remote language execution</strong> for Rust and C++ posts the code you
+      wrote to a public execution service. That code leaves the device. The panel is
+      explicit about this before it runs.</li>
+</ul>
+<p>
+  Everything else — JavaScript, CSS and HTML checking, audio rendering, image
+  classification, provenance writing, the arrangement scheduler — runs locally with no
+  network path at all.
+</p>
+
+<h2>IV. The Bridge Between Apps</h2>
+<p>
+  ØMNI_FRΛMΞ, SHΛDΞPRØØF, SRC-VRT and ØMNI CΛST run on <strong>separate
+  origins</strong>. The browser keeps them apart by default. The only channel between
+  them is <code>postMessage</code>, which this dashboard mediates.
+</p>
+<p>
+  Every message is checked twice. The <strong>origin</strong> says which app is
+  speaking; a <strong>per-app verb list</strong> says whether that app may say this
+  particular thing. Being reachable is not permission.
+</p>
+<ul>
+  <li>SHΛDΞPRØØF may <em>ask for</em> the track library and cannot write to it.</li>
+  <li>SRC-VRT may <em>push</em> a finished render and cannot read the library at all.</li>
+  <li>ØMNI CΛST, which renders third-party creative, is sandboxed without same-origin
+      access: it can <em>receive</em> and cannot <em>send</em>.</li>
+</ul>
+<p>
+  Audio is pulled one track at a time when a specific track is requested, never pushed
+  with the library. What crosses is what you curated; nothing crosses unasked, and
+  nothing crosses to a host that is not in the registry.
+</p>
+
+<h3>Panels that report a threat</h3>
+<p>
+  The preview sentry posts its findings to the dashboard. That listener verifies the
+  message came from a frame <em>this page created</em>, by window reference. Without
+  that check, any page could have raised a fake alert — not code execution, but
+  security-UI spoofing, which matters because a fake alarm teaches an operator to
+  distrust a real one.
+</p>
+
+<h2>V. The Authority Record</h2>
+<p>
+  The authority record holds artist name, writers, producers, publisher, master owner,
+  year and ISRC. This is <strong>identity and rights data</strong> and is treated as
+  such.
+</p>
+<ul>
+  <li><strong>Off by default.</strong> Until you engage it, nothing is stamped into any
+      file, and a bounce taken while it is disengaged records that it carries
+      <em>no claim</em> rather than a half-filled one.</li>
+  <li><strong>When engaged, these fields are written into the files themselves</strong>
+      — a WAV metadata chunk, a provenance XML, a video marquee. That is the point of
+      the record, and it means those files carry your name wherever they go. The suite
+      does not send them anywhere; you do.</li>
+</ul>
+<div class="plate warn">
+  <span class="k">DECLARED, NOT VERIFIED</span>
+  <strong>Every field is asserted by the operator and proved by nothing.</strong> No
+  file written by this suite should be read as evidence of ownership. An ISRC is
+  shape-checked and <strong>never generated</strong> — an ISRC belongs to a registrant,
+  and a fabricated one would collide with a real recording somewhere. Blank is a
+  correct answer.
+</div>
+
+<h2>VI. Clipboard</h2>
+<p>
+  Several panels offer one-tap copy — a staged post, a provenance report, a flagged
+  caption. These write to the system clipboard on an explicit tap and never read from
+  it. The clipboard is shared across every app on the device, so anything copied is
+  available to whatever you paste into next. That is how clipboards work everywhere;
+  it is noted because a panel that copies without saying so is a panel that surprises
+  people.
+</p>
+
+<h2>VII. What VΞILPØINT Checks Before Something Leaves</h2>
+<p>
+  Content passing between apps or heading for a platform is inspected first. Two
+  policies, and they are not the same.
+</p>
+<p>
+  <strong>Security</strong> governs what crosses between apps: code that builds itself
+  from strings, credentials, private keys, calls to unregistered hosts. Objective and
+  technical.
+</p>
+<p>
+  <strong>Broadcast</strong> governs what goes out to a platform, and deliberately
+  checks only things that are <em>checkable</em> and that you would want back: a leaked
+  token, a phone number, a street address, a link shortener platforms down-rank.
+</p>
+<div class="plate">
+  <span class="k">WHAT IT DOES NOT DO</span>
+  It does <strong>not</strong> moralise about language. Profanity in a lyric is not a
+  finding. Dark subject matter is not a finding. A word-list tone detector would fire
+  on most of the music ever written, would be safety theatre rather than safety, and
+  would teach you to ignore the panel within a day. The narrow exception is slurs, and
+  even that only ever warns — context is the whole question and a pattern match cannot
+  see it.
+</div>
+<p>
+  For imagery the check defers to the on-device classifier SHΛDΞPRØØF already carries.
+  <strong>No image is uploaded for analysis</strong>; classification runs locally.
+</p>
+<p>
+  A <em>block</em> stops; everything else asks; a clean scan does not interrupt at all.
+  A gate that halts on a maybe trains people to click through without reading, and then
+  it is stopping nothing.
+</p>
+
+<h2>VIII. Operator Autonomy</h2>
+<ul>
+  <li><strong>Export everything, any time.</strong> Projects, arrangements, rigs and
+      provenance are plain text or standard formats — not a proprietary container you
+      need this app to open.</li>
+  <li><strong>NØIR</strong> neutralises the interface for use in public without
+      changing what is stored.</li>
+  <li><strong>The network killswitch (ᚾ)</strong> blocks the two network-capable
+      features outright.</li>
+  <li><strong>Delete means delete.</strong> Removing a library entry deletes its stored
+      blob, not just the row.</li>
+</ul>
+
+<h2>IX. What This Protocol Does Not Cover</h2>
+<div class="plate warn">
+  <span class="k">HONEST LIMITS</span>
+  <ul style="margin-bottom:0">
+    <li>Files <strong>you</strong> export and share carry whatever you put in them,
+        including authority fields and rig device names.</li>
+    <li>Remote execution of Rust and C++ sends your code to a third-party service with
+        its own terms.</li>
+    <li>Pyodide is fetched from a public CDN on first use, which that CDN can observe.</li>
+    <li>A browser extension with page access can read anything on the page. No web
+        application can defend against that, and one claiming otherwise is
+        misinforming you.</li>
+    <li>Local storage is not encrypted against someone with the unlocked device in
+        hand.</li>
+  </ul>
+</div>
+
+<footer>
+  SRC-D2 · EVANSCIRA LABS<br>
+  This protocol describes the build it ships with. Where the code and this document
+  disagree, the code is what runs — report the discrepancy as a bug.
+</footer>
+
+</body>
+</html>
