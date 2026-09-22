@@ -1098,7 +1098,8 @@ body.ghost-mode #survival-fab button{
    hues read as five apps rather than one system. */
 .srcd-plate{ position:relative; border:0 !important; border-radius:0 !important;
   background-image:linear-gradient(180deg,rgba(255,255,255,.045),transparent 12%); }
-.srcd-plate > *{ position:relative; z-index:2; }
+.srcd-plate > *{ z-index:2; }
+.srcd-plate > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 /* the ticks: two 13px arms meeting at each cut corner, fading out along their length */
 .srcd-plate::after{ content:''; position:absolute; inset:0; z-index:1;
   pointer-events:none; opacity:.75; }
@@ -1229,7 +1230,8 @@ body.ghost-mode .act-cancel, body.ghost-mode .act-close{ color:#7a5a5a !importan
   pointer-events:none; opacity:.7; background:
     linear-gradient(90deg,var(--primary),transparent) 12px 1px/16px 1px no-repeat,
     linear-gradient(270deg,var(--primary),transparent) calc(100% - 1px) 1px/16px 1px no-repeat; }
-.srcd-panel--peace > *{ position:relative; z-index:2; }
+.srcd-panel--peace > *{ z-index:2; }
+.srcd-panel--peace > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 
 /* ═ -400 FØR ΞVΞRY VISIBLΞ ACCΞNT ═ the spines here first read --c-green-500 and
    --c-red-500, which are #888 and #7a5a5a in this build — the MUTΞD rungs. The
@@ -1252,7 +1254,8 @@ body.ghost-mode .act-cancel, body.ghost-mode .act-close{ color:#7a5a5a !importan
   pointer-events:none; opacity:.75; background:
     linear-gradient(180deg,var(--c-green-400),transparent) 2px 22px/1px 14px no-repeat,
     linear-gradient(180deg,var(--c-green-400),transparent) calc(100% - 2px) 22px/1px 14px no-repeat; }
-.srcd-panel--hw > *{ position:relative; z-index:2; }
+.srcd-panel--hw > *{ z-index:2; }
+.srcd-panel--hw > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 
 /* ── NΞTWØRK TΞLΞMΞTRY · a scope ─────────────────────────────────────────────
    A canvas with readouts stacked under it. The canvas is the subject, so the shape
@@ -1277,7 +1280,8 @@ body.ghost-mode .act-cancel, body.ghost-mode .act-close{ color:#7a5a5a !importan
     linear-gradient(270deg,var(--primary),transparent) calc(100% - 3px) 3px/14px 1px no-repeat,
     linear-gradient(0deg,var(--primary),transparent) 2px calc(100% - 2px)/1px 14px no-repeat,
     linear-gradient(0deg,var(--primary),transparent) calc(100% - 2px) calc(100% - 2px)/1px 14px no-repeat; }
-.srcd-panel--net > *{ position:relative; z-index:2; }
+.srcd-panel--net > *{ z-index:2; }
+.srcd-panel--net > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 
 /* every legacy plate keeps its silhouette in ghost and drops its accent */
 body.ghost-mode .srcd-panel--peace,
@@ -1312,7 +1316,8 @@ body.ghost-mode .srcd-panel--net{ --primary:#9a9a9a; --c-green-500:#9a9a9a; }
     linear-gradient(180deg,var(--primary),transparent) 2px 20px/1px 14px no-repeat,
     linear-gradient(270deg,var(--primary),transparent) calc(100% - 2px) calc(100% - 20px)/14px 1px no-repeat,
     linear-gradient(0deg,var(--primary),transparent) calc(100% - 20px) calc(100% - 2px)/1px 14px no-repeat; }
-.srcd-panel--pad > *{ position:relative; z-index:2; }
+.srcd-panel--pad > *{ z-index:2; }
+.srcd-panel--pad > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 
 /* ═ THΞ TΛBS TΛKΞ THΞ SΛMΞ ΛNGLΞ ═ a leading bevel on each, so the bar reads as cut
    from the same material as the shell rather than as three rectangles sitting on it.
@@ -1440,7 +1445,8 @@ body.ghost-mode .srcd-deck{
   pointer-events:none; opacity:.8; background:
     linear-gradient(90deg,var(--c-red-400),transparent) 22px 2px/14px 1px no-repeat,
     linear-gradient(90deg,var(--c-red-400),transparent) 22px calc(100% - 2px)/14px 1px no-repeat; }
-.srcd-panel--ask > *{ position:relative; z-index:2; }
+.srcd-panel--ask > *{ z-index:2; }
+.srcd-panel--ask > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 
 /* ── PRΞVIΞW · a viewport ────────────────────────────────────────────────────
    Near-fullscreen and holding someone else's document, so the chrome should get out
@@ -1454,7 +1460,8 @@ body.ghost-mode .srcd-deck{
   clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),
     calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);
   background-image:linear-gradient(180deg,var(--primary) 0 2px,transparent 2px); }
-.srcd-panel--view > *{ position:relative; z-index:2; }
+.srcd-panel--view > *{ z-index:2; }
+.srcd-panel--view > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 
 body.ghost-mode .srcd-panel--ask{ --c-red-500:#9a9a9a; }
 body.ghost-mode .srcd-panel--view, body.ghost-mode .srcd-deck{ --primary:#9a9a9a; }
@@ -1476,7 +1483,8 @@ body.ghost-mode .srcd-panel--view, body.ghost-mode .srcd-deck{ --primary:#9a9a9a
   pointer-events:none; opacity:.75; background:
     linear-gradient(0deg,var(--primary),transparent) 2px calc(100% - 20px)/1px 14px no-repeat,
     linear-gradient(0deg,var(--primary),transparent) calc(100% - 2px) calc(100% - 20px)/1px 14px no-repeat; }
-.srcd-panel--read > *{ position:relative; z-index:2; }
+.srcd-panel--read > *{ z-index:2; }
+.srcd-panel--read > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 body.ghost-mode .srcd-panel--read{ --primary:#9a9a9a; }
 
 /* ── SMΛLL DIΛLØGS · one shape, on purpose ───────────────────────────────────
@@ -1500,7 +1508,8 @@ body.ghost-mode .srcd-panel--read{ --primary:#9a9a9a; }
   pointer-events:none; opacity:.75; background:
     linear-gradient(90deg,var(--primary),transparent) 14px 1px/12px 1px no-repeat,
     linear-gradient(270deg,var(--primary),transparent) calc(100% - 1px) calc(100% - 14px)/12px 1px no-repeat; }
-.srcd-dialog > *{ position:relative; z-index:2; }
+.srcd-dialog > *{ z-index:2; }
+.srcd-dialog > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 body.ghost-mode .srcd-dialog{ --primary:#9a9a9a; }
 
 
@@ -1727,10 +1736,16 @@ body.ghost-mode .hover\:bg-yellow-900\/50:hover{background-color:#3a3a30!importa
 .srcd-panel--hw::before{
   filter: drop-shadow(0 0 1px var(--c-green-400)) drop-shadow(0 0 8px var(--c-green-400))
           drop-shadow(0 0 20px color-mix(in srgb, var(--c-green-400) 40%, transparent)); }
-/* content sits above the halo layer and the tick layer both */
-.srcd-plate > *, .srcd-dialog > *, [class*="srcd-panel--"] > *{
-  position:relative; z-index:2;
-}
+/* content sits above the halo layer and the tick layer both.
+   ═ BUT NØT BY FØRCING position:relative ØN ΞVΞRY CHILD ═ that is what this first
+   did, and it overrode `absolute` on anything positioned — so the raw viewer's and
+   the analyzer's close buttons, both pinned `absolute top-5 right-5`, dropped into the
+   normal flow and vanished off the panel. A dead end: the X gone and nothing else to
+   press. z-index works on any positioned element, so positioned children keep their
+   own position and simply get lifted; only static children are made relative, and
+   only so their z-index takes effect. */
+.srcd-plate > *, .srcd-dialog > *, [class*="srcd-panel--"] > *{ z-index:2; }
+.srcd-plate > *:not(.absolute):not(.fixed):not(.sticky), .srcd-dialog > *:not(.absolute):not(.fixed):not(.sticky), [class*="srcd-panel--"] > *:not(.absolute):not(.fixed):not(.sticky){ position:relative; }
 @supports not (color: color-mix(in srgb, red 50%, transparent)){
   .srcd-plate::before, .srcd-dialog::before, [class*="srcd-panel--"]::before{
     filter: drop-shadow(0 0 1px var(--primary)) drop-shadow(0 0 8px var(--primary)); }
@@ -5146,12 +5161,74 @@ const _loadDashboard = async () => {
 
             // Global Click-Outside-to-Close Listener
             document.body.addEventListener('click', (e) => {
-                const id = e.target.id;
-                if (id === 'data-modal') document.getElementById('data-cancel-btn').click();
-                else if (id === 'scratchpad-modal') document.getElementById('scratchpad-close-btn').click();
-                else if (id === 'operator-modal' && typeof _closeOperatorModal === 'function') _closeOperatorModal();
-                else if (id === 'modal-sdap') document.getElementById('sdap-close').click();
-            });
+                /* ═══════════ ΛNY MØDΛL CLØSΞS FRØM ITS ØWN BΛCKDRØP ═══════════
+                   This was a hand-kept list of FØUR modals — data, scratchpad,
+                   operator, SDAP. Every other modal had no backdrop close at all, and
+                   nobody noticed because each still had its X. When a styling change
+                   displaced the raw viewer's X, that modal became a true dead end:
+                   nothing to press and nowhere to tap.
+
+                   A list somebody has to remember to extend is a list that will be
+                   forgotten on the next modal. So this finds the modal from the event
+                   instead of from a name.
+
+                   ═ THΞ TΛP HΛS TØ LΛND ØN THΞ BΛCKDRØP ITSΞLF ═
+                   e.target === the overlay, not anything inside it. A tap inside the
+                   panel — on a field, a button, blank space in the content — must never
+                   close it, or the operator loses work by missing a control by a few
+                   pixels.
+
+                   ═ ΛND IT PRΞSSΞS THΞ MØDΛL'S ØWN CLØSΞ, NØTHING ΞLSΞ ═
+                   It does not hide the element directly. It clicks whatever close
+                   control the modal already has, so a backdrop tap does exactly and only
+                   what the X does — including any unsaved-work guard the X carries.
+                   Safe by construction: it cannot do anything the operator could not
+                   already do. */
+                const t = e.target;
+                if (!t || !t.id) return;
+                /* the operator console closes through a function rather than a button */
+                if (t.id === 'operator-modal') {
+                  if (typeof _closeOperatorModal === 'function') _closeOperatorModal();
+                  return;
+                }
+                /* only an OVERLAY: a fixed full-screen wrapper whose id names a modal.
+                   Checking the class as well as the id keeps an ordinary element that
+                   happens to be called "something-modal" from being treated as one. */
+                if (!/modal/i.test(t.id)) return;
+                /* ═ ΛSK WHΛT IT IS, NØT WHΛT IT IS CΛLLΞD ═ the first version checked
+                   the class list for `fixed inset-0`. SDAP's outer div carries NØ class
+                   — its overlay comes from an id rule — so that check silently dropped
+                   the one modal the old hand-kept list DID cover, and a fix for a dead
+                   end created a new one. The companions set their class in JavaScript,
+                   which a class check can see at runtime but a reader of the file
+                   cannot, which is how it looked fine in review.
+                   Computed position answers the real question regardless of where the
+                   styling came from: a class, an id rule, or an inline style. */
+                let fixedOverlay = false;
+                try { fixedOverlay = getComputedStyle(t).position === 'fixed'; } catch (_) {}
+                if (!fixedOverlay) return;
+                /* the modal's own close control, most specific first */
+                /* ═ CΛNCΞL CØUNTS ΛS Λ WΛY ØUT ═ five modals have no X at all, only a
+                   cancel — notification, both attachment dialogs, the export filename
+                   and the import options. They named it `-cancel` with no `-btn`, so
+                   the first version of this missed all five and fell through to hiding
+                   them directly. That skips whatever the cancel handler does, and the
+                   notification prompt is a question awaiting an answer: hiding it would
+                   leave the caller waiting on a promise that never settles. Pressing
+                   its cancel answers the question with the answer a backdrop tap means. */
+                const close =
+                  t.querySelector('[id$="-close-btn"]') ||
+                  t.querySelector('[id$="-close"]') ||
+                  t.querySelector('[id$="-cancel-btn"]') ||
+                  t.querySelector('[id$="-cancel"]') ||
+                  t.querySelector('.act-close') ||
+                  t.querySelector('.act-cancel') ||
+                  t.querySelector('.rune-close');
+                if (close) { close.click(); return; }
+                /* ═ NØ CLØSΞ CØNTRØL ΛT ΛLL ═ then there is no handler to defer to, and
+                   leaving the operator stuck is the worse outcome — hide it directly. */
+                t.classList.add('hidden');
+              });
 
             // Listeners: Modals
             $('#data-cancel-btn').onclick = () => { DOMElements.dataModal.classList.add('hidden'); setModalOpen(false); };
