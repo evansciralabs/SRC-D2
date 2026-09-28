@@ -1,0 +1,50 @@
+FILE-HEADERS.txt
+Reference for the header block used at the top of every code file in this
+/docs folder. This exists so that anyone who downloads a single file out
+of this folder — without the rest of the repo, and without the README —
+still sees, in the first few lines, what license applies and what doesn't.
+
+WHY THIS MATTERS FOR THIS REPO SPECIFICALLY
+
+The full SRC-D2 dashboard source (index.html) is not open source. Only the
+contents of this /docs folder are, under Apache License 2.0. Someone who
+finds veilpoint-witness-bridge.js on its own (linked from elsewhere,
+shared out of context, mirrored by a tool) has no reason to know that
+unless the file itself says so. The header block is the file saying so.
+
+THE STANDARD BLOCK
+
+Every code file in /docs starts with a comment block containing, in order:
+
+  1. The file's own name.
+  2. "Part of: VEILPOINT — agentic AI incident-audit design (docs/)"
+     — names the sub-project, not the whole repo.
+  3. "License: Apache License 2.0 (see docs/LICENSE and docs/NOTICE)"
+  4. A copyright line: "Copyright 2026 [YOUR NAME] ([YOUR HANDLE])"
+  5. An explicit scope disclaimer, in these exact words or close to them:
+     "This file is licensed independently of the rest of the SRC-D2
+     repository. The SRC-D2 dashboard itself (index.html and everything
+     outside /docs) is NOT covered by this license. See docs/README.md
+     for the full scope."
+  6. A one- or two-line plain description of what the file is.
+  7. A "Depends on:" line naming any other file or process it needs to
+     run, so the file is legible even if someone only has this one file.
+
+WHERE IT'S APPLIED
+
+  veilpoint-witness-daemon.mjs   - has the block
+  veilpoint-witness-bridge.js    - has the block
+  veilpoint.css                  - has the block
+  VEILPOINT_Proposed_Solutions.txt, and the VP-2026-00X incident logs, are
+    plain-text documents, not code, so they carry the same license/scope
+    line in prose at the top rather than a code comment block. If you add
+    that line to those files, use: "License: Apache License 2.0 (see
+    docs/LICENSE and docs/NOTICE). Not part of the SRC-D2 dashboard's
+    license." as the first line under the title.
+
+BEFORE YOU COMMIT
+
+Replace [YOUR NAME] and [YOUR HANDLE] in all three code files with the
+same name/handle you use in docs/NOTICE and docs/LICENSE's copyright line.
+Keep them consistent across all four files, or the notices contradict
+each other.
