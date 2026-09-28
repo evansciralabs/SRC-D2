@@ -54,3 +54,9 @@ The dashboard works without a network connection, apart from two things:
 ## License
 
 Not yet specified.
+
+## Support
+
+This work is developed independently. If it's useful to you, or you'd like to see the agent-audit research continue, support helps me keep building and documenting it. Feedback and corrections are just as welcome: open an issue.
+
+PayPal: MavArtCreator@gmail.com
