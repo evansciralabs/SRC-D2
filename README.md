@@ -46,6 +46,13 @@ Open `index.html` in a modern browser (Chrome, Firefox, or Edge). Data is kept p
 
 Tip: export a clean dashboard once, right after first load. Importing that file in Overwrite mode later resets your working state without clearing your browsing history.
 
+
+## Support
+
+This work is developed independently. If it's useful to you, or you'd like to see the agent-audit research continue, support helps me keep building and documenting it. Feedback and corrections are just as welcome: open an issue.
+
+PayPal: MavArtCreator@gmail.com
+
 ## License
 
 Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
