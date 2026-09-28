@@ -1,51 +1,53 @@
-# SRC-D2_WEYU
-SRC-D2 WEYU: Cyber-Conspectus Matrix v2.0. Client-side, locally persistent incident and project management dashboard. Utilizing pure HTML, TailwindCSS, and JavaScript for zero-latency, high-performance data visualization.
+# SRC-D2
 
-# 💾 SRC-D2_WEYU: Cyber-Conspectus Matrix
+A client-side, single-page dashboard for tracking incidents and projects, built with plain HTML, TailwindCSS, and JavaScript. Everything runs in your browser: no server, no account, no data leaves your machine.
 
-## 🚀 Overview
-The SRC-D2\_WEYU\ Cyber-Conspectus Matrix is a hyper-persistent, single-page application (SPA) designed for streamlined incident response tracking, project management, and rapid context capture. It operates entirely client-side, using browser technologies (LocalStorage, IndexedDB, SessionStorage) for data persistence, offering robust data integrity and operational security without reliance on external servers.
+Built with AI assistance by an independent developer.
 
-This version implements advanced data export protocols, mobile-optimized views, and a multi-tab scratchpad with granular saving options.
+## Status: what is built and what is proposed
 
-## ✨ Key Features
+**Built and in use:** the dashboard (incident and project registries, scratchpads, attachments, export and import), including Veilpoint, its status-indicator component, which the author already uses independently in a personal workflow.
 
-* **100% Client-Side Persistence:** Data is securely stored within your browser's local cache (LocalStorage and IndexedDB).
-* **Dual-Registry Tracking:** Separate management for **Projects** and **Incidents**, utilizing advanced attachment-based sorting algorithms for Incidents.
-* **Multi-Tab Scratchpad:** Dedicated context pads for **Main (SP)**, **Snippet/AI (SNPT)**, and **VIP Context (VIP)**, all supporting real-time autosave to SessionStorage.
-* **Robust Export Protocol (.srcd):** Exports all data (registries + scratchpad) into a single, structured JSON file.
-* **Custom Naming Conventions:** All exports use clean, chronologically accurate local timestamps and defined abbreviations:
-    * **CC:** Command Conspectus (Full Dashboard Export)
-    * **SP:** Scratchpad Main Export
-    * **SNPT:** Snippet/AI Export
-    * **VIP:** VIP Context Export
-* **Attachment Management:** Supports linking media (Blobs via IndexedDB) and `.srcd` text files to entries, complete with label editing and content viewing.
-* **Responsive UI:** Mobile-optimized view toggles (List/Details) for field operation.
+**Proposed adaptation, not yet built:** an agent-audit version of Veilpoint, described in [`/docs`](docs/). It would need an external "witness" process that has not been written, a computed verdict state (including a "stale" state for silence), and the government-domain rule described below. The current indicators are not connected to any agent monitoring.
 
-## 🛠 Installation and Deployment
+## Proposed agent-audit adaptation of Veilpoint
 
-This application is provided as a single, self-contained HTML file.
+The 2026 agent incidents showed agents acting outside their declared scope and going undetected for days to months. The adaptation proposes a small design that would complement model-side monitoring, not replace it:
 
-1.  **Download:** Download the `SRC-D2_WEYU_v11.html` file.
-2.  **Deployment:** Open the file directly in any modern web browser (Chrome, Firefox, Edge).
+- Agents declare intent and scope before acting.
+- A separate witness process, outside the dashboard and outside the agent's control, records what actually happened in an append-only hash chain.
+- The dashboard shows the verdict: match, divergence, or silence. Silence is treated as an alarm, not as calm.
+- Government-domain targets are flagged as high priority regardless of data sensitivity.
 
-***Note:*** *Since the application relies on client-side storage, it will retain your data across browser sessions, but **data is not synced** across different devices or browsers.*
+The full write-up, including acceptance tests and an honest statement of what a browser page cannot do on its own, is in [`docs/VEILPOINT_Proposed_Solutions.txt`](docs/VEILPOINT_Proposed_Solutions.txt).
 
-## 💡 Usage Tip: Maintaining a Clean State
+## Incident logs
 
-Due to the reliance on local browser storage solutions (LocalStorage and IndexedDB), data can accumulate over time. To ensure optimal performance and easily reset your working environment without clearing browsing history:
+Three logs compiled from public reporting, each naming its sources and marking open questions as open:
 
-> **Helpful Tip:** Before starting any long-term work, perform a **Full Data Export** using the `[ < ] EXPORT (.srcd)` button while your dashboard is clean (i.e., immediately after initial load or after manually deleting all entries). This exported file represents a "clean dashboard." You can later **Import** this clean file (using the **Overwrite** mode) to effectively wipe your cache data without fully clearing your browsing history.
+- [`VP-2026-001`](docs/incidents/VP-2026-001_HuggingFace_Infrastructure_Compromise.txt): Hugging Face infrastructure compromise
+- [`VP-2026-002`](docs/incidents/VP-2026-002_Medicare_Portal_and_AIHW.txt): Services Australia Medicare portal intrusion and related AIHW probe
+- [`VP-2026-003`](docs/incidents/VP-2026-003_Government_Site_Probes.txt): US federal and state government website probes
 
-## 🤝 Funding and Support
+These logs have not been reviewed by OpenAI or any affected organization. Corrections are welcome: please open an issue.
 
-If you find this tool helpful, consider supporting the continued development and maintenance through the links below. Your contribution helps ensure the ongoing refinement of the SRC-D Matrix protocols.
+## Dashboard features
 
-| Platform   | Handle / Address        |
-| ---        | ---                     |
-| **Venmo**  | @mavartcreator          |
-| **PayPal** | MavArtCreator@gmail.com |
+- **Client-side persistence:** data is stored in your browser (LocalStorage and IndexedDB).
+- **Two registries:** separate tracking for Projects and Incidents, with attachments.
+- **Multi-tab scratchpad:** Main (SP), Snippet/AI (SNPT), and VIP Context (VIP), with autosave.
+- **Export and import (.srcd):** everything in one structured JSON file, with timestamped names: CC (full dashboard), SP, SNPT, VIP.
+- **Attachments:** link media and `.srcd` text files to entries, with label editing and content viewing.
+- **Responsive layout:** list and detail views for small screens.
 
----
+## Run it
 
-*SRC-D2\_WEYU\ is provided "as-is" for personal and operational use. Always back up critical data using the export function.*
+Open `index.html` in a modern browser (Chrome, Firefox, or Edge). Data is kept per browser and is not synced across devices, so use the export button to back up anything you care about.
+
+Tip: export a clean dashboard once, right after first load. Importing that file in Overwrite mode later resets your working state without clearing your browsing history.
+
+## License
+
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
+
+Provided as-is, without warranty. Back up important data with the export function.
