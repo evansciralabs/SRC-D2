@@ -1,0 +1,49 @@
+/*
+ * veilpoint.css
+ * Part of: VEILPOINT — agentic AI incident-audit design (docs/)
+ * License: Apache License 2.0 (see docs/LICENSE and docs/NOTICE)
+ * Copyright 2026 [YOUR NAME] ([YOUR HANDLE])
+ *
+ * This file is licensed independently of the rest of the SRC-D2 repository.
+ * The SRC-D2 dashboard itself (index.html and everything outside /docs) is
+ * NOT covered by this license. See docs/README.md for the full scope.
+ *
+ * What this is: one new CSS state (.veil-eye.stale) used by
+ * veilpoint-witness-bridge.js. Append to your existing stylesheet.
+ *
+ * Depends on: your dashboard already defining .veil-eye / .veil-pupil /
+ * .veil-text base styles.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   VEILPOINT CSS ADDITIONS — append to your stylesheet. Nothing here
+   modifies an existing rule; it only adds one new state class, .stale,
+   for use by veilpoint-witness-bridge.js.
+
+   .stale is amber, narrowed (not slit) pupil, slower flicker than danger:
+   stale says "waiting that has become wrong," danger says "caught in the
+   act." They must never share a glyph, because the failure this design
+   exists to prevent is exactly stale rendered as dormant (calm).
+
+   Adjust the --orange-alert token and the .veil-eye / .veil-pupil base
+   selectors to match your dashboard's own token names if they differ.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.veil-eye.stale {
+    border-color: var(--orange-alert, #fb923c);
+    box-shadow: 0 0 12px var(--orange-alert, #fb923c),
+                inset 0 0 4px rgba(251, 146, 60, .6);
+    animation: veil-stale 1.6s ease-in-out infinite;
+}
+.veil-eye.stale .veil-pupil {
+    background: #ffb066;
+    width: 3px; height: 4px;                     /* narrowed, NOT a slit */
+    transform: rotate(-45deg) scale(.8);
+}
+.veil-eye.stale ~ .veil-text {
+    color: var(--orange-alert, #fb923c);
+    text-shadow: 0 0 8px rgba(251, 146, 60, .8);
+}
+@keyframes veil-stale {
+    from { opacity: 1; } to { opacity: .82; }    /* slower than the danger flicker */
+}
