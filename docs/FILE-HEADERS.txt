@@ -32,10 +32,11 @@ Every code file in /docs starts with a comment block containing, in order:
 
 WHERE IT'S APPLIED
 
-  veilpoint-witness-daemon.mjs   - has the block
-  veilpoint-witness-bridge.js    - has the block
-  veilpoint.css                  - has the block
-  VEILPOINT_Proposed_Solutions.txt, and the VP-2026-00X incident logs, are
+  witness/veilpoint-witness-daemon.mjs   - has the block
+  witness/veilpoint-witness-bridge.js    - has the block
+  witness/veilpoint.css                  - has the block
+  VEILPOINT_Proposed_Solutions.txt (docs root), and the VP-2026-00X
+  incident logs (incidents/), are
     plain-text documents, not code, so they carry the same license/scope
     line in prose at the top rather than a code comment block. If you add
     that line to those files, use: "License: Apache License 2.0 (see
