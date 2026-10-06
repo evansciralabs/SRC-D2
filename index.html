@@ -14484,12 +14484,144 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
             catch { return null; }
         }
 
+        /* ═══════════ RΞΛD THΞ FILΞ, NØT THΞ CΛNVΛS ═══════════
+           The key rides in the lowest bit of each colour value, and this used to
+           read it back off a canvas. A canvas is the one place a browser may lie
+           about pixels. Brave does, on purpose: every getImageData, toDataURL and
+           toBlob flips the lowest bit of a few hundred colour values so a canvas
+           cannot be used to fingerprint the machine. Up to Brave 1.93 it drew the
+           same positions for a site on every start, so a key that happened to be
+           missed kept working; from 1.94 the positions are drawn again each time
+           the browser starts. One flipped bit inside the payload and the magic or
+           the JSON no longer parses, which by design reads as "not a key".
+
+           So the pixels come from the file. A PNG is one zlib stream of filtered
+           rows; undoing it is arithmetic on the bytes that were saved, and no
+           privacy feature stands between a page and a file its user handed it.
+
+           The canvas stays, as the way back: when this reader does not take the
+           file (interlaced, 16-bit, not a PNG, no DecompressionStream) or finds no
+           key in what it read, the old path runs exactly as it did. Nothing that
+           logged in before this can stop logging in because of it.
+
+           STILL TRUΞ ØF THΞ WRITΞR: a key SΛVΞD through canvas.toBlob or
+           toDataURL in such a browser is noised before it reaches the disk. */
+        async function _pngToPixels(file) {
+            if (typeof DecompressionStream !== 'function') return null;
+            const u8 = new Uint8Array(await file.arrayBuffer());
+            const SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+            if (u8.length < 57) return null;
+            for (let i = 0; i < 8; i++) if (u8[i] !== SIG[i]) return null;
+
+            // chunks: length, four letters, data, crc
+            const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+            let w = 0, h = 0, depth = 0, ctype = -1, plte = null, trns = null;
+            const idat = [];
+            for (let p = 8; p + 12 <= u8.length;) {
+                const len = dv.getUint32(p, false), a = p + 8, z = a + len;
+                if (z + 4 > u8.length) return null;
+                const type = String.fromCharCode(u8[p + 4], u8[p + 5], u8[p + 6], u8[p + 7]);
+                if (type === 'IHDR') {
+                    if (len !== 13 || ctype !== -1) return null;
+                    w = dv.getUint32(a, false); h = dv.getUint32(a + 4, false);
+                    depth = u8[a + 8]; ctype = u8[a + 9];
+                    // compression 0, filter 0, not interlaced: anything else is the canvas's job
+                    if (u8[a + 10] !== 0 || u8[a + 11] !== 0 || u8[a + 12] !== 0) return null;
+                } else if (type === 'PLTE') plte = u8.subarray(a, z);
+                else if (type === 'tRNS') trns = u8.subarray(a, z);
+                else if (type === 'IDAT') idat.push(u8.subarray(a, z));
+                else if (type === 'IEND') break;
+                p = z + 4;
+            }
+            // samples per pixel by colour type: 0 grey, 2 RGB, 3 palette, 4 grey+alpha, 6 RGBA
+            const ch = [1, 0, 3, 1, 2, 0, 4][ctype] || 0;
+            const small = (ctype === 0 || ctype === 3) && (depth === 1 || depth === 2 || depth === 4);
+            if (!ch || !(depth === 8 || small) || !w || !h || !idat.length || w * h > 67108864) return null;
+            if (ctype === 3 && (!plte || plte.length < 3)) return null;
+            const row = Math.ceil(w * ch * depth / 8), bpp = Math.max(1, (ch * depth) >> 3), need = h * (row + 1);
+
+            // inflate, into exactly the room the header promised and no more
+            const raw = new Uint8Array(need); let got = 0, extra = 0;
+            const rd = new Blob(idat).stream().pipeThrough(new DecompressionStream('deflate')).getReader();
+            for (;;) {
+                const { done, value } = await rd.read();
+                if (done) break;
+                const take = Math.min(value.length, need - got);
+                if (take) { raw.set(value.subarray(0, take), got); got += take; }
+                extra += value.length - take;
+                if (extra > 65536) { try { await rd.cancel(); } catch (_) {} return null; }
+            }
+            if (got < need) return null;
+
+            // undo the row filters in place: none, left, up, average, Paeth
+            for (let y = 0, prev = -1; y < h; y++) {
+                const o = y * (row + 1), f = raw[o], s = o + 1;
+                if (f === 1) {
+                    for (let i = bpp; i < row; i++) raw[s + i] = (raw[s + i] + raw[s + i - bpp]) & 255;
+                } else if (f === 2) {
+                    if (prev >= 0) for (let i = 0; i < row; i++) raw[s + i] = (raw[s + i] + raw[prev + i]) & 255;
+                } else if (f === 3) {
+                    for (let i = 0; i < row; i++) {
+                        const L = i >= bpp ? raw[s + i - bpp] : 0, U = prev >= 0 ? raw[prev + i] : 0;
+                        raw[s + i] = (raw[s + i] + ((L + U) >> 1)) & 255;
+                    }
+                } else if (f === 4) {
+                    for (let i = 0; i < row; i++) {
+                        const L = i >= bpp ? raw[s + i - bpp] : 0, U = prev >= 0 ? raw[prev + i] : 0;
+                        const UL = (i >= bpp && prev >= 0) ? raw[prev + i - bpp] : 0;
+                        const pa = Math.abs(U - UL), pb = Math.abs(L - UL), pc = Math.abs(L + U - 2 * UL);
+                        raw[s + i] = (raw[s + i] + ((pa <= pb && pa <= pc) ? L : (pb <= pc ? U : UL))) & 255;
+                    }
+                } else if (f !== 0) return null;
+                prev = s;
+            }
+
+            // to RGBA, eight bits each, the shape getImageData hands back
+            const out = new Uint8ClampedArray(w * h * 4), mask = (1 << depth) - 1;
+            const tGrey = (trns && trns.length >= 2) ? (((trns[0] << 8) | trns[1]) & mask) : -1;
+            const tRGB = !!(trns && trns.length >= 6);
+            for (let y = 0, q = 0; y < h; y++) {
+                const s = y * (row + 1) + 1;
+                if (ctype === 6) { out.set(raw.subarray(s, s + row), q); q += row; continue; }
+                for (let x = 0; x < w; x++, q += 4) {
+                    if (ctype === 2) {
+                        const r = raw[s + 3 * x], g = raw[s + 3 * x + 1], b = raw[s + 3 * x + 2];
+                        out[q] = r; out[q + 1] = g; out[q + 2] = b;
+                        out[q + 3] = (tRGB && r === trns[1] && g === trns[3] && b === trns[5]) ? 0 : 255;
+                    } else if (ctype === 4) {
+                        const v = raw[s + 2 * x];
+                        out[q] = v; out[q + 1] = v; out[q + 2] = v; out[q + 3] = raw[s + 2 * x + 1];
+                    } else {
+                        const bit = x * depth;
+                        const v = depth === 8 ? raw[s + x] : (raw[s + (bit >> 3)] >> (8 - depth - (bit & 7))) & mask;
+                        if (ctype === 3) {
+                            if (3 * v + 2 >= plte.length) return null;
+                            out[q] = plte[3 * v]; out[q + 1] = plte[3 * v + 1]; out[q + 2] = plte[3 * v + 2];
+                            out[q + 3] = (trns && v < trns.length) ? trns[v] : 255;
+                        } else {
+                            const g8 = depth === 8 ? v : v * (255 / mask);   // 1, 2, 4 bits spread to 8: ×255, ×85, ×17
+                            out[q] = g8; out[q + 1] = g8; out[q + 2] = g8;
+                            out[q + 3] = (v === tGrey) ? 0 : 255;
+                        }
+                    }
+                }
+            }
+            return out;
+        }
+
         async function _fileToPixels(file) {
             const bmp = await createImageBitmap(file);
-            const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
-            const cx = c.getContext('2d', { willReadFrequently: true });
-            cx.drawImage(bmp, 0, 0);
-            return { pixels: cx.getImageData(0, 0, bmp.width, bmp.height).data, bmp };
+            let pixels = null, via = 'file';
+            try { pixels = await _pngToPixels(file); } catch (e) { pixels = null; }
+            if (!pixels) via = 'canvas, the file reader passed';
+            else if (!_otrExtract(pixels)) { pixels = null; via = 'canvas, no key in the file bytes'; }
+            if (!pixels) {
+                const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+                const cx = c.getContext('2d', { willReadFrequently: true });
+                cx.drawImage(bmp, 0, 0);
+                pixels = cx.getImageData(0, 0, bmp.width, bmp.height).data;
+            }
+            return { pixels, bmp, via };
         }
 
         // Build a small, PAYLOAD-FREE avatar: redraw scaled onto a clean canvas
@@ -14510,10 +14642,10 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
         const pfpEl = document.getElementById('operator-key-pfp');
 
         async function _handleOperatorKeyImage(file) {
-            let payload = null, bmpRef = null;
+            let payload = null, bmpRef = null, readVia = 'none';
             try {
-                const { pixels, bmp } = await _fileToPixels(file);
-                bmpRef = bmp;
+                const { pixels, bmp, via } = await _fileToPixels(file);
+                bmpRef = bmp; readVia = via;
                 payload = _otrReveal(pixels);
             } catch (e) {
                 payload = null; // unreadable → treat as non-key, silent
@@ -14521,7 +14653,7 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
 
             // Not a valid operator key → SILENT no-op (manual entry still works).
             if (!payload || !payload.callsign) {
-                debugToast('OPERATOR KEY — no valid payload in image → silent no-op.');
+                debugToast('OPERATOR KEY — no valid payload in image (read=' + readVia + ') → silent no-op.');
                 return;
             }
 
@@ -14547,7 +14679,7 @@ const _vaultFadeIn = (callsign, loadDataCallback) => new Promise((resolve) => {
                 try { pfpEl.src = _makeCleanAvatar(bmpRef); pfpEl.classList.remove('hidden'); } catch {}
             }
 
-            debugToast(`OPERATOR KEY — loaded callsign="${payload.callsign}" glyph=${payload.glyph ? 'provided' : 'none'} → firing login.`);
+            debugToast(`OPERATOR KEY — loaded callsign="${payload.callsign}" glyph=${payload.glyph ? 'provided' : 'none'} read=${readVia} → firing login.`);
             // Fire the existing login flow — animation + vault recall run as normal.
             _confirmOperatorId();
         }
