@@ -131,6 +131,65 @@
   transmit what it finds.
 </p>
 
+<h3>Device profile (display tier)</h3>
+<p>
+  The dashboard draws itself more cheaply on hardware that needs it: blur, scanlines
+  and animated glows cost real frames on an older phone. It does <strong>not inspect
+  the device to decide this</strong>. At load it reads the viewport — its size, its
+  orientation, and whether the main pointer is a mouse, the same media queries any
+  stylesheet asks — and nothing about the hardware: no user-agent parsing, no
+  graphics probe. It starts on a baseline and stays there until you say otherwise.
+</p>
+<p>
+  Saying otherwise happens in one place, the Hardware Auditor, and only when you tap
+  <strong>⊕ READ PROFILE</strong>. That tap reads:
+</p>
+<ul>
+  <li>the <strong>operating-system family</strong> and, where the browser reports
+      one, the <strong>device model</strong> — from the browser's platform hints and
+      the user-agent string;</li>
+  <li>the <strong>graphics renderer name</strong>, through one WebGL context that is
+      released as soon as it has been asked;</li>
+  <li>the <strong>screen size</strong> in density-independent pixels, and the
+      <strong>refresh rate</strong>, measured over about half a second.</li>
+</ul>
+<p>
+  What it found is shown to you before anything is done with it. The two fields the
+  outcome depends on, OS and GPU class, can be corrected by hand: a browser that
+  masks its graphics hardware reports a generic renderer, and you know what you are
+  holding. The profile exists <strong>in memory only</strong>, and closing the
+  auditor discards it.
+</p>
+<p>
+  If you tap <strong>⌁ SHARE</strong>, the dashboard takes the OS and the GPU
+  class, looks up one of four display tiers in a fixed table, and keeps <strong>that
+  one value</strong> — <code>t1</code>, <code>t2</code> or <code>t3</code> — in
+  <code>localStorage</code> under <code>srcd.tier</code>. The profile is dropped in
+  the same step. The model name, the renderer string, the screen size and the
+  refresh rate are never written to storage, and there is <strong>no network call
+  anywhere in this path</strong>.
+</p>
+<p>
+  <strong>↺ FORGET</strong>, in the same panel, removes the key and returns the
+  dashboard to its baseline at once, without a reload. Clearing site data does the
+  same. A tier changes what things cost and how large they are, never what is there:
+  no control, field or feature is absent on a lower one.
+</p>
+<div class="plate warn">
+  <span class="k">WHAT THE STORED VALUE STILL SAYS</span>
+  <ul style="margin-bottom:0">
+    <li>The tier is coarse on purpose — older Android phone, newer Android phone,
+        desktop — but it is a statement about your device, and anything that can
+        read this origin's storage can read it.</li>
+    <li>It is kept once per browser, <strong>outside any callsign namespace</strong>,
+        because it describes the device and not the operator. Every session on this
+        browser gets the same tier, Guest included.</li>
+    <li>Reading a profile creates a WebGL context for a moment. A privacy tool that
+        reports such things may report this one. It happens on that tap and at no
+        other time.</li>
+  </ul>
+</div>
+
 <h2>III. Third-Party Infrastructure &amp; Telemetry</h2>
 <div class="plate">
   <span class="k">STATED PLAINLY</span>

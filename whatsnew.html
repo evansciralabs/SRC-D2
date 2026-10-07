@@ -363,6 +363,71 @@
 <script>
     const COMMITS = [
         {
+            sha: "d140413",
+            tag: "REL_DEVICE_TIERS",
+            author: "VEGA",
+            role: "FRONT-END",
+            timestamp: "2026-10-07 00:20:00",
+            cat: "feat",
+            desc: "The dashboard now spends what the device can afford. Four tiers, one attribute, and nothing in the page decides which one applies.",
+            tech: [
+                "body[data-tier] carries t0–t3 and every tier rule in the sheet starts with it, in ØNΞ block placed after the themes and before the NØIR rules — a theme is a preference, a tier is a hardware fact, NØIR is a battery decision, and that is the order they overrule one another. T0 is written into the markup itself, so the baseline is what runs before any script has.",
+                "T0 and T1 switch off the three things that cost the most: the scanline layer, the fullscreen backdrop blur (most overlays sat on an opaque scrim, so the blur was being computed and then painted over), and the corridor behind the operator console — an SVG carrying fifty filter passes. filter:none cannot reach inside an image, so the stand-in is a second drawing rebuilt from the same geometry with NØ FILTΞR ΛT ΛLL.",
+                "T1 moves the ambient pulse off box-shadow and onto the opacity of a layer that is painted once. Traced in a software rasteriser, the idle dashboard was re-rastering every tile on every frame; at T1 it rasters nothing until something changes. T0 keeps the original pulse — that is where the spec puts it, and it is the first thing to move if an un-audited phone still runs warm.",
+                "T1 and T2 grow hit areas on pseudo-elements, each one set from the measured gap to its neighbour. A blanket outset does not survive this layout: a 48px square centred on ⌁ answers for half of the ✕ beside it and for the bottom edge of the field above. So an area grows into empty margin, splits a shared gap down the middle and stops at the next control's own box — and where that leaves it under 48, it stays under rather than fire its neighbour.",
+                "T3 centres the shell at 1440 and caps the modals by what they are. Λ CΛP MΛY ØNLY LØWΞR Λ WIDTH: the first version widened the auditor from 448px to 1024, because a tier rule outranks the utility that had been holding it.",
+                "A tier changes cost and size, never content. No rule in the block hides a control, drops a field or disables a feature."
+            ]
+        },
+        {
+            sha: "f86c2be",
+            tag: "SEC_DEVICE_PROFILE_BY_CONSENT",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-07 00:15:00",
+            cat: "threat",
+            desc: "A tier has to know something about the device, and a dashboard that goes and looks is a fingerprinting script with a good interface. So it does not look.",
+            tech: [
+                "At load the page reads the viewport and nothing about the hardware — no user-agent parsing, no GPU probe. The one door is the Hardware Auditor: ⊕ reads a profile and SHØWS it, ⌁ hands it over, and the dashboard keeps the answer to a single question — which tier — under srcd.tier. The model, the renderer string, the screen size and the refresh rate are never written anywhere.",
+                "The two fields the table reads can be corrected by hand. A browser that resists fingerprinting does it by lying to exactly these calls, a masked renderer classifies as nothing, and the operator knows what they are holding. What was detected and what was chosen are kept apart on screen: a class set by hand must not read as one the audit measured.",
+                "A profile that was read and not shared does not outlive the panel. The drop is tied to the panel's own hidden state rather than wired to each way of closing it, and a read that finishes after the panel has gone is discarded — half a second is long enough to close a dialog in.",
+                "↺ FORGET removes the key and the page is on its baseline again at once, with no reload: a tier is one attribute and everything else is static CSS. A mobile tier that arrives in a desktop viewport is refused rather than applied — it would have switched on single-pane rules behind a mouse.",
+                "The privacy protocol has a section for all of it, including what the one stored value still says about the device it came from."
+            ]
+        },
+        {
+            sha: "c78994c",
+            tag: "UI_DETAIL_PANE_PLATES",
+            author: "NYX",
+            role: "UX ARCHITECT",
+            timestamp: "2026-10-07 00:10:00",
+            cat: "ui",
+            desc: "The pane an entry opens into was the last surface still dressed in the v1 look. Selecting a row read as leaving one application and arriving in another.",
+            tech: [
+                "Edit, delete and attach are skewed plates with one corner cut and an accent rail — the SDAP rune matrix's shape at a gentler angle. No fill and no glow at rest, so the [ ] that used to say THIS IS Λ BUTTØN is gone from the label. The shape says it.",
+                "Notes and attachments are chamfered plates with reticle marks on the cut corners, and the field cards carry the entry row's rail. Nothing here is new: every shape already existed somewhere in the file, and all of it reads theme tokens, so seven themes follow without a rule each.",
+                "Row glyphs lost their brackets and kept their box — 36 wide and one line tall, the size the bracketed label used to make. A row is exactly as tall as it was.",
+                "Every piece shipped with its other forms on the same day. NØIR greys the whole pane to one family with the rows (checked by counting coloured pixels: none), T0 and T1 drop the hover glow, T1 and T2 grow the hit areas, T3 opens the field grid to three across.",
+                "One stray pr-2 held the title rule, the cards and the notes plate 8px short of the attachments plate beneath them. Rounded boxes hid that. Two straight edges do not."
+            ]
+        },
+        {
+            sha: "9cb088b",
+            tag: "FIX_LANDSCAPE_AND_FIT",
+            author: "VEGA",
+            role: "FRONT-END",
+            timestamp: "2026-10-07 00:05:00",
+            cat: "fix",
+            desc: "Turning the phone sideways gave it the desktop layout, and turning it back lost your place.",
+            tech: [
+                "Mobile was decided by width — innerWidth <= 768 — and a phone on its side is 915 wide. It is the SHØRT side now, in the script and in the media query alike, and desktop needs three things at once: 1024px, hover, and a fine pointer. Rotating with an entry open used to show two panes; rotating back dropped you on the list, on a page twice the width of the screen.",
+                "Lifting the zoom lock exposed a defect it had been hiding. The pane that is slid off-canvas counted as page width, and once zoom is allowed Chrome lays out position:fixed against the page at its minimum scale — every overlay and both fabs drew at twice the size. The container clips its own off-canvas pane now, and the viewport states minimum-scale=1 as well.",
+                "A panel taller than the screen overflowed both ways at once, and the half that left through the top took the title bar and the close control with it. On a phone held sideways that was the net sentry and the export warning; inside a browser tab, the operator console too. margin:auto pins what does not fit to the top, and the overlay scrolls the rest.",
+                "100dvh beside every 100vh, fallback first. env(safe-area-inset-*) on the fabs, the toasts, the panes and every overlay — and viewport-fit=cover in the meta, without which every one of those is zero.",
+                "Checked in an emulated Stylus viewport in both orientations and at 1024, 1440, 1920 and 2560 wide. The dropped-frame criterion needs the physical device and has NØT been run."
+            ]
+        },
+        {
             sha: "e3b8d4c",
             tag: "FIX_STACKING_LADDER",
             author: "VEGA",
@@ -1174,7 +1239,8 @@
     const emptyState = document.getElementById('empty-state');
 
     const DIVIDERS = {
-            "e3b8d4c": "v6.1.1 — CURRENT",
+            "d140413": "v6.2 — CURRENT",
+            "e3b8d4c": "v6.1.1",
             "d4f9e07": "v6.1",
             "b7e21a4": "v6.1 PLATE LANGUAGE",
         "f1a7c0e": "SYSTEM DOCUMENTATION",
@@ -1239,18 +1305,25 @@
             const text = data.desc;
             descBox.style.borderRightWidth = '2px';
 
+            /* ═ THΞ GLITCH TØØK THΞ TΞXT WITH IT ═ the flicker used to snapshot the line,
+               swap its last character for a block, and put the snapshot back 40ms
+               later — by which time three more characters had been typed, and the
+               snapshot erased them. Reading the line back through innerText also
+               dropped any trailing space. Every description lost letters at random
+               ("The confiialog rendered behind…"). The typed text is now kept in a
+               variable and the box is only ever painted FRØM it, so a flicker is
+               something drawn over one tick and never something stored. */
+            let typed = '';
             typeInterval = setInterval(() => {
-                descBox.innerText += text.charAt(charIndex);
+                typed += text.charAt(charIndex);
                 charIndex++;
-
-                if (Math.random() > 0.96) {
-                    const original = descBox.innerText;
-                    descBox.innerText = original.substring(0, original.length - 1) + (Math.random() > 0.5 ? '█' : '▓');
-                    setTimeout(() => { descBox.innerText = original; }, 40);
-                }
+                descBox.textContent = (Math.random() > 0.96)
+                    ? typed.slice(0, -1) + (Math.random() > 0.5 ? '█' : '▓')
+                    : typed;
 
                 if (charIndex >= text.length) {
                     clearInterval(typeInterval);
+                    descBox.textContent = text;
                     descBox.style.borderRightWidth = '0px';
 
                     data.tech.forEach((item, i) => {
