@@ -2,10 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- ═ NØTHING RΞMØTΞ ═ this page opens inside the dashboard in a frame of its own,
+         and a frame loaded from a file is governed by that file's policy, not the
+         dashboard's. Without one, it was the one surface ᚾ could not reach. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src data: blob:; img-src data:; base-uri 'none'; form-action 'none'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EVANSCIRA // SYSTEM_LOG</title>
+    <script>
+    /* ═ THΞ FØNTS CØMΞ FRØM THΞ DΛSHBØΛRD, NØT FRØM GØØGLΞ ═ this page used to @import
+       Michroma and Space Mono from fonts.googleapis.com every time it was opened — with
+       ᚾ engaged as much as without. The import is gone. Once the dashboard holds the two
+       typefaces (kept on the device after the first ᚾ release) it posts them in when
+       this page loads, and each face is checked against what this page uses before it
+       is added: the family, the weight, the style, a unicode-range that is only a
+       unicode-range, and a file that begins with the WOFF2 signature. Opened on its
+       own, or before that first release, the page draws the fallbacks. */
+    (function () {
+        var WANT = { 'Michroma': ['400'], 'Space Mono': ['400', '700'] };
+        var RANGE = /^[Uu+0-9A-Fa-f?,\- ]{3,600}$/, MAX_FACES = 16, MAX_FILE = 262144, added = {};
+        var woff2 = function (b) { try { var h = new Uint8Array(b, 0, 4); return h[0] === 0x77 && h[1] === 0x4f && h[2] === 0x46 && h[3] === 0x32; } catch (_) { return false; } };
+        window.addEventListener('message', function (e) {
+            if (window.parent === window || e.source !== window.parent) return;   /* only the page that framed this one */
+            var d = e.data;
+            if (!d || d.type !== 'SRCD_FONTS' || !Array.isArray(d.faces) || typeof FontFace !== 'function') return;
+            d.faces.slice(0, MAX_FACES).forEach(function (f) {
+                if (!f || typeof f.family !== 'string' || !Object.prototype.hasOwnProperty.call(WANT, f.family)) return;
+                var w = String(f.weight), range = typeof f.range === 'string' ? f.range : '';
+                if (WANT[f.family].indexOf(w) === -1 || f.style !== 'normal' || (range && !RANGE.test(range))) return;
+                if (!(f.bytes instanceof ArrayBuffer) || f.bytes.byteLength <= 64 || f.bytes.byteLength > MAX_FILE || !woff2(f.bytes)) return;
+                var key = f.family + '|' + w + '|' + range;
+                if (added[key]) return;
+                try {
+                    var face = new FontFace(f.family, f.bytes, { weight: w, style: 'normal', unicodeRange: range || 'U+0-10FFFF', display: 'swap' });
+                    document.fonts.add(face); face.load().catch(function () {}); added[key] = 1;
+                } catch (_) {}
+            });
+        });
+    })();
+    </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Michroma&display=swap');
 
         :root {
             --bg-deep: #050a10;
@@ -362,6 +397,348 @@
 
 <script>
     const COMMITS = [
+        // ═══════════════════ v6.4 — CURRENT ═════════════════════════════════
+        {
+            sha: "b7e2f19",
+            tag: "FEAT_AUDIO_MODULES_PATCH_BAY",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-23 22:15:00",
+            cat: "feat",
+            desc: "SDAP builds ΛUDIØ MØDULΞS for both audio hosts, a module can offer a PΛTCH BΛY, and STRΛTΛ arranges with it.",
+            tech: [
+                "ΛUDIØ MØDULΞS. SDAP's web-audio box builds a module for either host from one contract, now r161: a face in an ØMNI_FRΛMΞ user rack, or an instrument on a STRΛTΛ track. A plugin says role: effect and works on one stereo input. Once the core plugins exist, the same button reads ＋ PLUGIN PRØJΞCT: each press makes a project for plugins of your own and points SDAP at it, and the core pages are brought up to date on the way.",
+                "THΞ PΛTCH BΛY. Optional, and offered in the module header with patch: get use. patch-get hands the host the module's whole state as one patch; patch-use loads one whole. A module that plays its own content (a pattern, a recording) adds region, and its worklet is started and stopped on the beat. A host without a patch bay never asks — ØMNI's racks send none of it — so the same file runs unchanged in both. The reference module shows it, and the nine core plugins speak it.",
+                "STRΛTΛ ΛRRΛNGΞS WITH PΛRTS. A region points at a part: the module's patch, the notes drawn in STRΛTΛ, how long the pattern runs. ⌥-drag a nameplate onto the grid (a long press, then drag, on touch) to place the part the instrument is playing; ⌥-drag a region for another region of the same part. Edit a part once and every region of it plays the edit; make unique splits one off. A part is switched in the render quantum its region starts, a module's own content fades in and out at a region's edges, and a loop seam dips for 3 ms unless the module crossfades it.",
+                "PRΞ-RØLL, MΛRKΞRS, NØTΞS. The bars before 1 are a parking lane for parts; 0 is a fixed mark that ⏮ and Enter return to; markers jump. The note editor selects with a box, copies with ⌥-drag, quantizes and transposes. A session keeps each module's own patch, so what a module holds besides its knobs comes back with it, and a session saved before parts opens with each region as a part of its own."
+            ]
+        },
+        {
+            sha: "9c41d2a",
+            tag: "FEAT_STRATA_CORE_PLUGINS",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-23 18:20:00",
+            cat: "feat",
+            desc: "STRΛTΛ's core plugins — nine studio plugins on the web-audio nodes, written by SDAP into a project of their own.",
+            tech: [
+                "＋ STRΛTΛ PLUGINS, in SDAP's web-audio box, writes one project — STRΛTΛ CORE PLUGINS — holding EQ, COMPRESSOR, LIMITER, REVERB, DELAY, SATURATOR, STEREO, FILTER and GATE. ØMNI passes over it. STRΛTΛ takes every page in it as a plugin, through the same admission, security gate and probe as any module. Pressed again after an update, it brings the pages up to date in place and leaves the rest of the project alone.",
+                "ØNΞ LΛYØUT FØR ΛLL NINΞ. A live display, three big controls, presets, A/B, a click-free bypass and DETAIL for everything else. The display is the plugin: the EQ's curve over the spectrum, the compressor's curve and gain reduction, the limiter's LUFS, the reverb's decay, the delay's echoes, the saturator's curve with a sine through it, the stereo field, the filter's response, the gate's line. Drag, scroll or type a value; double-tap resets. Opened on its own, a built-in loop plays through it. In STRΛTΛ's device panel the same plugin lays out sideways, and it follows STRΛTΛ's undo and saved sessions — a preset is one undo step.",
+                "THΞ ΞNGINΞS. Butterworth cuts to 48 dB and mid/side bands; a compressor whose makeup follows the music, so it gets steadier rather than louder; a lookahead true-peak limiter with momentary, short-term and integrated LUFS and a MATCH to target; an eight-line reverb that freezes; a tempo-synced tape delay with ping-pong and ducking; anti-aliased saturation whose auto gain keeps the level; bass-mono width with a goniometer and correlation; a tempo-locked filter with an envelope; a gate with hold, hysteresis and key filters. Every sample stays under the ceiling, nothing allocates once the engine runs, and each plugin hands its settings to the rack as a srcd-patch and takes one back."
+            ]
+        },
+        {
+            sha: "44134f9",
+            tag: "REL_OLDER_SAFARI_AND_THE_FOLDING_IPHONE",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-23 16:40:00",
+            cat: "fix",
+            desc: "Key images and backups open on Safari back to 14, and every surface holds its place as an iPhone Duo folds, unfolds and splits its screen.",
+            tech: [
+                "KΞY IMΛGΞS ØN ØLDΞR SΛFΛRI. Before Safari 15 there is no createImageBitmap, and the reader asked for one before anything else — so on iOS 14 every key image was read as no key, silently. Before Safari 16.4 there is no DecompressionStream, and the reader of the file's own bytes gave up there. The bytes are read first now and need no picture at all, the page carries its own inflate for browsers without one, and the avatar's picture comes from an img element where createImageBitmap is missing.",
+                "Λ BΛCKUP FRØM Λ NΞWΞR BRØWSΞR. A save written where CompressionStream exists — Chrome, Firefox, Safari 16.4 and later — is gzip inside the seal, and on Safari before 16.4 it decrypted and then 'did not parse'. It opens there now. The inflate is RFC 1951 with its zlib and gzip wrappers, every checksum checked and the output held to a ceiling, so a hostile file cannot grow without end; malformed input is refused, never a hang. It runs only where the browser has none.",
+                "SΛFΛRI'S CSS. Six rules listed :hover beside :focus-visible, and Safari before 15.4 drops a whole list over the one selector it does not know — the hover went with it, and so did the field glyph's no-box rule. Each is two rules now. The SDAP overlay and backdrop-blur-sm carry -webkit-backdrop-filter, which Safari before 18 reads instead, and the last two dvh heights have a vh before them. The stream view's full-screen button uses the prefixed API iPads had before 16.4; an iPhone has none for a page, and the button stays hidden there.",
+                "THΞ FØLDING IPHØNΞ. The vault is built by script, so the safe-area rule for overlays never reached it: on the outer screen its close and SEAL buttons sat under the Dynamic Island that runs down the side, and in the installed app on any iPhone its LOCK and PANIC sat on the home indicator. It is padded by the insets now and never taller than what they leave; the SDAP panel fits inside its own padding the same way, and the vault's header stays on one line however narrow the window — the callsign badge gives way, never the title or ✖. Folding and unfolding without a reload — 466 × 678, 890 × 626, 626 × 890 and back — and Split View at 320 and 445 wide keep every surface open, in place and inside the screen."
+            ],
+            callout: {
+                title: "THE FLOOR",
+                body: "Safari 14.1 — iOS 14.5 — is the oldest this release is built for. Safari 14.0 lacks the flex gap and inset properties the layout uses; every device that ran iOS 14 can update to 14.8."
+            }
+        },
+        {
+            sha: "e3754ce",
+            tag: "FIX_IPHONE_COPY_ONE_CALL_64",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-23 16:30:00",
+            cat: "fix",
+            desc: "Copying on an iPhone, one call per refresh, call counts that recover, callsigns of up to 64 characters, and no zoom.",
+            tech: [
+                "⎘ ØN ΛN IPHØNΞ CØPIΞD NØTHING. For a web-audio payload the rack project was made and saved first and the clipboard written after; Safari on iPhone and iPad refuses a clipboard write that comes after a wait, and the toast said PAYLOAD COPIED anyway. The rack is chosen in memory now, the payload copied inside the tap, and the saving done after. Every copy in the console goes through one helper: where the browser has no clipboard API — a page served over plain http, as a phone on the LAN sees it — it copies by selection inside the same tap, and a refused copy says so instead of claiming it worked.",
+                "ØNΞ RΞFRΞSH, ØNΞ CΛLL. REFRESH while the automatic weather fetch was still out found OpenWeatherMap busy and asked Open-Meteo as well. A refresh joins the fetch already out and gets its answer. The fallback chain is untouched: a refresh in the cooldown still goes on to Open-Meteo.",
+                "CØUNTS THΛT CØULD NØT BΞ SΛVΞD. When the record of calls could not be written — storage full — online calls stopped, as they should, and stayed stopped until the next login even once there was room. The next call now tries the save again first, at most every ten seconds, and goes ahead the moment it works; a toast says the calls have resumed.",
+                "CΛLLSIGNS ΛRΞ 64 CHΛRΛCTΞRS. The field stops at 64; the key image reader, which stopped at 48, takes 64; and the vault counts characters the way the reader does rather than in UTF-16 units, so a 64-character key-image callsign logs in with its vault. A long callsign wraps where it is shown large, and the vault's badge ends in an ellipsis with the whole callsign in its tooltip. BACK fits inside the round button.",
+                "NØ ZØØM, NØ PINCH, NØ SΞLΞCTING BY TΛP. The scale is locked again — maximum-scale=1, user-scalable=no — so Safari on iPhone and iPad no longer zooms into a field whose text is under 16px when it is tapped, the callsign field among them. Safari ignores that lock for a pinch, so the pinch is refused by script where WebKit's gesture events exist, and html carries touch-action: pan-x pan-y. Two quick taps on a control no longer select its label, and a long press raises no callout over it; fields, notes, the console's lines and the documents stay selectable."
+            ]
+        },
+        {
+            sha: "54777ce",
+            tag: "FIX_LAUNCH_REVIEW",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-23 11:40:00",
+            cat: "fix",
+            desc: "Four defects found in the pre-launch review, one of them older than this release.",
+            tech: [
+                "SΞSSIØN PRΞSΞTS WΞRΞ RΞFUSΞD. The session answer carried the set and modules ØMNI restores, but its guard still asked only for a rig or an arrangement — so a project holding only an OMNI_SET offload, or bank and patch attachments, was answered 'has no rig and no arrangement' and never restored. A preset is a session now.",
+                "CHECK NOW pressed with ᚾ engaged sent nothing and still spent the supporter check's one-minute cooldown, so the first check after a release was refused. A check the gate stops before anything leaves no longer counts.",
+                "Selecting CSS or markup in MAIN and tapping Ω threw 'setLang is not defined' and the pad never opened — in the launched build too. The function was always applyLang. The sniffed grammar is applied now, the way the comment above the call always said.",
+                "The vault's RECENT CALLS showed times in UTC beside a sentry log in local time. Both are local now."
+            ]
+        },
+        {
+            sha: "78fefc9",
+            tag: "FEAT_PROJECT_BUILD_FILES",
+            author: "MΛVΞRICK",
+            role: "LEAD ARCHITECT",
+            timestamp: "2026-10-23 11:30:00",
+            cat: "feat",
+            desc: "A label that starts with ./ is a path. A project can carry its own build — listed first, checked as it is typed, and sealed one file at a time.",
+            tech: [
+                "./index.html is a file at the root; ./src/lib.rs is lib.rs in src. Every name is letters, digits and . _ - + @, never empty, . or .., at most 16 folders deep and 255 characters long, and one file per path whatever the case. The line under both label fields says what the dashboard makes of the label while it is typed, and a path that fails is refused with its reason and nothing changed. Any other label is free text, exactly as before.",
+                "Build files lead the attachment list in path order under a BUILD heading: how many, what kind, the entry and the targets. A #!SRCD-BUILD header in the notes names them. Without one, the files say what they can — ./Cargo.toml is a rust-plugin, ./index.html beside a manifest a pwa, ./pkg/*.wasm a wasm-core, a module page a web-module, .sf2 and .sf3 a soundfont, .vst3, .clap or .component a native-plugin — shown as DETECTED, and ＋ HEADER writes it down. An unknown kind or target, or an entry that is not in the build, is named on the heading.",
+                "⤓ SΞΛLS ØNΞ FILΞ: NAME.srcd, the AES-GCM envelope every encrypted save uses, around a record of path, type, size, SHA-256, version and bytes — or NAME.srcd.json in plain text when there is no key, and the toast says so. It leaves through SRCD_EXPORT like every other file, so a stored secret inside a text build file means nothing is written. Attached again under the same callsign it comes back as the same build file at the same path, checked against its fingerprint: the same bytes at a taken path are left alone, and different bytes are offered as the next version.",
+                "A rack project's .sf2 and .sf3 build files go to ØMNI_FRΛMΞ with its modules — transferred, not copied — and play through a SoundFont player in the rack. 128 MB a file and 192 MB a project: what does not fit is named, never dropped silently. A rack sent again is brought up to date, edited modules swapped in live and removed ones gone, and the toast says which."
+            ]
+        },
+        {
+            sha: "853c97a",
+            tag: "FEAT_STRATA_AND_SESSION_PRESETS",
+            author: "MΛVΞRICK",
+            role: "LEAD ARCHITECT",
+            timestamp: "2026-10-23 11:20:00",
+            cat: "feat",
+            desc: "STRΛTΛ joins the bridge on ØMNI's glyph, and a project can carry ØMNI's session presets.",
+            tech: [
+                "Set ØMNI's glyph to port 8091 and the slot holds STRΛTΛ (STRATA_CONTRACT §8): the same TRUST row and origin, its own src tag, and the header names it once it says strata-hello. It keeps no modules of its own. It asks with strata-modules-req, and the console answers with every project's module pages and SoundFonts — a page whose module header says role: effect is a plugin, every other module page an instrument — each through the same three gates as ØMNI's doors: admission, VΞILPØINT and the probe. A save while STRΛTΛ is open hands them over again when it changes a module page, a SoundFont or the name of a project holding them — a ticked task sends nothing; what is refused is named here, in the window holding the project to fix.",
+                "srcdStrata.ops([...]) and srcdStrata.state() let an agent working through the dashboard drive STRΛTΛ and read it back — only while STRΛTΛ is the tool in the slot, only at that row's origin, and with the reason when no answer comes within eight seconds.",
+                "SΞSSIØN PRΞSΞTS: one project — OMNIFRAME, say — can hold an OMNI_SET offload from ⏺×5, scratchpad bank attachments and plain module patch JSON. The session answer carries them, as set and modules, with the rig and the arrangement; ØMNI's sessionRestore applies them. The janitor work stays in the console, and ØMNI only loads what it is handed."
+            ]
+        },
+        {
+            sha: "4efd837",
+            tag: "UI_PAYLOAD_RAILS",
+            author: "NYX",
+            role: "UX ARCHITECT",
+            timestamp: "2026-10-23 11:10:00",
+            cat: "ui",
+            desc: "Three machined rails beside the runes decide what rides in the payload, per project: the lead-dev line, the branding directive and a token-economy response protocol.",
+            tech: [
+                "Swipe a rail → and it engages: the beam runs to the cyan end, the core lights green, and that block rides. Swipe ← and it falls back to the midnight-purple end with a red core, and the block is left out. Tap the core to flip it, an end to set that side; the arrow keys, space and Enter do the same, and each rail is a switch to a screen reader. NØIR greys all three.",
+                "THΞ NΛMΞ IS ΞDITΞD WHΞRΞ IT IS RΞΛD: no field beside the rails. Tap the >>> COMMANDER: line in the preview and the name becomes an input in place; Enter writes it into the payload, Escape keeps the old one, and an empty name follows the session — the callsign, or GUEST_OPERATOR.",
+                "TØKΞN ΞCØNØMY asks the model to work first and report after: the completion state in one line, each file it delivers and where it goes, no narration, no restating what was shared.",
+                "A project that existed before the rails is seeded with branding OFF — it already has a look, and the domain's fixed branding is what restyled one. Projects made after start with every rail on. So an existing project's payload changes with this release: no branding directive, and the token-economy protocol added, until its rails say otherwise."
+            ]
+        },
+        {
+            sha: "dd01100",
+            tag: "FIX_FONTS_INSIDE_THE_FILE",
+            author: "VEGA",
+            role: "FRONT-END",
+            timestamp: "2026-10-23 11:00:00",
+            cat: "fix",
+            desc: "The display fonts ship inside the dashboard now. No font is requested from anywhere, at launch or on a release.",
+            tech: [
+                "b40c9d2 moved Michroma and Space Mono behind NetGate — fetched on the first release, kept in IndexedDB. That still left a device without them until it had been online once, and a browser that cleared its storage put the fallbacks back. They are carried in this file now as WOFF2, whole fonts (Michroma 400, Space Mono 400 and 700): 94 KB of font, 126 KB of the file, drawn at every boot, offline or not.",
+                "NetGate's font provider is gone, and so are the two font hosts in connect-src; the boot audit agrees. The changelog still receives the faces from the dashboard and checks them the same way before use.",
+                "Copyright 2011 The Michroma Project Authors and 2016 The Space Mono Project Authors, under the SIL Open Font License 1.1. The notices travel in each font's own name table and beside the data in the source."
+            ]
+        },
+        {
+            sha: "4afd9a7",
+            tag: "SEC_BRIDGE_REPLIES_AND_FRAMES",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-23 10:50:00",
+            cat: "threat",
+            desc: "A reply goes where the question came from, a document no longer evicts a live tool, and a tool's host has to be named twice.",
+            tech: [
+                "D-O3: every handler that answers has already passed the TRUST gate on the sender's origin and checked the frame, so the origin that asked IS the origin to answer — exactly, never '*'. Twenty replies read the mounted tool's origin or fell back to a wildcard, and the hand-off and who answers named '*' whenever the origin read 'null'. The three pushes with no tool to name now fall back to '/', this document's own origin, which no cross-origin frame can receive. The '*' posts left all go to frames that have no origin to name: ØMNI CΛST, the font hand-off and the two code runners.",
+                "D-O4 · HIDΞ ≠ DΞSTRØY ØN ΞVΞRY PΛTH: opening PRIVACY or the changelog navigated the same frame away from ØMNI, and opening a second tool replaced the first. Either one silenced a session and threw away look-back nobody had saved. A document now opens in a frame of its own beside a live tool, which stays mounted and comes back untouched; a different tool asks before it takes the frame.",
+                "install-result asked the gate about verb undefined — in no row — so ØMNI's answer to every push was refused and the operator never heard what installed. It names its verb now.",
+                "THΞ TWØ HΛLVΞS ØF Λ HØST: a TRUST row that the CSP's frame-src does not cover mounts as a blank frame, identical to a broken bridge. The rows are audited against frame-src at boot and after every port override, the way the provider table is audited against connect-src.",
+                "The bridge panel wrote project names, header names and file names into innerHTML, in the one window that holds the vault. They are escaped text now."
+            ]
+        },
+        {
+            sha: "a6727bd",
+            tag: "FEAT_SDAP_WEB_AUDIO_MODULE_CONTRACT",
+            author: "MΛVΞRICK",
+            role: "LEAD ARCHITECT",
+            timestamp: "2026-10-23 10:40:00",
+            cat: "feat",
+            desc: "Pick AUDIO DSP in the prompt engine and the payload carries everything a module needs to be admitted by the console and ØMNI_FRΛMΞ — and a rack project for it to land in.",
+            tech: [
+                "The contract rides in the payload: the module's CSP, the #!SRCD-MODULE header, the shared SRC-D header, the mount protocol, the worklet and face rules, the admission rules, and the reference module whole — tests/fixtures/usr_tone.html character for character, every '<' written \\u003c so no fragment of it can end the script it sits in. The slot and the processor are derived from the module name typed in ØMNI MØDULΞ, and the processor always starts with usr-.",
+                "The rack is made here: ＋ RΛCK PRØJΞCT, or copying or exporting the payload, writes a project whose notes carry #!SRCD-CHASSIS and records under the header which module is meant to arrive. Ensured, not duplicated: a second export for the same module finds its project. A rack project named after a built-in rack — SUBSTRΛTΞ, RΞSØNΛNCΞ_CΛRTΞL, ZΞNITH_BLΛDΞ, LΛRYNX_GHØST, RÜPTÜRΞ_FΛCILITY — joins it in ØMNI after its own four, from M05, four at most.",
+                "ØNΞ TΞXT, TWØ DØØRS: the admission rules are one block, byte-identical in this file and omni_frame.html, and the contract check compares the two. They had drifted — the console refused a module whose listener used srcdAdmit(e), the way every face in the suite now does, and knew no reserved names. A processor must be named usr-…, omni-master and substrate-mix are reserved, a slot holds one face per rack, and a processor an earlier rack already uses is refused here rather than only at the far door.",
+                "Λ MØDULΞ IS Λ MØDULΞ WHΞRΞVΞR IT IS STØRΞD: text attachments over 256 KB live in the blob store, and every rack path read inline content only, so a large module's rack never arrived. A shell is named chassis, rack or shell AND declares neither SRCD_MOD nor the module header — read by name alone, rack_synth.html was taken for the shell and its module never mounted."
+            ],
+            callout: {
+                title: "BREAKING FOR OLDER MODULES",
+                body: "A module whose processor is not named usr-… is now refused by the console and by ØMNI, with that reason. Rename the processor — PROC and its registerProcessor call — and attach the module again."
+            }
+        },
+
+        // ═══════════════════ v6.3 ═════════════════════════════════════════════
+        {
+            sha: "5be81c0",
+            tag: "FEAT_READ_ALONG",
+            author: "VEGA",
+            role: "FRONT-END",
+            timestamp: "2026-10-14 09:08:00",
+            cat: "feat",
+            desc: "ᛚ fills the whole screen now and moves at a reading pace, and the rain shows the parts of the file the crawl does not. ᚱ beside it scrolls the viewer itself.",
+            tech: [
+                "The stream view opens over the whole app and takes the device's full screen where the browser allows it; ⛶ leaves it, and that choice holds for the page. It starts on the line the text view was showing, and closing it leaves the text view on the line it was reading.",
+                "SMØØTHΞR: the crawl is no longer text redrawn into the canvas thirty times a second. It is rows of text on a plane given one matrix3d — the engine's own projection, f/(f+d) — that the compositor moves every display frame in sub-pixel steps, keeping only the visible rows in the page. Its pace follows the text: slower over dense rows, quicker through blank ones, and every change of speed eases in and out. The wheel and the keys glide; a drag keeps the text under the finger and lets go with its momentum. The login debrief's crawl is the same plane.",
+                "Tap a line of the crawl and its section is focused, the same as tapping its stream. Tap a line of a focused section and the whole file comes back on that line; tap away and it comes back where it was left.",
+                "The rain is the rest of the file: sections NØT on the crawl, nearest first, every third from further off, ↓ for one further on and ↑ for one already passed, picked again the moment you jump. A section that comes onto the crawl steps back in the rain. The rail down the right edge is the file top to bottom — a tick per section, lit while it rains, the stretch on the crawl and the reading line. Tap or drag it to go anywhere.",
+                "ᚱ, beside ᛚ, keeps the viewer as it is and scrolls the text view at the same reading pace: pause, ½× to 4×, ᛚ to go full screen from the same line, ✕ or Esc to stop. A hand on the text holds it, and it carries on from wherever it was left; it stops at the end. ▣ in the stream view goes back to it on the same line. Reduced motion keeps the section index; ᚱ still works when asked. A prompt from the app (the notification question, the gate's alert) lets the device full screen go so it can be answered. In the device full screen the first Esc leaves it and the second closes. 61 of 61."
+            ]
+        },
+        {
+            sha: "9d4e2b7",
+            tag: "SEC_KEY_VAULT",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-14 02:20:00",
+            cat: "threat",
+            desc: "Provider keys have somewhere to live: sealed on the device, plain only in memory while the session is unlocked, and readable by exactly one function at the moment it sends.",
+            tech: [
+                "Hold ᛸ in the SRC menu and the vault opens; a tap there is still the SDAP logger, and a right-click, the menu key or Shift+F10 is the same hold. A key is pasted or typed into a field that never holds it — the intake takes each keystroke and the paste straight out of the event and clears the field — then SEAL encrypts it and the panel never shows it again. Afterwards it can name the key (provider, date, a four-character print) and nothing more.",
+                "TWØ KΞYS DΞΞP: every record is AES-GCM under a random vault key, and the vault key is kept wrapped under the key the callsign login derives. Additional data binds each ciphertext to its callsign and provider. Setting a glyph lock rewraps one record instead of every key. The databases sit under srcd2_kv_, the prefix no export reads.",
+                "Plain text lives in one Map inside the gate's closure, filled at login. LOCK, logout, idle (15 min by default), the tab hidden past its grace (2 min by default, measured on return because a phone freezes background tabs) and PANIC drop it, and a keyed call in flight is cut. T8 searched the page's whole heap for a typed key after a full collection: there while unlocked, gone after every kind of lock.",
+                "There is no getter. NetGate injects a key through an internal function the vault never exposes — a header, or OpenWeatherMap's ?appid= — and a caller that brings its own credential header is refused. The scrubber knows each key by a FINGΞRPRINT, its length and two rolling hashes with bases drawn fresh each session: enough to find it inside any line, not enough to rebuild one character. So prints and exports stay guarded with the vault locked, and no plain copy is kept for the purpose.",
+                "T2, canary CANARY-KEY-DO-NOT-USE-0001 plus a key with no recognisable shape: 47 of 47. The field never held either; the live OpenWeatherMap call carried the key to that host only, with no referrer; every failure the mock can produce and a live 401 and 500 echoed nothing; toasts, console, debug lines and the sentry log redacted both; every export holding one was refused, forced-offline plaintext included, and still was with the vault locked; raw storage and the SDAP logs held neither."
+            ],
+            callout: {
+                title: "HONEST LIMIT",
+                body: "On a device that remembers the glyph, or for a device-locked callsign, logging in again takes only the callsign. There the lock is a speed bump for someone holding the unlocked phone. The real limits are each provider's spend cap and revoking the key — use low-privilege, capped keys."
+            }
+        },
+        {
+            sha: "5b81f0c",
+            tag: "FEAT_FEEDS_LEDGER_MOCK",
+            author: "VEGA",
+            role: "FRONT-END",
+            timestamp: "2026-10-14 02:15:00",
+            cat: "feat",
+            desc: "Weather, alerts and a place search, all behind ᚾ, the gate and a switch you turn — with a ledger that counts every call and a dry run that answers from memory.",
+            tech: [
+                "Weather is keyless at its core: Open-Meteo, once a day. OpenWeatherMap rides on top when its key is sealed and ON, and a failure falls straight back to Open-Meteo. NWS alerts (United States only) poll about every 45 minutes while released and open. A place search goes to Open-Meteo's geocoder only when you press SEARCH; USE THIS DEVICE asks the browser and sends nothing. The location is kept to two decimals. Four hosts joined connect-src, and the boot audit agrees.",
+                "THE LΞDGΞR, per callsign, encrypted under the login key: a daily feed is due on the first release of a local day and never within six hours of the last success, so 23:59 and 00:01 make one call; daily caps; a cooldown on REFRESH; Retry-After honoured on a 429 or 503 — when the browser can read it. A provider has to expose Retry-After to CORS for a page to see it; a 429 without one waits fifteen minutes. Failures back off exponentially with jitter; a success clears it. T4, on a simulated clock: 27 of 27.",
+                "PICK is the only reader of a reply: named fields, each typed and capped, WMO codes to words, Open-Meteo's daily columns zipped into rows. A field that fails is null and shown as a dash; a reply missing a required one is not cached. The cache holds the picked fields, never the bytes. A fixture full of markup and out-of-range values is refused whole; RSS in CDATA arrives as text.",
+                "MOCK DATA runs every feed against fixtures shaped like the real services, on hosts under .invalid that a mistake cannot reach — through the same gate, ledger, cache and key injection. Everything it produces says MOCK. News has no feed configured yet; the mock shows sample headlines. T7: fixture → NetGate → cache → panel → debrief, STALE whenever ᚾ is engaged or the data is past its age: 24 of 24."
+            ]
+        },
+        {
+            sha: "c27a9e4",
+            tag: "FEAT_DEBRIEF_RAIN_AND_CRAWL",
+            author: "VEGA",
+            role: "FRONT-END",
+            timestamp: "2026-10-14 02:10:00",
+            cat: "feat",
+            desc: "The callsign comes back with weather and headlines raining down around it. Tap a stream and its text crawls up toward a vanishing point under the name.",
+            tech: [
+                "One canvas, two layers. RΛIN: a data stream writes its head one character per row so it reads downward, among runes and digits; long heads go to columns with room, and what still does not fit continues as a second drop. CRΛWL: lines on a tilted plane — depth z, scale f/(f+z), glyph height foreshortened by D/(f+z) — fading before the vanishing point, and only the visible lines are drawn.",
+                "Every column has a floor. Above the callsign it is the title's top edge, so the centre streams thin out and are gone before the name; while a crawl runs it is where the column meets the crawl's trapezoid, so the sides run long and the middle stays clear. After a few seconds the title fades and the horizon rises into the space it leaves.",
+                "It shows only what the feeds cached and fetches nothing for the occasion. It starts only after the dashboard's data is rendered; CONTINUE, Esc or a tap away start the reveal in the same turn, with no timer; reading a stream holds the reveal. AUTO plays two passes on the first login of a day and one after, SHORT one quick pass, OFF the old 520 ms reveal exactly. Reduced motion gets a still list; NØIR and a low tier get half the columns at 20 fps. 35 of 35.",
+                "ᛚ beside ❐ in the attachment viewer runs the same engine on a file: cut at its banners, functions, headings or paragraphs, the whole file crawling with each section's name passing in gold, the sections and their recurring identifiers as streams. Tap one to read that section; tap away and the whole-file crawl resumes where it was parked. Wheel or drag scrubs, space pauses, ½× to 4×, Esc closes."
+            ]
+        },
+        {
+            sha: "e0f63d1",
+            tag: "SEC_PANIC",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-14 02:05:00",
+            cat: "threat",
+            desc: "Two taps, four seconds apart at most: ᚾ engaged, every key and every cache on this device gone.",
+            tech: [
+                "In order: ᚾ engages, which cuts every call in flight; the vault forgets its namespace and drops every key from memory; the vault database is deleted for every callsign on the device; the ledger goes with it — cached feeds, counters, settings and the supporter answer. Projects, incidents and the scratchpad are not touched: panic is about what can reach the network.",
+                "One tap arms it, says so, and does nothing else; left alone it disarms. The API refuses an unarmed run. T9: 19 of 19, including a keyed call cut mid-flight and attributed to ᚾ (the first cause), no key left in the heap, and the next login starting from an empty vault with default settings."
+            ],
+            callout: {
+                title: "AFTER A PANIC",
+                body: "Revoke each key at its provider. A key that was ever on a device that needed a panic button is a key to replace."
+            }
+        },
+        {
+            sha: "f83b5a2",
+            tag: "FEAT_ACCESS_PROTOCOL_SUPPORTER_CHECK",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-14 02:00:00",
+            cat: "feat",
+            desc: "A courtesy lock for community content, read from Access Protocol on Solana: an address, two accounts, no signature, nothing that could move a token.",
+            tech: [
+                "STΛKΞ-PØØL: the creator's pool, derived as a program address from ['stake_pool', creator] when only the creator's wallet is given, then the supporter's stake account from ['stake_account', wallet, pool] — tag, owner, pool and amount checked against the pool's minimum, or the minimum the account was opened under if that is lower, so earlier supporters keep access. The creator's own wallet is always in. CRΞΛTØR-CØIN: the wallet's balance of the creator's token, summed over its token accounts of that mint.",
+                "Base58 and program-derived addresses are implemented in a few dozen lines with the curve check done by decompression. They reproduce the published vectors from Solana's own web3.js tests exactly; 24 WebCrypto Ed25519 keys test on the curve and 24 derived addresses off it.",
+                "The answer is kept, encrypted, for seven days and honoured seven more while offline. No creator is configured in this build, so nothing is gated; in mock mode the check runs against a mock creator with stake accounts in the program's own byte layout, and a mock answer never unlocks anything. 30 of 30 against the module's source with a configured creator and a creator coin; 11 of 11 in the browser."
+            ],
+            callout: {
+                title: "WHAT IT IS NOT",
+                body: "An address is not a signature: nothing proves the wallet belongs to the person holding the phone, and a single-file app can be edited. Anything that must stay paid has to be delivered by a server after a check. On an App Store build, leave it unconfigured — Apple does not allow a crypto holding to unlock features (Guideline 3.1.1)."
+            }
+        },
+        {
+            sha: "6a1f3e0",
+            tag: "SEC_NET_GATE_ONE_WAY_OUT",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-13 12:25:00",
+            cat: "threat",
+            desc: "Every online request now leaves through one function, and the browser enforces the list that function reads. The door was built before there is anything worth stealing through it.",
+            tech: [
+                "ᚾ is ØNΞ flag. It was a variable in the main script and, in the code sandbox, the CSS class on the button — two sources of truth that agreed only while every writer remembered to repaint. SRCD_NET holds it now, every script reads it through isKilled(), and the amber class is painted FRØM it and never read back.",
+                "Boot is killed and nothing restores a release: not a login, not a key image, not a recalled callsign. Release takes the click event itself, read with the browser's own getters — isTrusted, the type, the element it is being delivered to — so el.click(), a dispatched event, a forged object and a real tap replayed later are all refused. Severing is anybody's: a tripwire, a panic action or a tab going idle may engage it.",
+                "NetGate is the only fetch() for an online service. Fixed order, fail closed: switch → link → provider known and enabled → origin, path and method on that provider's own list → one call in flight → timeout, size cap, content type. Callers never hold a credential, and one that brings an Authorization header is refused. Every outcome is one Net Sentry line — provider, method, outcome, time, bytes. Never the URL, never a header.",
+                "The lock behind it is a Content-Security-Policy naming the same hosts: ipify, the two font hosts, one pinned Pyodide folder. A host is reachable only when BØTH name it, and the dashboard compares the two at boot. Stepping round the gate — raw fetch, XHR, sendBeacon, WebSocket, EventSource, a frame — is refused by the browser, written to the log as a csp line and raised as a toast. Frames written with srcdoc, blob: or data: inherit the list; checked in Chromium.",
+                "The gate objects are pinned to window, frozen, and hold each other directly. NetGate took fetch before any other script ran, so patching window.fetch afterwards answers nothing. Engaging ᚾ aborts a call in flight.",
+                "T1: a whole killed session — login, the vault splash, Net Sentry ticking for over six minutes, both documents, the code sandbox, a preview of a page naming remote files, idle — reaches NØ other host. The release before this one reached five. T3: 36 of 36, each lock asserted on its own. The same-origin reachability probes still run whatever the switch says; the privacy protocol names them."
+            ],
+            callout: {
+                title: "WHAT STOPPED WORKING",
+                body: "Rust and C++ RUN no longer compile anything. They posted your source to the public Piston API at emkc.org, which closed to anonymous callers on 2026-02-15, so every run was a refusal sent over the wire. Nothing is sent now and RUN says why. The provider stays in the table, disabled and with no address: to use a Piston you host, put its origin in the piston entry and in connect-src."
+            }
+        },
+        {
+            sha: "b40c9d2",
+            tag: "FIX_FONTS_LEFT_AT_EVERY_BOOT",
+            author: "VEGA",
+            role: "FRONT-END",
+            timestamp: "2026-10-13 12:20:00",
+            cat: "fix",
+            desc: "Every launch asked Google for two typefaces, killswitch engaged or not. A stylesheet link is fetched by the parser before any script can say no.",
+            tech: [
+                "The three link tags in the head are gone. Michroma and Space Mono come through NetGate once, on the first release of ᚾ, into IndexedDB — and are put back from there at every boot after with NØ request. A device that has never been released draws the fallbacks every font stack already named, which is what an offline launch always did.",
+                "The stylesheet is remote data. It is read for five fields per face and each is checked against what was asked for: family, weight, style, a unicode-range that is ØNLY a unicode-range, and a file on the font host ending in .woff2. Nothing else in it is ever applied. A file that does not begin with the WOFF2 signature is not kept, and neither is a set with a face missing — all or nothing, retried at the next release.",
+                "The changelog @imported the same fonts every time it was opened, from a frame the dashboard's policy cannot reach: a frame loaded from a file carries its own. The import is gone, the dashboard posts the faces in, and the changelog checks them before use. It and the privacy protocol now carry policies that admit nothing remote. T1 found this one — the old test never opened the changelog.",
+                "The preview is sealed while ᚾ is engaged: inline code runs, data: and blob: resolve, nothing remote loads, and VΞILPØINT names each refusal. Released, it loads what its HTML names, as it always did — but it can no longer send itself to another site. frame-src stops a script, a form and a meta refresh alike."
+            ]
+        },
+        {
+            sha: "e7d25a8",
+            tag: "SEC_SECRETS_NEVER_PRINTED_NEVER_EXPORTED",
+            author: "ODIN",
+            role: "AI ORCHESTRATOR",
+            timestamp: "2026-10-13 12:15:00",
+            cat: "threat",
+            desc: "No key exists in this build yet. Every place one could leak is closed first: what is printed is scrubbed, and a file holding a stored secret is refused, never altered.",
+            tech: [
+                "SRCD_SCRUB sits under every toast, debug line, sentry line and console call. It knows the live secrets registered at runtime — the device secret, a glyph long enough to be one — and the SHAPES of keys nobody has registered: vendor prefixes, bearer tokens, a key riding in a query string, which keeps its name and loses its value. It can be added to and asked; it cannot be listed. The console is wrapped only once there is something to hide.",
+                "SRCD_EXPORT is the one way out for a file. Seven download sinks come through it, and so do the two copy buttons that carry the same content. A guarded secret in any part means nothing is written and the toast names the kind. RΞFUSΞD, NØT RΞDΛCTΞD: an export is the operator's own work and is never altered. The encrypted paths are checked on their plaintext before sealing; the forced-offline plaintext path gets the same check.",
+                "The device secret is guarded from the first line of every session, not only after a device-locked login. A reload into Guest used to leave it in storage with nothing to stop it reaching a file. A glyph is scrubbed from prints but never blocks a backup: the operator may have written theirs into a note on purpose.",
+                "Canary: CANARY-KEY-DO-NOT-USE-0001, registered the way the vault will register a key. 41 of 41 — redacted from the toast, the mirror, debug lines, the console, the sentry log and the gate's own error path; refused on every export path including forced-offline plaintext and both clipboard exits; clean exports of the same paths saved byte for byte."
+            ]
+        },
+        {
+            sha: "3c9b6f1",
+            tag: "SEC_KEY_IMAGE_FIELDS_CAPPED",
+            author: "VEGA",
+            role: "FRONT-END",
+            timestamp: "2026-10-13 12:10:00",
+            cat: "threat",
+            desc: "A key image is a file somebody else may have made, and its callsign went into an innerHTML string one screen later.",
+            tech: [
+                "The vault overlay is built from nodes now, the callsign set as text. A callsign that is an img tag with an onerror shows as those characters and nothing runs — on the first login, and on the reload that used to execute it straight from storage.",
+                "The reader enforces its half of the VRT hand-off before a field is used. An envelope over 16 KB is not read at all; a callsign is a string of at most 48 characters, a glyph at most 256; bytes that are not UTF-8 are not a key. A callsign may not carry what cannot be seen or what reorders what can: controls, zero-width spaces, direction overrides, a lone surrogate. The joiners that real scripts and emoji sequences need are left alone.",
+                "sdap is PICKΞD, NØT CØPIΞD: only the known branding keys, each a short plain label, a #hex colour or a number from 0 to 1. A field that fails keeps its placeholder. Branding never blocks a login, and an image cannot write a line into the prompt.",
+                "A refusal is the same silence a foreign image gets — no error, no detail — and manual entry still works after every one. T6: 44 of 44 hostile images handled. The release before this one handled 22."
+            ]
+        },
         {
             sha: "d140413",
             tag: "REL_DEVICE_TIERS",
@@ -1239,12 +1616,14 @@
     const emptyState = document.getElementById('empty-state');
 
     const DIVIDERS = {
-            "d140413": "v6.2 — CURRENT",
+            "b7e2f19": "v6.4 — CURRENT",
+            "5be81c0": "v6.3",
+            "6a1f3e0": "v6.2",
             "e3b8d4c": "v6.1.1",
             "d4f9e07": "v6.1",
             "b7e21a4": "v6.1 PLATE LANGUAGE",
         "f1a7c0e": "SYSTEM DOCUMENTATION",
-        "7e2a91c": "v6.0 — CURRENT",
+        "7e2a91c": "v6.0",
         "c71e4a9": "v5.6.4",
         "4f746f3": "v5.6.3",
         "f3f1560": "v5.6.2",
@@ -1253,8 +1632,12 @@
         "9f2a1c8": "EVANSCIRA HISTORICAL"
     };
 
+    /* a sha that appears twice in the log (b7e21a4, c41f8d2, e5a0c93, f08b3e6) drew its
+       divider twice: each divider is drawn once, above the first entry that carries it */
+    const dividerDrawn = {};
     COMMITS.forEach((commit, index) => {
-        if (DIVIDERS[commit.sha]) {
+        if (DIVIDERS[commit.sha] && !dividerDrawn[commit.sha]) {
+            dividerDrawn[commit.sha] = true;
             const div = document.createElement('div');
             div.className = 'stream-divider';
             div.textContent = DIVIDERS[commit.sha];

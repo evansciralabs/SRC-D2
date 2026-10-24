@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- opened inside the dashboard in a frame of its own, so it carries its own policy:
+     nothing remote, nothing scripted -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>⌬SRC-D2 | Privacy Protocol</title>
 <style>
@@ -63,9 +66,13 @@
 
 <div class="plate">
   <span class="k">THE SHORT VERSION</span>
-  Nothing leaves your device unless you send it. There is no analytics endpoint, no
-  crash reporter, no account, and no server that holds your work. The suite has
-  nowhere to phone home to.
+  The network killswitch (ᚾ) is engaged at every launch, and until you release it
+  the dashboard talks to nothing but the server it was loaded from. Released, it
+  reaches the few services named in section III, each through one gate the browser
+  also enforces — and the weather, alerts and supporter check only after you switch
+  them on, under a callsign. Provider keys are sealed on this device and never shown,
+  printed or exported (section IV). There is no analytics endpoint, no crash reporter,
+  no account, and no server that holds your work. The suite has nowhere to phone home to.
 </div>
 
 <h2>I. Local Data Persistence (The Vault)</h2>
@@ -190,35 +197,293 @@
   </ul>
 </div>
 
-<h2>III. Third-Party Infrastructure &amp; Telemetry</h2>
+<h2>III. The Network: One Switch, One Way Out</h2>
 <div class="plate">
   <span class="k">STATED PLAINLY</span>
   <strong>There is no telemetry.</strong> No usage analytics, no error reporting, no
   heartbeat, no remote configuration. The suite is a set of local files.
 </div>
+
+<h3>Every launch starts severed</h3>
 <p>
-  Two features reach the network, both only when you use them, and both announce
-  themselves:
+  The network killswitch (<strong>ᚾ</strong>) is engaged every time the dashboard
+  opens. Logging in, loading a key image and recalling a callsign never release it.
+  Only a tap on ᚾ does, and the dashboard asks the browser whether a person really
+  made that tap, so no script can release it on its own. Anything may engage it
+  again: you, or code that wants to be sure nothing goes out. While it is engaged,
+  <strong>the dashboard contacts no other site</strong>. That has been tested over a
+  whole session: login, the vault splash, Net Sentry left running, both documents,
+  the code sandbox, a preview of a page that names remote files, and idle time — and,
+  since the key vault arrived, a key typed in and switched on, every feed refreshed, a
+  place searched, a supporter check, the debrief and the stream view. The one
+  exception is a Python runtime already loaded during an earlier release: code you
+  run in it can still ask Pyodide's own folder for a package (below).
 </p>
+
+<h3>One way out, and a lock behind it</h3>
+<p>
+  Every online request goes through one function, <code>NetGate</code>, which holds a
+  short, fixed list of services. It checks, in order: the switch; that the device
+  has a link; that the service is on the list and enabled; that the address, path and
+  method are on that service's own list; and, once a reply arrives, that it is the size
+  and type that service sends. The first check that fails ends the request. Each
+  request or refusal leaves <strong>one line in the Net Sentry log</strong>: which
+  service, the outcome, the time and the size. The full address, its query string and
+  the headers are never logged.
+</p>
+<p>
+  Behind that, the page carries a <strong>Content-Security-Policy</strong> naming the
+  same hosts. The browser enforces it, and nothing in the page can loosen it. A request
+  to any other host is refused by the browser, even if some code tried to step around
+  NetGate. The attempt is logged and raises a notice. Frames the dashboard writes for
+  itself (the preview and the code runners) inherit the same list. Adding a service
+  means editing both lists, and the dashboard checks at launch that the two agree.
+</p>
+
+<h3>What can go online, once ᚾ is released</h3>
 <ul>
-  <li><strong>The Python runtime</strong> in the Ω sandbox downloads Pyodide (~10MB)
-      the first time you run Python. After that it runs offline. The killswitch (ᚾ)
-      blocks it, and the panel says so rather than failing silently.</li>
-  <li><strong>Remote language execution</strong> for Rust and C++ posts the code you
-      wrote to a public execution service. That code leaves the device. The panel is
-      explicit about this before it runs.</li>
+  <li><strong>Public IP lookup.</strong> The ⌖ button in Net Sentry asks
+      <code>api.ipify.org</code> for your public address, once per tap. That service
+      sees your IP address, which is the answer it sends back. In forced-offline
+      mode the button does not ask.</li>
+  <li><strong>The Python runtime.</strong> The first time you run Python in the Ω
+      sandbox, it downloads Pyodide (~10MB) from one pinned release folder on
+      <code>cdn.jsdelivr.net</code>, which sees that request. Once loaded, Python runs
+      offline. Engaging ᚾ while it is still downloading cuts the download off. The
+      runtime's frame can reach that one folder and nothing else. Once the runtime is
+      in, Python code you run can still ask that same folder for a package the release
+      ships (that is how Pyodide's <code>loadPackage</code> works), whether or not ᚾ
+      is engaged. Plain Python asks for nothing.</li>
+  <li><strong>Pages you preview.</strong> The scratchpad preview renders the HTML you
+      give it. With ᚾ engaged the preview is sealed: it loads nothing remote, and the
+      sentry lists what it refused. With ᚾ released, the images, stylesheets, fonts and
+      scripts that page names are loaded from wherever it names them. Those are that
+      page's own requests, and the sites they point at see them. Its
+      <code>fetch()</code> calls can still reach only the hosts on the dashboard's list,
+      and it cannot be sent to another site.</li>
 </ul>
 <p>
-  Everything else — JavaScript, CSS and HTML checking, audio rendering, image
-  classification, provenance writing, the arrangement scheduler — runs locally with no
+  These four go further only when you switch them on, logged in with a callsign (a
+  Guest session has no switches to turn):
+</p>
+<ul>
+  <li><strong>Weather, keyless.</strong> <code>api.open-meteo.com</code>, once a day: on
+      the first release of a local calendar day, and never within six hours of the last
+      success, so a release at 23:59 and another at 00:01 make one request. It sends your
+      location <strong>rounded to two decimal places</strong> (about a kilometre) and sees
+      your IP address. Open-Meteo's free service is for non-commercial use, and its data
+      is credited wherever it is shown (CC BY 4.0).</li>
+  <li><strong>Weather with your key.</strong> <code>api.openweathermap.org</code>, on the
+      same schedule, when an OpenWeatherMap key is sealed in the vault and switched ON;
+      if it fails, the keyless source above is asked instead. OpenWeatherMap takes its
+      key only in the address (<code>?appid=</code>), so the key is in that one request
+      — sent with no referrer, to that host only, and visible in the browser's own
+      developer tools on this device. It appears nowhere else.</li>
+  <li><strong>Place search.</strong> <code>geocoding-api.open-meteo.com</code>, only when
+      you press SEARCH: it sends the name you typed. USE THIS DEVICE asks the browser
+      for your position instead (the browser asks your permission) and sends nothing.</li>
+  <li><strong>Weather alerts.</strong> <code>api.weather.gov</code>, the US National
+      Weather Service, about every 45 minutes while the dashboard is open and ᚾ is
+      released, with the same rounded location. It covers the United States only.</li>
+</ul>
+<p>
+  The weather and alert feeds are counted per callsign: a daily cap, a cooldown on the
+  refresh button, and a wait when a service answers "too many requests" (as long as it
+  asks, when the browser can read that; fifteen minutes when it cannot). The place
+  search runs only when you press SEARCH, one search at a time and at least a second
+  and a half apart. A reply is read
+  for named fields only — a temperature, a condition, an alert's headline — each
+  checked for type and length; anything else in it is discarded, and text is only ever
+  shown as text.
+</p>
+
+<h3>What does not go online</h3>
+<ul>
+  <li><strong>Display fonts.</strong> Michroma and Space Mono ship inside the dashboard
+      file itself, under the SIL Open Font License, and are drawn from there at every
+      launch, online or not. No font is requested from anywhere, and Google Fonts is not
+      contacted at all. <em>Before this build the dashboard asked Google Fonts for them
+      at every launch, whatever the switch said.</em></li>
+  <li><strong>Rust and C++</strong> are not run remotely in this build, and nothing is
+      sent. They used the public Piston service, which closed to anonymous use on
+      2026-02-15. RUN now says so, along with how to point the sandbox at a Piston you
+      host yourself.</li>
+  <li>The <strong>Raspberry Pi telemetry</strong> poll in Net Sentry is in the code,
+      disabled, and its address is not on the browser's list.</li>
+  <li><strong>Timestamp requests</strong> are saved as <code>.tsq</code> files. You
+      submit them to the authority yourself, and the dashboard contacts none.</li>
+  <li>This page and the changelog carry policies of their own that admit nothing
+      remote. The changelog gets its fonts from the dashboard rather than from
+      Google.</li>
+  <li><strong>News feeds</strong> are not configured in this build: no feed's address
+      is on either list. Mock data shows sample headlines instead.</li>
+  <li><strong>Claude and Grok keys</strong> can be sealed in the vault, but nothing is
+      sent to either service in this build. Sending arrives with the AI preview, behind
+      its own confirmation.</li>
+  <li>The <strong>supporter check</strong> (section IV) has no creator account or RPC
+      service configured in this build, so it reads nothing from any network. In mock
+      mode it runs against a built-in mock.</li>
+  <li><strong>The login debrief and the stream view</strong> read only what is already
+      on the device: the feeds' cache and the attachment you opened.</li>
+</ul>
+<p>
+  Everything else (JavaScript, CSS and HTML checking, audio rendering, image
+  classification, provenance writing, the arrangement scheduler) runs locally with no
   network path at all.
 </p>
 
-<h2>IV. The Bridge Between Apps</h2>
+<h3>Reachability checks</h3>
+<p>
+  To show an honest LINK status, the dashboard checks that it can reach the server it
+  was loaded from. It sends a small request to <code>/__srcd2_connectivity_probe</code>
+  every five seconds and another every five minutes to notice a captive portal. While
+  Net Sentry is open it also requests <code>/favicon.ico</code> about once a second to
+  measure latency. These go <strong>only to the server that served the
+  dashboard</strong> and carry nothing but a timestamp to defeat caching. They are not
+  online services, and they run whether ᚾ is engaged or not. Opened from your own
+  machine (<code>localhost</code>), they never leave it. Opened from a web host, that
+  host sees them the way it sees every page load.
+</p>
+
+<h3>Secrets are never printed and never exported</h3>
+<p>
+  Every notice and log line passes through a scrubber before it is shown, and so does
+  every console message once there is anything to hide (on a device with a device
+  lock, from the first line). The scrubber removes the device secret, every provider
+  key in the vault (which it knows by a fingerprint, not by the key: section IV), an
+  operator glyph long enough to be one, and anything shaped like an API key or a key in
+  an address. An export (a backup, a scratchpad tab, the sentry log, a launch packet,
+  the SDAP logs, a provenance file, a timestamp request, a sealed build file, or the two
+  copy buttons that carry the same content) that contains the device secret or a vault
+  key is <strong>refused, not
+  altered</strong> — and stays refused after the vault locks.
+  Nothing is written, and the notice says why. This holds for plaintext exports in
+  forced-offline mode as much as for encrypted ones, which are checked before they
+  are sealed. A glyph is scrubbed from what is printed but never blocks an export,
+  because you may have written yours into a note on purpose.
+</p>
+
+<h2>IV. Keys, Feeds and the Debrief</h2>
+<p>
+  Everything in this section belongs to a <strong>callsign session</strong>. A Guest
+  session has no vault, no feed switches and no debrief, and logging out to Guest locks
+  the vault and closes the rest.
+</p>
+
+<h3>The key vault (hold ᛸ in the SRC menu)</h3>
+<ul>
+  <li><strong>Pasted once, then sealed.</strong> A key is typed or pasted into the vault
+      panel, which takes it straight out of the keystroke or the paste. The field itself
+      never holds it, and the panel never shows it again. Afterwards it can name the key
+      (which provider, when it was sealed, a four-character fingerprint) but cannot
+      display it.</li>
+  <li><strong>Encrypted on this device.</strong> Each key is stored with AES-GCM under a
+      random vault key, and the vault key is itself stored encrypted under the key your
+      callsign login derives. Every record is bound to its callsign and provider, so one
+      cannot be decrypted as another. The records live in IndexedDB under the
+      <code>srcd2_kv_</code> prefix, which no export reads.</li>
+  <li><strong>Plain only in memory, only while unlocked.</strong> A key is decrypted at
+      login and dropped again when the vault locks: the LOCK button, logging out, no
+      input for the idle limit (15 minutes unless you change it), the tab hidden past
+      its grace (2 minutes unless you change it, measured when you come back, because a
+      phone freezes background tabs), or PANIC. A call still in flight with a key is cut
+      off by the lock. This has been tested by searching the page's whole memory for a
+      key: present while unlocked, gone after every kind of lock.</li>
+  <li><strong>Used in one place.</strong> Only the network gate can read a key, at the
+      moment it sends to that key's own service; nothing else in the page has a way to
+      ask for it. A key is never printed, and an export that contains one is refused,
+      including in forced-offline mode.</li>
+  <li><strong>Turned on by you.</strong> A sealed key does nothing until you switch it ON.
+      Claude and Grok keys can be stored now; nothing is sent to those services in this
+      build.</li>
+</ul>
+<div class="plate warn">
+  <span class="k">WHAT THE VAULT CANNOT DO</span>
+  <ul style="margin-bottom:0">
+    <li>On a device that remembers your glyph, or for a device-locked callsign, logging
+        in again takes only the callsign. There the lock is a speed bump for someone
+        holding the unlocked phone, not a wall. The real limits are each provider's spend
+        cap and your ability to revoke the key.</li>
+    <li>OpenWeatherMap's key travels in the request address. The browser's own developer
+        tools on this device can show it.</li>
+    <li>A key that was pasted stays on the clipboard until something replaces it. The
+        panel has a CLEAR CLIPBOARD button for that.</li>
+  </ul>
+</div>
+
+<h3>The ledger</h3>
+<p>
+  For each callsign, the dashboard keeps a small encrypted record, under the same login
+  key: how many calls each service has had today, when each may be called again, the
+  last good reply (only the fields it read from it), and your settings for this section,
+  meaning which feeds are on, mock data, the lock timings, the debrief and the location.
+  The location is kept <strong>rounded to two decimal places</strong>. It is sent only to
+  the weather and alert services you switch on.
+</p>
+
+<h3>Mock data</h3>
+<p>
+  With mock data on, every feed is answered by built-in samples shaped like the real
+  services, through the same gate, counts and cache. Nothing leaves the device, and
+  every sample says MOCK wherever it appears.
+</p>
+
+<h3>The login debrief</h3>
+<p>
+  When you log in with a callsign, what the feeds already cached can rain down the
+  screen under your callsign: weather, alerts and headlines as falling characters. Tap
+  one and its text scrolls up toward a vanishing point; tap away, press Esc or CONTINUE,
+  and the dashboard appears at once. It shows only what is cached, it never fetches
+  anything for the occasion, and with nothing cached it does not run. AUTO plays two
+  passes on the first login of a day and one after that, SHORT plays one quick pass,
+  and OFF turns it off. With reduced motion asked for in your system settings, the
+  same items are shown as a still list.
+</p>
+
+<h3>The stream view (ᛚ in the attachment viewer)</h3>
+<p>
+  The same rain and scroll can show an attachment's own text, cut at its sections and
+  functions so you can tap one to read it. It reads the text you opened, on this device,
+  and sends nothing.
+</p>
+
+<h3>The supporter check (Access Protocol)</h3>
+<p>
+  A creator can offer community content to people who stake toward them through Access
+  Protocol. <strong>No creator account is set in this build</strong>, so nothing is
+  gated and the check reads nothing. When a creator configures it:
+</p>
+<ul>
+  <li>you enter a <strong>Solana wallet address</strong>, which is public information.
+      Nothing is signed and no wallet is connected; the dashboard cannot move anything;</li>
+  <li>on a release of ᚾ the dashboard reads two accounts from a Solana RPC service:
+      your stake toward that creator, and the creator's pool. That service sees the
+      address and your IP address;</li>
+  <li>the answer is kept, encrypted, for 7 days and honoured for 7 more while
+      offline;</li>
+  <li>it is a <strong>courtesy lock on community content only</strong>. The dashboard
+      itself is never behind it, and it proves nothing about who is holding the phone.
+      An App Store build leaves it unconfigured, because Apple does not allow a crypto
+      holding to unlock app features.</li>
+</ul>
+
+<h3>PANIC</h3>
+<p>
+  Two taps on PANIC in the vault panel, within four seconds: ᚾ is engaged (cutting off
+  anything in flight), every key in memory is dropped, and the vault and the ledger
+  are deleted from this device for every callsign, with the cached feeds, counts,
+  settings and supporter answer in them. Your projects, incidents and other work are
+  not touched. After a panic, revoke each key at its provider: a key that was ever on a
+  device that needed a panic button is a key to replace.
+</p>
+
+<h2>V. The Bridge Between Apps</h2>
 <p>
   ØMNI_FRΛMΞ, SHΛDΞPRØØF, SRC-VRT and ØMNI CΛST run on <strong>separate
-  origins</strong>. The browser keeps them apart by default. The only channel between
-  them is <code>postMessage</code>, which this dashboard mediates.
+  origins</strong>. STRΛTΛ, when ØMNI's glyph is pointed at its port, takes ØMNI's
+  place in the registry and has exactly ØMNI's permissions. The browser keeps them
+  apart by default. The only channel between them is <code>postMessage</code>, which
+  this dashboard mediates, and every reply goes only to the origin that asked.
 </p>
 <p>
   Every message is checked twice. The <strong>origin</strong> says which app is
@@ -230,11 +495,17 @@
   <li>SRC-VRT may <em>push</em> a finished render and cannot read the library at all.</li>
   <li>ØMNI CΛST, which renders third-party creative, is sandboxed without same-origin
       access: it can <em>receive</em> and cannot <em>send</em>.</li>
+  <li>ØMNI_FRΛMΞ may <em>ask for</em> its racks: the module pages attached to rack
+      projects and their SoundFont files cross when it asks, or when you press PUSH.
+      STRΛTΛ may ask for the module pages and SoundFonts of every project, and receives
+      them again when a save while it is open changes one of them, or the name of a
+      project that holds them; any other save sends nothing. Each module page passes
+      the same admission, VΞILPØINT and probe checks on the way out.</li>
 </ul>
 <p>
   Audio is pulled one track at a time when a specific track is requested, never pushed
-  with the library. What crosses is what you curated; nothing crosses unasked, and
-  nothing crosses to a host that is not in the registry.
+  with the library. What crosses is what you curated, and only to an app that asked
+  for it; nothing crosses to a host that is not in the registry.
 </p>
 
 <h3>Panels that report a threat</h3>
@@ -246,7 +517,7 @@
   distrust a real one.
 </p>
 
-<h2>V. The Authority Record</h2>
+<h2>VI. The Authority Record</h2>
 <p>
   The authority record holds artist name, writers, producers, publisher, master owner,
   year and ISRC. This is <strong>identity and rights data</strong> and is treated as
@@ -270,7 +541,7 @@
   correct answer.
 </div>
 
-<h2>VI. Clipboard</h2>
+<h2>VII. Clipboard and the Launch Packet</h2>
 <p>
   Several panels offer one-tap copy — a staged post, a provenance report, a flagged
   caption. These write to the system clipboard on an explicit tap and never read from
@@ -280,7 +551,16 @@
   people.
 </p>
 
-<h2>VII. What VΞILPØINT Checks Before Something Leaves</h2>
+<h3>The launch packet names a lead developer</h3>
+<p>
+  The SDAP prompt payload carries a <code>&gt;&gt;&gt; COMMANDER:</code> line: your
+  callsign, or <code>GUEST_OPERATOR</code> as a guest. It goes wherever you paste or send
+  the packet, an AI service included. Tap the name in the preview to write another one
+  over it, or switch its rail off and the line is left out. The rails are kept per
+  project, on this device.
+</p>
+
+<h2>VIII. What VΞILPØINT Checks Before Something Leaves</h2>
 <p>
   Content passing between apps or heading for a platform is inspected first. Two
   policies, and they are not the same.
@@ -314,33 +594,52 @@
   it is stopping nothing.
 </p>
 
-<h2>VIII. Operator Autonomy</h2>
+<h2>IX. Operator Autonomy</h2>
 <ul>
   <li><strong>Export everything, any time.</strong> Projects, arrangements, rigs and
       provenance are plain text or standard formats — not a proprietary container you
-      need this app to open.</li>
+      need this app to open. A build file sealed with ⤓ is the same encrypted envelope
+      a backup uses, or plain JSON when there is no key to seal it with.</li>
   <li><strong>NØIR</strong> neutralises the interface for use in public without
       changing what is stored.</li>
-  <li><strong>The network killswitch (ᚾ)</strong> blocks the two network-capable
-      features outright.</li>
+  <li><strong>The network killswitch (ᚾ)</strong> is engaged at every launch, blocks
+      everything in section III, and is released only by your tap.</li>
+  <li><strong>Every online feature is opt-in and reversible.</strong> Feeds are switched
+      on one by one and off again from the same panel; a key can be switched off or
+      forgotten; the debrief can be turned off; PANIC removes all of it at once.</li>
   <li><strong>Delete means delete.</strong> Removing a library entry deletes its stored
       blob, not just the row.</li>
 </ul>
 
-<h2>IX. What This Protocol Does Not Cover</h2>
+<h2>X. What This Protocol Does Not Cover</h2>
 <div class="plate warn">
   <span class="k">HONEST LIMITS</span>
   <ul style="margin-bottom:0">
     <li>Files <strong>you</strong> export and share carry whatever you put in them,
         including authority fields and rig device names.</li>
-    <li>Remote execution of Rust and C++ sends your code to a third-party service with
-        its own terms.</li>
-    <li>Pyodide is fetched from a public CDN on first use, which that CDN can observe.</li>
+    <li>Once ᚾ is released, the services in section III see what any web request
+        shows: your IP address and your browser. ipify sees that each time you tap ⌖,
+        and jsDelivr when Python first loads — and, released or not, whenever Python you
+        run asks the loaded runtime for a package. The weather and alert services you
+        switch on also see your rounded location; the
+        place search sees the name you typed; OpenWeatherMap sees your key, which is
+        how it knows who is asking.</li>
+    <li>Open-Meteo's free service is licensed for non-commercial use. A commercial
+        build should use OpenWeatherMap with your own key, or Open-Meteo's paid
+        service.</li>
+    <li>The killswitch and the browser policy govern the dashboard and the frames it
+        writes. The creator tools (ØMNI_FRΛMΞ and its siblings) load from their own
+        local servers into frames of their own, and what they fetch is decided by
+        their own files, not by ᚾ.</li>
+    <li>Errors the browser reports by itself, such as an uncaught exception in the
+        developer console, are printed by the browser rather than the dashboard and are
+        not scrubbed. They stay on the device.</li>
     <li>A browser extension with page access can read anything on the page. No web
         application can defend against that, and one claiming otherwise is
         misinforming you.</li>
     <li>Local storage is not encrypted against someone with the unlocked device in
-        hand.</li>
+        hand. The key vault and the ledger are encrypted under your login, but a login
+        that a device remembers can be repeated by whoever holds that device.</li>
   </ul>
 </div>
 
